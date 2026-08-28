@@ -1,0 +1,160 @@
+.container {
+  padding: var(--space-2xl);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xl);
+}
+
+.stripeNotice {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 20px;
+  background: rgba(201, 168, 76, 0.08);
+  border: 1px solid rgba(201, 168, 76, 0.25);
+  border-radius: var(--radius-md);
+  font-size: 0.85rem;
+}
+
+.stripeNotice strong {
+  color: var(--color-gold);
+}
+
+.toast {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 20px;
+  background: rgba(74, 222, 128, 0.15);
+  border: 1px solid var(--color-success);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-primary);
+  font-size: 0.9rem;
+}
+
+.tableCard {
+  background: var(--color-dark);
+  border: 1px solid var(--color-dark-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-xl);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+.tableHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.tableTitle {
+  font-family: var(--font-heading);
+  font-size: 1.3rem;
+  font-weight: 700;
+}
+
+.badgeGold {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--color-gold);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  background: rgba(201, 168, 76, 0.1);
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+}
+
+.tableWrap {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.table th {
+  padding: 12px 14px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  border-bottom: 1px solid var(--color-dark-border);
+  background: #141414;
+}
+
+.table td {
+  padding: 14px;
+  font-size: 0.85rem;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  vertical-align: middle;
+}
+
+.subText {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+}
+
+.amountBold {
+  font-family: var(--font-heading);
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-gold);
+}
+
+.gatewayBadge {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+}
+
+.receiptCode {
+  font-family: monospace;
+  font-size: 0.75rem;
+  color: var(--color-gold-light);
+  background: rgba(201, 168, 76, 0.1);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.badgeSuccess {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--color-success);
+  background: rgba(74, 222, 128, 0.12);
+  padding: 3px 8px;
+  border-radius: var(--radius-full);
+}
+
+.badgeDue {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--color-warning);
+  background: rgba(251, 191, 36, 0.12);
+  padding: 3px 8px;
+  border-radius: var(--radius-full);
+}
+
+.recordBtn {
+  padding: 6px 12px;
+  background: rgba(201, 168, 76, 0.15);
+  border: 1px solid rgba(201, 168, 76, 0.3);
+  color: var(--color-gold);
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.recordBtn:hover {
+  background: var(--color-gold);
+  color: var(--color-black);
+}
+
+.verifiedText {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}

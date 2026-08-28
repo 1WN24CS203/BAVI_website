@@ -1,0 +1,211 @@
+.main {
+  min-height: 100vh;
+  background: var(--astryx-bg-primary);
+  padding-top: var(--navbar-height);
+}
+
+.container {
+  max-width: var(--container-max);
+  margin: 0 auto;
+  padding: 0 clamp(1rem, 4vw, 2rem);
+}
+
+/* ── Page Header ── */
+.pageHeader {
+  padding: 70px 0 40px;
+  position: relative;
+  border-bottom: 1px solid var(--astryx-border-subtle);
+  background: radial-gradient(ellipse at 50% 0%, rgba(229, 192, 123, 0.08) 0%, transparent 70%);
+}
+
+.headerBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 14px;
+  background: var(--astryx-gold-subtle);
+  border: 1px solid var(--astryx-border-gold);
+  border-radius: var(--radius-full);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--astryx-text-gold);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 16px;
+}
+
+.pageTitle {
+  font-family: var(--font-heading);
+  font-size: clamp(2.4rem, 4.5vw, 3.8rem);
+  font-weight: 700;
+  color: var(--astryx-text-primary);
+  margin-bottom: 16px;
+  line-height: 1.15;
+}
+
+.goldText {
+  background: var(--astryx-gold-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.pageSubtitle {
+  font-size: 1.05rem;
+  color: var(--astryx-text-secondary);
+  max-width: 680px;
+  margin-bottom: 36px;
+  line-height: 1.7;
+}
+
+/* ── Search & Filter ── */
+.searchFilterContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  background: var(--astryx-surface-1);
+  backdrop-filter: var(--backdrop-blur-md);
+  border: 1px solid var(--astryx-border-medium);
+  border-radius: var(--radius-lg);
+  padding: 18px 20px;
+  box-shadow: var(--shadow-subtle);
+}
+
+.searchBar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--astryx-surface-2);
+  border: 1px solid var(--astryx-border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 10px 16px;
+  transition: all var(--duration-fast) var(--ease-smooth);
+}
+
+.searchBar:focus-within {
+  border-color: var(--astryx-border-gold);
+  box-shadow: 0 0 12px rgba(229, 192, 123, 0.15);
+}
+
+.searchIcon {
+  color: var(--astryx-gold);
+  flex-shrink: 0;
+}
+
+.searchInput {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: var(--astryx-text-primary);
+  font-size: 0.92rem;
+}
+
+.searchInput::placeholder {
+  color: var(--astryx-text-muted);
+}
+
+.clearSearchBtn {
+  color: var(--astryx-text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.filterPills {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.filterIcon {
+  color: var(--astryx-gold);
+  margin-right: 4px;
+}
+
+.filterBtn {
+  padding: 6px 16px;
+  background: var(--astryx-surface-2);
+  border: 1px solid var(--astryx-border-subtle);
+  border-radius: var(--radius-full);
+  color: var(--astryx-text-secondary);
+  font-size: 0.8rem;
+  font-weight: 600;
+  transition: all var(--duration-fast) var(--ease-smooth);
+}
+
+.filterBtn:hover {
+  color: var(--astryx-text-primary);
+  border-color: var(--astryx-border-medium);
+}
+
+.filterActive {
+  background: var(--astryx-gold-gradient);
+  color: var(--astryx-text-inverse);
+  border-color: transparent;
+  box-shadow: var(--shadow-gold-sm);
+}
+
+/* ── Grid Section ── */
+.gridSection {
+  padding: 40px 0 80px;
+}
+
+.resultsInfo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 28px;
+  font-size: 0.88rem;
+  color: var(--astryx-text-muted);
+}
+
+.resultsInfo strong {
+  color: var(--astryx-gold);
+}
+
+.resetFilterBtn {
+  color: var(--astryx-gold);
+  font-size: 0.82rem;
+  text-decoration: underline;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 28px;
+}
+
+.emptyState {
+  text-align: center;
+  padding: 60px 20px;
+  background: var(--astryx-surface-1);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--astryx-border-subtle);
+}
+
+.emptyTitle {
+  font-family: var(--font-heading);
+  font-size: 1.4rem;
+  color: var(--astryx-text-primary);
+  margin-bottom: 8px;
+}
+
+.emptySubtitle {
+  color: var(--astryx-text-secondary);
+  font-size: 0.9rem;
+  margin-bottom: 20px;
+}
+
+.emptyBtn {
+  padding: 10px 20px;
+  background: var(--astryx-gold-gradient);
+  color: var(--astryx-text-inverse);
+  font-weight: 600;
+  border-radius: var(--radius-full);
+}
+
+@media (max-width: 640px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}

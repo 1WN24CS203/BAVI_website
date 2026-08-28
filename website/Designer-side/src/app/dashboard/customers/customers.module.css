@@ -1,0 +1,257 @@
+.container {
+  padding: clamp(20px, 3.5vw, 36px);
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  max-width: 1300px;
+}
+
+.controlBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.searchWrap {
+  flex: 1;
+  min-width: 280px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--astryx-surface-1);
+  border: 1px solid var(--astryx-border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 10px 16px;
+  transition: all var(--transition-fast);
+}
+
+.searchWrap:focus-within {
+  border-color: var(--astryx-border-gold);
+  box-shadow: 0 0 12px rgba(229, 192, 123, 0.15);
+}
+
+.searchIcon {
+  color: var(--astryx-gold);
+  flex-shrink: 0;
+}
+
+.searchInput {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: var(--astryx-text-primary);
+  font-size: 0.88rem;
+}
+
+.searchInput::placeholder {
+  color: var(--astryx-text-muted);
+}
+
+.addClientBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 20px;
+  background: var(--astryx-gold-gradient);
+  color: var(--astryx-text-inverse);
+  font-weight: 700;
+  font-size: 0.85rem;
+  border-radius: var(--radius-full);
+  box-shadow: var(--shadow-gold);
+  transition: all var(--transition-base);
+}
+
+.addClientBtn:hover {
+  background: var(--astryx-gold-gradient-hover);
+  transform: translateY(-2px);
+}
+
+.clientsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 24px;
+}
+
+.clientCard {
+  background: var(--astryx-surface-1);
+  backdrop-filter: blur(20px);
+  border: 1px solid var(--astryx-border-subtle);
+  border-radius: var(--radius-xl);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  transition: all var(--transition-base);
+}
+
+.clientCard:hover {
+  border-color: var(--astryx-border-gold);
+  box-shadow: var(--shadow-gold);
+  transform: translateY(-3px);
+}
+
+.cardHeader {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.clientAvatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--astryx-gold-gradient);
+  color: var(--astryx-text-inverse);
+  font-weight: 700;
+  font-size: 1.1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.clientMain {
+  flex: 1;
+}
+
+.clientName {
+  font-family: var(--font-heading);
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--astryx-text-primary);
+}
+
+.statusPill {
+  display: inline-block;
+  font-size: 0.68rem;
+  padding: 2px 8px;
+  background: var(--astryx-gold-subtle);
+  border: 1px solid var(--astryx-border-gold);
+  border-radius: var(--radius-full);
+  color: var(--astryx-gold-light);
+  font-weight: 600;
+  margin-top: 2px;
+}
+
+.projectBox {
+  background: var(--astryx-surface-2);
+  border: 1px solid var(--astryx-border-subtle);
+  border-radius: var(--radius-md);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.projectLabel {
+  font-size: 0.7rem;
+  color: var(--astryx-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.projectTitle {
+  font-weight: 700;
+  color: var(--astryx-text-primary);
+  font-size: 0.95rem;
+}
+
+.locationRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78rem;
+  color: var(--astryx-text-secondary);
+}
+
+.progressSection {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.progressHeader {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.78rem;
+  color: var(--astryx-text-secondary);
+}
+
+.progressBar {
+  height: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  background: var(--astryx-gold-gradient);
+  border-radius: var(--radius-full);
+}
+
+.financialRow {
+  display: flex;
+  justify-content: space-between;
+  padding: 12px 0;
+  border-top: 1px solid var(--astryx-border-subtle);
+  border-bottom: 1px solid var(--astryx-border-subtle);
+}
+
+.finLabel {
+  display: block;
+  font-size: 0.7rem;
+  color: var(--astryx-text-muted);
+  text-transform: uppercase;
+}
+
+.finValue {
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--astryx-text-primary);
+}
+
+.finValueGold {
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--astryx-text-gold);
+}
+
+.textRight {
+  text-align: right;
+}
+
+.contactRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.contactIconBtn {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 9px;
+  background: var(--astryx-surface-2);
+  border: 1px solid var(--astryx-border-subtle);
+  border-radius: var(--radius-sm);
+  color: var(--astryx-text-secondary);
+  font-size: 0.8rem;
+  font-weight: 600;
+  transition: all var(--transition-fast);
+}
+
+.contactIconBtn:hover {
+  border-color: var(--astryx-border-gold);
+  color: var(--astryx-gold);
+}
+
+@media (max-width: 640px) {
+  .clientsGrid {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,0 +1,299 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  max-width: 1200px;
+}
+
+.headerCard {
+  background: linear-gradient(135deg, rgba(26, 28, 38, 0.9) 0%, rgba(13, 14, 18, 0.95) 100%);
+  backdrop-filter: blur(20px);
+  border: 1px solid var(--astryx-border-gold);
+  border-radius: var(--radius-xl);
+  padding: clamp(24px, 4vw, 36px);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  box-shadow: var(--shadow-elevated);
+}
+
+.headerTop {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.badgeGold {
+  font-size: 0.72rem;
+  padding: 4px 10px;
+  background: var(--astryx-gold-subtle);
+  border: 1px solid var(--astryx-border-gold);
+  border-radius: var(--radius-full);
+  color: var(--astryx-gold-light);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  display: inline-block;
+  margin-bottom: 8px;
+}
+
+.projectTitle {
+  font-family: var(--font-heading);
+  font-size: clamp(1.6rem, 2.8vw, 2.2rem);
+  font-weight: 700;
+  color: var(--astryx-text-primary);
+  margin-bottom: 4px;
+}
+
+.projectLocation {
+  font-size: 0.88rem;
+  color: var(--astryx-text-secondary);
+}
+
+.statusBadgeBox {
+  text-align: right;
+}
+
+.statusLabel {
+  display: block;
+  font-size: 0.7rem;
+  color: var(--astryx-text-muted);
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.statusValue {
+  font-size: 0.85rem;
+  padding: 4px 12px;
+  background: var(--astryx-gold-subtle);
+  border: 1px solid var(--astryx-border-gold);
+  border-radius: var(--radius-full);
+  color: var(--astryx-gold-light);
+  font-weight: 700;
+}
+
+.projectDesc {
+  font-size: 0.92rem;
+  color: var(--astryx-text-secondary);
+  line-height: 1.7;
+}
+
+.metaRow {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--astryx-border-subtle);
+}
+
+.metaBox {
+  background: var(--astryx-surface-1);
+  border: 1px solid var(--astryx-border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 12px 16px;
+}
+
+.metaBoxLabel {
+  display: block;
+  font-size: 0.7rem;
+  color: var(--astryx-text-muted);
+  text-transform: uppercase;
+  margin-bottom: 2px;
+}
+
+.metaBoxValue {
+  font-family: var(--font-heading);
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--astryx-text-primary);
+}
+
+.metaBoxValueGold {
+  font-family: var(--font-heading);
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--astryx-text-gold);
+}
+
+/* ── Tabs ── */
+.tabsBar {
+  display: flex;
+  gap: 12px;
+  border-bottom: 1px solid var(--astryx-border-subtle);
+  padding-bottom: 12px;
+}
+
+.tabBtn {
+  padding: 8px 18px;
+  background: var(--astryx-surface-1);
+  border: 1px solid var(--astryx-border-subtle);
+  border-radius: var(--radius-full);
+  color: var(--astryx-text-secondary);
+  font-size: 0.85rem;
+  font-weight: 600;
+  transition: all var(--transition-fast);
+}
+
+.tabBtn:hover {
+  color: var(--astryx-text-primary);
+  border-color: var(--astryx-border-medium);
+}
+
+.tabBtnActive {
+  background: var(--astryx-gold-gradient);
+  color: var(--astryx-text-inverse);
+  font-weight: 700;
+  border-color: transparent;
+}
+
+/* ── Milestones Roadmap ── */
+.milestonesList {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.milestoneCard {
+  background: var(--astryx-surface-1);
+  backdrop-filter: blur(20px);
+  border: 1px solid var(--astryx-border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  transition: all var(--transition-fast);
+}
+
+.milestoneCard:hover {
+  border-color: var(--astryx-border-gold);
+}
+
+.milestoneHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.milestoneTitle {
+  font-family: var(--font-heading);
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--astryx-text-primary);
+}
+
+.milestoneBadgeSuccess {
+  font-size: 0.72rem;
+  padding: 3px 10px;
+  background: var(--astryx-success-bg);
+  border: 1px solid var(--astryx-success-border);
+  color: var(--astryx-success);
+  border-radius: var(--radius-full);
+  font-weight: 700;
+}
+
+.milestoneBadgeActive {
+  font-size: 0.72rem;
+  padding: 3px 10px;
+  background: var(--astryx-gold-subtle);
+  border: 1px solid var(--astryx-border-gold);
+  color: var(--astryx-gold-light);
+  border-radius: var(--radius-full);
+  font-weight: 700;
+}
+
+.milestoneBadgePending {
+  font-size: 0.72rem;
+  padding: 3px 10px;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--astryx-text-muted);
+  border-radius: var(--radius-full);
+}
+
+.milestoneDesc {
+  font-size: 0.88rem;
+  color: var(--astryx-text-secondary);
+  line-height: 1.6;
+}
+
+.milestoneFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 14px;
+  border-top: 1px solid var(--astryx-border-subtle);
+  font-size: 0.82rem;
+  color: var(--astryx-text-muted);
+}
+
+.milestoneAmount {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  color: var(--astryx-text-gold);
+  font-size: 0.95rem;
+}
+
+/* ── Documents Tab ── */
+.documentsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 18px;
+}
+
+.documentCard {
+  background: var(--astryx-surface-1);
+  border: 1px solid var(--astryx-border-subtle);
+  border-radius: var(--radius-md);
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  transition: all var(--transition-fast);
+}
+
+.documentCard:hover {
+  border-color: var(--astryx-border-gold);
+}
+
+.docInfo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.docIcon {
+  color: var(--astryx-gold);
+}
+
+.docName {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--astryx-text-primary);
+}
+
+.docMeta {
+  font-size: 0.75rem;
+  color: var(--astryx-text-muted);
+}
+
+.docDownloadBtn {
+  color: var(--astryx-gold);
+  padding: 8px;
+  border-radius: var(--radius-xs);
+  background: var(--astryx-surface-2);
+}
+
+@media (max-width: 640px) {
+  .headerTop {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .statusBadgeBox {
+    text-align: left;
+  }
+}

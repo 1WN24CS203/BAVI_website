@@ -1,0 +1,268 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xl);
+}
+
+/* ── Header Card ── */
+.headerCard {
+  background: linear-gradient(135deg, rgba(201, 168, 76, 0.08) 0%, rgba(26, 26, 26, 0.95) 100%);
+  border: 1px solid rgba(201, 168, 76, 0.25);
+  border-radius: var(--radius-lg);
+  padding: var(--space-2xl);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xl);
+}
+
+.headerTop {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-md);
+  flex-wrap: wrap;
+}
+
+.badgeGold {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--color-gold);
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  margin-bottom: 6px;
+}
+
+.siteAddress {
+  font-family: var(--font-heading);
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  font-weight: 700;
+}
+
+.siteCity {
+  font-size: 0.95rem;
+  color: var(--color-text-secondary);
+}
+
+.approvedPill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: rgba(74, 222, 128, 0.12);
+  border: 1px solid rgba(74, 222, 128, 0.3);
+  border-radius: var(--radius-full);
+  color: var(--color-success);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+/* ── Spatial Metrics Grid ── */
+.metricsGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-lg);
+  padding-top: var(--space-md);
+  border-top: 1px solid var(--color-dark-border);
+}
+
+.metricBox {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: rgba(10, 10, 10, 0.4);
+  padding: 14px 18px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-dark-border);
+}
+
+.metricIconWrap {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-sm);
+  background: rgba(201, 168, 76, 0.1);
+  color: var(--color-gold);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.metricLabel {
+  display: block;
+  font-size: 0.7rem;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.metricValue {
+  font-family: var(--font-heading);
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+/* ── Details Grid ── */
+.detailsGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-xl);
+}
+
+.card {
+  background: var(--color-dark);
+  border: 1px solid var(--color-dark-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-2xl);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+.cardHeader {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.cardIcon {
+  color: var(--color-gold);
+}
+
+.cardTitle {
+  font-family: var(--font-heading);
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+/* ── Checklist ── */
+.checklist {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.checkItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 14px;
+  background: rgba(10, 10, 10, 0.4);
+  border: 1px solid var(--color-dark-border);
+  border-radius: var(--radius-sm);
+}
+
+.checkDone {
+  color: var(--color-success);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.checkContent {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 0.85rem;
+}
+
+.checkContent strong {
+  color: var(--color-text-primary);
+}
+
+.checkContent span {
+  color: var(--color-text-secondary);
+  font-size: 0.8rem;
+}
+
+/* ── Utilities ── */
+.utilitiesList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.utilityItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 14px;
+  background: rgba(10, 10, 10, 0.4);
+  border: 1px solid var(--color-dark-border);
+  border-radius: var(--radius-sm);
+}
+
+.utilityIconWrap {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(201, 168, 76, 0.1);
+  color: var(--color-gold);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.utilityText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.utilityLabel {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.utilityVal {
+  font-size: 0.85rem;
+  color: var(--color-text-primary);
+  font-weight: 500;
+}
+
+/* ── Notes Card ── */
+.notesCard {
+  background: rgba(201, 168, 76, 0.05);
+  border: 1px dashed rgba(201, 168, 76, 0.3);
+  border-radius: var(--radius-md);
+  padding: var(--space-xl);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.notesHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.notesIcon {
+  color: var(--color-gold);
+}
+
+.notesTitle {
+  font-family: var(--font-heading);
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--color-gold);
+}
+
+.notesBody {
+  font-size: 0.9rem;
+  color: var(--color-text-secondary);
+  line-height: 1.6;
+}
+
+/* ── Responsive ── */
+@media (max-width: 1024px) {
+  .metricsGrid {
+    grid-template-columns: 1fr;
+  }
+  .detailsGrid {
+    grid-template-columns: 1fr;
+  }
+}

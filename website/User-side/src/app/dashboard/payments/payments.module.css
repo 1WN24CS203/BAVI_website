@@ -1,0 +1,172 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  max-width: 1200px;
+}
+
+.financialSummaryCard {
+  background: linear-gradient(135deg, rgba(26, 28, 38, 0.9) 0%, rgba(13, 14, 18, 0.95) 100%);
+  backdrop-filter: blur(20px);
+  border: 1px solid var(--astryx-border-gold);
+  border-radius: var(--radius-xl);
+  padding: clamp(24px, 4vw, 36px);
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+  box-shadow: var(--shadow-elevated);
+}
+
+.summaryBox {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.summaryLabel {
+  font-size: 0.72rem;
+  color: var(--astryx-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+}
+
+.summaryValue {
+  font-family: var(--font-heading);
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--astryx-text-primary);
+}
+
+.summaryValueGold {
+  font-family: var(--font-heading);
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--astryx-text-gold);
+}
+
+.milestonesContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.milestoneCard {
+  background: var(--astryx-surface-1);
+  backdrop-filter: blur(20px);
+  border: 1px solid var(--astryx-border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 24px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  transition: all var(--transition-fast);
+}
+
+.milestoneCard:hover {
+  border-color: var(--astryx-border-gold);
+}
+
+.milestoneTop {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.milestoneTitle {
+  font-family: var(--font-heading);
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--astryx-text-primary);
+  margin-bottom: 4px;
+}
+
+.milestoneDesc {
+  font-size: 0.86rem;
+  color: var(--astryx-text-secondary);
+}
+
+.statusCompleted {
+  font-size: 0.7rem;
+  padding: 3px 10px;
+  background: var(--astryx-success-bg);
+  border: 1px solid var(--astryx-success-border);
+  color: var(--astryx-success);
+  border-radius: var(--radius-full);
+  font-weight: 700;
+}
+
+.statusDue {
+  font-size: 0.7rem;
+  padding: 3px 10px;
+  background: var(--astryx-gold-subtle);
+  border: 1px solid var(--astryx-border-gold);
+  color: var(--astryx-gold-light);
+  border-radius: var(--radius-full);
+  font-weight: 700;
+}
+
+.statusPending {
+  font-size: 0.7rem;
+  padding: 3px 10px;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--astryx-text-muted);
+  border-radius: var(--radius-full);
+}
+
+.milestoneBottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 14px;
+  border-top: 1px solid var(--astryx-border-subtle);
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.amountBox {
+  font-family: var(--font-heading);
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--astryx-text-gold);
+}
+
+.payNowBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: var(--astryx-gold-gradient);
+  color: var(--astryx-text-inverse);
+  font-weight: 700;
+  font-size: 0.85rem;
+  border-radius: var(--radius-full);
+  box-shadow: var(--shadow-gold-sm);
+  transition: all var(--transition-base);
+}
+
+.payNowBtn:hover {
+  background: var(--astryx-gold-gradient-hover);
+  box-shadow: var(--shadow-gold-lg);
+  transform: translateY(-2px);
+}
+
+.receiptBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: var(--astryx-surface-2);
+  border: 1px solid var(--astryx-border-subtle);
+  border-radius: var(--radius-sm);
+  color: var(--astryx-text-primary);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.receiptBtn:hover {
+  border-color: var(--astryx-border-gold);
+  color: var(--astryx-gold);
+}

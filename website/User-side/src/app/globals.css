@@ -1,0 +1,248 @@
+/* ============================================
+   BAVI — Bahubali Builders & Visionary Interiors
+   Asterisk (Astryx) Global Design System
+   ============================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,500;0,600;0,700;0,800;1,500;1,600&family=JetBrains+Mono:wght@400;500&display=swap');
+
+/* ── Astryx Token System ── */
+:root {
+  /* Brand Core */
+  --astryx-bg-primary: #070709;
+  --astryx-bg-secondary: #0d0e12;
+  --astryx-bg-tertiary: #13141a;
+  
+  /* Astryx Obsidian Glass Surfaces */
+  --astryx-surface-1: rgba(18, 19, 26, 0.7);
+  --astryx-surface-2: rgba(26, 28, 38, 0.75);
+  --astryx-surface-3: rgba(35, 38, 52, 0.8);
+  --astryx-surface-hover: rgba(45, 49, 66, 0.65);
+  --astryx-surface-active: rgba(55, 60, 80, 0.85);
+  --astryx-surface-overlay: rgba(7, 7, 9, 0.85);
+
+  /* Astryx Subtle Borders */
+  --astryx-border-subtle: rgba(255, 255, 255, 0.08);
+  --astryx-border-medium: rgba(255, 255, 255, 0.14);
+  --astryx-border-gold: rgba(229, 192, 123, 0.28);
+  --astryx-border-gold-glow: rgba(229, 192, 123, 0.55);
+
+  /* Astryx Gold / Champagne Luxury Accent */
+  --astryx-gold: #e5c07b;
+  --astryx-gold-light: #f5e2b3;
+  --astryx-gold-dark: #b89345;
+  --astryx-gold-subtle: rgba(229, 192, 123, 0.12);
+  --astryx-gold-glow: rgba(229, 192, 123, 0.35);
+  --astryx-gold-gradient: linear-gradient(135deg, #f7e6be 0%, #e5c07b 50%, #af8938 100%);
+  --astryx-gold-gradient-hover: linear-gradient(135deg, #fff1d2 0%, #edd08e 50%, #bf9944 100%);
+
+  /* Astryx High Contrast Text */
+  --astryx-text-primary: #f8fafc;
+  --astryx-text-secondary: #94a3b8;
+  --astryx-text-muted: #64748b;
+  --astryx-text-inverse: #070709;
+  --astryx-text-gold: #f3d79b;
+
+  /* Astryx Functional Status */
+  --astryx-success: #10b981;
+  --astryx-success-bg: rgba(16, 185, 129, 0.14);
+  --astryx-success-border: rgba(16, 185, 129, 0.3);
+
+  --astryx-warning: #f59e0b;
+  --astryx-warning-bg: rgba(245, 158, 11, 0.14);
+  --astryx-warning-border: rgba(245, 158, 11, 0.3);
+
+  --astryx-error: #ef4444;
+  --astryx-error-bg: rgba(239, 68, 68, 0.14);
+  --astryx-error-border: rgba(239, 68, 68, 0.3);
+
+  --astryx-info: #38bdf8;
+  --astryx-info-bg: rgba(56, 189, 248, 0.14);
+  --astryx-info-border: rgba(56, 189, 248, 0.3);
+
+  /* Legacy Mapping for full backward compatibility */
+  --color-black: var(--astryx-bg-primary);
+  --color-black-light: var(--astryx-bg-secondary);
+  --color-dark: #12131a;
+  --color-dark-elevated: #1a1c26;
+  --color-dark-surface: #232634;
+  --color-dark-border: var(--astryx-border-subtle);
+  --color-gold: var(--astryx-gold);
+  --color-gold-light: var(--astryx-gold-light);
+  --color-gold-dark: var(--astryx-gold-dark);
+  --color-gold-muted: var(--astryx-gold-subtle);
+  --color-text-primary: var(--astryx-text-primary);
+  --color-text-secondary: var(--astryx-text-secondary);
+  --color-text-muted: var(--astryx-text-muted);
+  --color-text-on-gold: var(--astryx-text-inverse);
+  --color-success: var(--astryx-success);
+  --color-warning: var(--astryx-warning);
+  --color-error: var(--astryx-error);
+  --color-info: var(--astryx-info);
+
+  /* Typography */
+  --font-heading: 'Playfair Display', Georgia, serif;
+  --font-body: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  /* Astryx Spacing Tokens */
+  --space-2xs: 0.25rem;
+  --space-xs: 0.5rem;
+  --space-sm: 0.75rem;
+  --space-md: 1rem;
+  --space-lg: 1.5rem;
+  --space-xl: 2rem;
+  --space-2xl: 3rem;
+  --space-3xl: 4.5rem;
+  --space-4xl: 6rem;
+
+  /* Astryx Radii */
+  --radius-xs: 6px;
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
+  --radius-full: 9999px;
+
+  /* Astryx Shadows & Glows */
+  --shadow-subtle: 0 4px 20px rgba(0, 0, 0, 0.35);
+  --shadow-elevated: 0 12px 36px rgba(0, 0, 0, 0.5);
+  --shadow-floating: 0 24px 60px rgba(0, 0, 0, 0.7);
+  --shadow-gold: 0 4px 18px rgba(229, 192, 123, 0.18);
+  --shadow-gold-lg: 0 12px 40px rgba(229, 192, 123, 0.28);
+  --shadow-gold-glow: 0 0 25px rgba(229, 192, 123, 0.35);
+
+  /* Blur & Glassmorphism */
+  --backdrop-blur-sm: blur(12px);
+  --backdrop-blur-md: blur(20px);
+  --backdrop-blur-lg: blur(32px);
+
+  /* Transitions */
+  --ease-spring: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+  --duration-fast: 180ms;
+  --duration-base: 280ms;
+  --duration-slow: 450ms;
+  --transition-fast: 180ms cubic-bezier(0.16, 1, 0.3, 1);
+  --transition-base: 280ms cubic-bezier(0.16, 1, 0.3, 1);
+  --transition-slow: 450ms cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* Layout Containers */
+  --container-max: 1280px;
+  --container-wide: 1440px;
+  --max-width: 1280px;
+  --navbar-height: 80px;
+  --navbar-height-mobile: 68px;
+}
+
+/* ── Reset & Defaults ── */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-size-adjust: 100%;
+}
+
+body {
+  font-family: var(--font-body);
+  background-color: var(--astryx-bg-primary);
+  color: var(--astryx-text-primary);
+  line-height: 1.6;
+  min-height: 100vh;
+  overflow-x: hidden;
+  position: relative;
+  background-image: 
+    radial-gradient(ellipse at 50% 0%, rgba(229, 192, 123, 0.05) 0%, transparent 60%),
+    radial-gradient(ellipse at 90% 50%, rgba(56, 189, 248, 0.03) 0%, transparent 50%);
+  background-attachment: fixed;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+button {
+  cursor: pointer;
+  border: none;
+  background: none;
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+  touch-action: manipulation;
+}
+
+input, textarea, select {
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+  outline: none;
+}
+
+ul, ol {
+  list-style: none;
+}
+
+/* ── Astryx Typography ── */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--astryx-text-primary);
+  letter-spacing: -0.01em;
+}
+
+h1 {
+  font-size: clamp(2.25rem, 5vw + 0.5rem, 4.25rem);
+  font-weight: 700;
+}
+
+h2 {
+  font-size: clamp(1.75rem, 3.5vw + 0.5rem, 3rem);
+}
+
+h3 {
+  font-size: clamp(1.35rem, 2.5vw + 0.2rem, 2rem);
+}
+
+h4 {
+  font-size: clamp(1.15rem, 1.8vw + 0.1rem, 1.45rem);
+}
+
+p {
+  color: var(--astryx-text-secondary);
+  font-size: 1rem;
+  line-height: 1.7;
+}
+
+/* ── Custom Scrollbars ── */
+::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--astryx-bg-primary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--astryx-surface-3);
+  border-radius: var(--radius-full);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--astryx-gold);
+}

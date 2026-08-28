@@ -1,0 +1,238 @@
+.container {
+  padding: clamp(20px, 3.5vw, 36px);
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  max-width: 1300px;
+}
+
+.toast {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 20px;
+  background: var(--astryx-success-bg);
+  border: 1px solid var(--astryx-success-border);
+  border-radius: var(--radius-sm);
+  color: var(--astryx-success);
+  font-size: 0.88rem;
+  font-weight: 600;
+  animation: floatSlow 0.3s ease-out;
+}
+
+.projectsList {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.projectCard {
+  background: var(--astryx-surface-1);
+  backdrop-filter: blur(20px);
+  border: 1px solid var(--astryx-border-subtle);
+  border-radius: var(--radius-xl);
+  padding: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  transition: all var(--transition-base);
+}
+
+.projectCard:hover {
+  border-color: var(--astryx-border-gold);
+}
+
+.cardHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.badgeGold {
+  font-size: 0.72rem;
+  padding: 4px 10px;
+  background: var(--astryx-gold-subtle);
+  border: 1px solid var(--astryx-border-gold);
+  border-radius: var(--radius-full);
+  color: var(--astryx-gold-light);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  display: inline-block;
+  margin-bottom: 8px;
+}
+
+.projectTitle {
+  font-family: var(--font-heading);
+  font-size: 1.45rem;
+  font-weight: 700;
+  color: var(--astryx-text-primary);
+  margin-bottom: 4px;
+}
+
+.projectLocation {
+  font-size: 0.85rem;
+  color: var(--astryx-text-secondary);
+}
+
+.projectLocation strong {
+  color: var(--astryx-gold);
+}
+
+.progressBox {
+  text-align: right;
+}
+
+.progressNum {
+  font-family: var(--font-heading);
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--astryx-gold);
+  display: block;
+  line-height: 1;
+}
+
+.progressLabel {
+  font-size: 0.7rem;
+  color: var(--astryx-text-muted);
+  text-transform: uppercase;
+}
+
+.progressBar {
+  height: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  background: var(--astryx-gold-gradient);
+  border-radius: var(--radius-full);
+  transition: width 0.5s ease;
+}
+
+.stagesSection {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.stagesTitle {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--astryx-text-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.stagesGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.stageCard {
+  background: var(--astryx-surface-2);
+  border: 1px solid var(--astryx-border-subtle);
+  border-radius: var(--radius-md);
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  transition: all var(--transition-fast);
+}
+
+.stageCompleted {
+  border-color: rgba(16, 185, 129, 0.35);
+  background: rgba(16, 185, 129, 0.05);
+}
+
+.stageActive {
+  border-color: var(--astryx-border-gold);
+  background: var(--astryx-gold-subtle);
+}
+
+.stageTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.stageIndex {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--astryx-gold);
+}
+
+.badgeSuccess {
+  font-size: 0.65rem;
+  padding: 2px 6px;
+  background: var(--astryx-success-bg);
+  border: 1px solid var(--astryx-success-border);
+  color: var(--astryx-success);
+  border-radius: var(--radius-full);
+  font-weight: 700;
+}
+
+.badgeActive {
+  font-size: 0.65rem;
+  padding: 2px 6px;
+  background: var(--astryx-gold-subtle);
+  border: 1px solid var(--astryx-border-gold);
+  color: var(--astryx-gold-light);
+  border-radius: var(--radius-full);
+  font-weight: 700;
+}
+
+.badgePending {
+  font-size: 0.65rem;
+  padding: 2px 6px;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--astryx-text-muted);
+  border-radius: var(--radius-full);
+}
+
+.stageName {
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: var(--astryx-text-primary);
+  line-height: 1.4;
+  flex: 1;
+}
+
+.approveBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background: var(--astryx-gold-gradient);
+  color: var(--astryx-text-inverse);
+  font-weight: 700;
+  font-size: 0.74rem;
+  border-radius: var(--radius-xs);
+  transition: all var(--transition-fast);
+}
+
+.approveBtn:hover {
+  background: var(--astryx-gold-gradient-hover);
+  transform: translateY(-1px);
+}
+
+.verifiedMeta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.74rem;
+  color: var(--astryx-success);
+  font-weight: 600;
+}
+
+.waitingNote {
+  font-size: 0.72rem;
+  color: var(--astryx-text-muted);
+  font-style: italic;
+}

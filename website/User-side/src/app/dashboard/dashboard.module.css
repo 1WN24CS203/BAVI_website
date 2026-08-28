@@ -1,0 +1,404 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  max-width: 1200px;
+}
+
+/* ── Welcome Banner ── */
+.welcomeBanner {
+  background: linear-gradient(135deg, rgba(26, 28, 38, 0.9) 0%, rgba(13, 14, 18, 0.95) 100%);
+  backdrop-filter: var(--backdrop-blur-md);
+  border: 1px solid var(--astryx-border-gold);
+  border-radius: var(--radius-xl);
+  padding: clamp(24px, 4vw, 36px);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  flex-wrap: wrap;
+  box-shadow: var(--shadow-elevated);
+}
+
+.welcomeText {
+  max-width: 620px;
+}
+
+.welcomeTag {
+  font-size: 0.72rem;
+  color: var(--astryx-gold);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 700;
+  display: inline-block;
+  margin-bottom: 6px;
+}
+
+.welcomeTitle {
+  font-family: var(--font-heading);
+  font-size: clamp(1.6rem, 2.5vw, 2.2rem);
+  font-weight: 700;
+  color: var(--astryx-text-primary);
+  margin-bottom: 8px;
+}
+
+.goldText {
+  background: var(--astryx-gold-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.welcomeDesc {
+  font-size: 0.94rem;
+  color: var(--astryx-text-secondary);
+  line-height: 1.6;
+}
+
+.projectName {
+  color: var(--astryx-text-primary);
+}
+
+.goldProgress {
+  color: var(--astryx-gold);
+  font-weight: 700;
+}
+
+.quickActions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.primaryActionBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 20px;
+  background: var(--astryx-gold-gradient);
+  color: var(--astryx-text-inverse);
+  font-weight: 700;
+  font-size: 0.88rem;
+  border-radius: var(--radius-full);
+  box-shadow: var(--shadow-gold-sm);
+  transition: all var(--duration-base) var(--ease-spring);
+}
+
+.primaryActionBtn:hover {
+  background: var(--astryx-gold-gradient-hover);
+  box-shadow: var(--shadow-gold-lg);
+  transform: translateY(-2px);
+}
+
+.secondaryActionBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 18px;
+  background: var(--astryx-surface-1);
+  border: 1px solid var(--astryx-border-medium);
+  color: var(--astryx-text-primary);
+  font-weight: 600;
+  font-size: 0.88rem;
+  border-radius: var(--radius-full);
+  transition: all var(--duration-base) var(--ease-spring);
+}
+
+.secondaryActionBtn:hover {
+  border-color: var(--astryx-border-gold);
+  color: var(--astryx-gold);
+  transform: translateY(-2px);
+}
+
+/* ── Metrics Grid ── */
+.metricsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 20px;
+}
+
+.metricCard {
+  background: var(--astryx-surface-1);
+  backdrop-filter: var(--backdrop-blur-md);
+  border: 1px solid var(--astryx-border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 22px 24px;
+  display: flex;
+  flex-direction: column;
+  transition: all var(--duration-base) var(--ease-spring);
+}
+
+.metricCard:hover {
+  border-color: var(--astryx-border-gold);
+  box-shadow: var(--shadow-gold-sm);
+  transform: translateY(-3px);
+}
+
+.metricHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.metricLabel {
+  font-size: 0.78rem;
+  color: var(--astryx-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 600;
+}
+
+.metricIcon {
+  color: var(--astryx-gold);
+}
+
+.progressRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.metricValue {
+  font-family: var(--font-heading);
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: var(--astryx-text-primary);
+}
+
+.metricValueGold {
+  font-family: var(--font-heading);
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: var(--astryx-text-gold);
+}
+
+.badgeSuccess {
+  font-size: 0.7rem;
+  padding: 3px 8px;
+  background: var(--astryx-success-bg);
+  border: 1px solid var(--astryx-success-border);
+  color: var(--astryx-success);
+  border-radius: var(--radius-full);
+  font-weight: 600;
+}
+
+.badgePending {
+  font-size: 0.7rem;
+  padding: 3px 8px;
+  background: var(--astryx-warning-bg);
+  border: 1px solid var(--astryx-warning-border);
+  color: var(--astryx-warning);
+  border-radius: var(--radius-full);
+  font-weight: 600;
+}
+
+.progressBar {
+  height: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  background: var(--astryx-gold-gradient);
+  border-radius: var(--radius-full);
+}
+
+.metricSubtext {
+  font-size: 0.76rem;
+  color: var(--astryx-text-muted);
+  margin-top: 8px;
+}
+
+/* ── Content Grid ── */
+.dashboardSplitGrid {
+  display: grid;
+  grid-template-columns: 1.3fr 0.7fr;
+  gap: 24px;
+}
+
+/* ── Milestone Timeline Card ── */
+.cardSection {
+  background: var(--astryx-surface-1);
+  backdrop-filter: var(--backdrop-blur-md);
+  border: 1px solid var(--astryx-border-subtle);
+  border-radius: var(--radius-xl);
+  padding: 28px;
+}
+
+.cardSectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--astryx-border-subtle);
+}
+
+.sectionHeading {
+  font-family: var(--font-heading);
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--astryx-text-primary);
+}
+
+.viewAllLink {
+  font-size: 0.8rem;
+  color: var(--astryx-gold);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 600;
+}
+
+.timelineList {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.timelineItem {
+  display: flex;
+  gap: 16px;
+}
+
+.timelineMarker {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.markerCircle {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--astryx-surface-2);
+  border: 2px solid var(--astryx-border-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--astryx-text-muted);
+}
+
+.markerDone {
+  background: var(--astryx-success);
+  border-color: var(--astryx-success);
+  color: var(--astryx-text-inverse);
+}
+
+.markerActive {
+  background: var(--astryx-gold);
+  border-color: var(--astryx-gold);
+  color: var(--astryx-text-inverse);
+  box-shadow: 0 0 10px var(--astryx-gold);
+}
+
+.markerLine {
+  width: 2px;
+  flex: 1;
+  background: var(--astryx-border-subtle);
+  margin-top: 6px;
+}
+
+.timelineContent {
+  flex: 1;
+  padding-bottom: 10px;
+}
+
+.timelineTitle {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--astryx-text-primary);
+  margin-bottom: 4px;
+}
+
+.timelineMeta {
+  font-size: 0.8rem;
+  color: var(--astryx-text-muted);
+}
+
+/* ── Live Site Card ── */
+.sitePreviewCard {
+  background: var(--astryx-surface-1);
+  border: 1px solid var(--astryx-border-subtle);
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.siteImageWrap {
+  position: relative;
+  height: 180px;
+  background: url('https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=600&q=80') center/cover;
+}
+
+.liveTag {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background: rgba(239, 68, 68, 0.85);
+  border-radius: var(--radius-full);
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #fff;
+  text-transform: uppercase;
+}
+
+.liveDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #fff;
+  animation: pulseGlow 1.5s infinite;
+}
+
+.siteCardBody {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.siteLocationTitle {
+  font-weight: 700;
+  color: var(--astryx-text-primary);
+  font-size: 0.95rem;
+}
+
+.siteAddressText {
+  font-size: 0.8rem;
+  color: var(--astryx-text-secondary);
+}
+
+.siteDetailsBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px;
+  background: var(--astryx-surface-2);
+  border: 1px solid var(--astryx-border-medium);
+  border-radius: var(--radius-sm);
+  color: var(--astryx-text-primary);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.siteDetailsBtn:hover {
+  border-color: var(--astryx-border-gold);
+  color: var(--astryx-gold);
+}
+
+@media (max-width: 1024px) {
+  .dashboardSplitGrid {
+    grid-template-columns: 1fr;
+  }
+}

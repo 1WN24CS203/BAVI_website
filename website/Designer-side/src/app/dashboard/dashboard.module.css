@@ -1,0 +1,343 @@
+.container {
+  padding: clamp(20px, 3.5vw, 36px);
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  max-width: 1300px;
+}
+
+/* ── Metric Cards Grid ── */
+.metricsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 20px;
+}
+
+.metricCard {
+  background: var(--astryx-surface-1);
+  backdrop-filter: blur(20px);
+  border: 1px solid var(--astryx-border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 22px 24px;
+  display: flex;
+  flex-direction: column;
+  transition: all var(--transition-base);
+}
+
+.metricCard:hover {
+  border-color: var(--astryx-border-gold);
+  box-shadow: var(--shadow-gold);
+  transform: translateY(-3px);
+}
+
+.metricTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.metricLabel {
+  font-size: 0.76rem;
+  color: var(--astryx-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+}
+
+.metricIcon {
+  color: var(--astryx-gold);
+}
+
+.metricValue {
+  font-family: var(--font-heading);
+  font-size: 1.85rem;
+  font-weight: 700;
+  color: var(--astryx-text-primary);
+  line-height: 1.1;
+}
+
+.metricValueGold {
+  font-family: var(--font-heading);
+  font-size: 1.85rem;
+  font-weight: 700;
+  color: var(--astryx-text-gold);
+  line-height: 1.1;
+}
+
+.metricSub {
+  font-size: 0.75rem;
+  color: var(--astryx-text-secondary);
+  margin-top: 8px;
+}
+
+/* ── Action Banner ── */
+.actionBanner {
+  background: linear-gradient(135deg, rgba(26, 28, 38, 0.9) 0%, rgba(13, 14, 18, 0.95) 100%);
+  border: 1px solid var(--astryx-border-gold);
+  border-radius: var(--radius-xl);
+  padding: 24px 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.actionBannerText {
+  max-width: 500px;
+}
+
+.actionBannerTag {
+  font-size: 0.7rem;
+  color: var(--astryx-gold);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 700;
+}
+
+.actionBannerTitle {
+  font-family: var(--font-heading);
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--astryx-text-primary);
+  margin-top: 4px;
+}
+
+.actionBtnGroup {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.primaryActionBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  background: var(--astryx-gold-gradient);
+  color: var(--astryx-text-inverse);
+  font-weight: 700;
+  font-size: 0.85rem;
+  border-radius: var(--radius-full);
+  box-shadow: var(--shadow-gold);
+  transition: all var(--transition-base);
+}
+
+.primaryActionBtn:hover {
+  background: var(--astryx-gold-gradient-hover);
+  transform: translateY(-2px);
+}
+
+.secondaryActionBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: var(--astryx-surface-1);
+  border: 1px solid var(--astryx-border-medium);
+  border-radius: var(--radius-full);
+  color: var(--astryx-text-primary);
+  font-size: 0.85rem;
+  font-weight: 600;
+  transition: all var(--transition-base);
+}
+
+.secondaryActionBtn:hover {
+  border-color: var(--astryx-border-gold);
+  color: var(--astryx-gold);
+  transform: translateY(-2px);
+}
+
+/* ── Split Grid ── */
+.splitGrid {
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr;
+  gap: 24px;
+}
+
+.cardSection {
+  background: var(--astryx-surface-1);
+  backdrop-filter: blur(20px);
+  border: 1px solid var(--astryx-border-subtle);
+  border-radius: var(--radius-xl);
+  padding: 24px 28px;
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--astryx-border-subtle);
+  margin-bottom: 20px;
+}
+
+.sectionTitle {
+  font-family: var(--font-heading);
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--astryx-text-primary);
+}
+
+.viewAllLink {
+  font-size: 0.8rem;
+  color: var(--astryx-gold);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 600;
+}
+
+/* ── Activities ── */
+.activityList {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.activityItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 14px 16px;
+  background: var(--astryx-surface-2);
+  border: 1px solid var(--astryx-border-subtle);
+  border-radius: var(--radius-md);
+  transition: all var(--transition-fast);
+}
+
+.activityItem:hover {
+  border-color: var(--astryx-border-gold);
+}
+
+.activityIconWrap {
+  margin-top: 2px;
+}
+
+.iconSuccess {
+  color: var(--astryx-success);
+}
+
+.iconPending {
+  color: var(--astryx-warning);
+}
+
+.activityContent {
+  flex: 1;
+}
+
+.activityClientRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 2px;
+}
+
+.clientName {
+  font-weight: 700;
+  color: var(--astryx-text-primary);
+  font-size: 0.88rem;
+}
+
+.activityTime {
+  font-size: 0.72rem;
+  color: var(--astryx-text-muted);
+}
+
+.activityProject {
+  font-size: 0.78rem;
+  color: var(--astryx-gold);
+  font-weight: 600;
+}
+
+.activityActionText {
+  font-size: 0.8rem;
+  color: var(--astryx-text-secondary);
+  margin-top: 4px;
+}
+
+.activityAmount {
+  font-family: var(--font-heading);
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--astryx-text-gold);
+}
+
+/* ── Projects List ── */
+.projectList {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.projectCardItem {
+  background: var(--astryx-surface-2);
+  border: 1px solid var(--astryx-border-subtle);
+  border-radius: var(--radius-md);
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.projectItemHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.projectItemTitle {
+  font-family: var(--font-heading);
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--astryx-text-primary);
+}
+
+.statusPill {
+  font-size: 0.7rem;
+  padding: 3px 8px;
+  background: var(--astryx-gold-subtle);
+  border: 1px solid var(--astryx-border-gold);
+  border-radius: var(--radius-full);
+  color: var(--astryx-gold-light);
+  font-weight: 600;
+}
+
+.projectItemClient {
+  font-size: 0.78rem;
+  color: var(--astryx-text-secondary);
+}
+
+.progressBar {
+  height: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  background: var(--astryx-gold-gradient);
+  border-radius: var(--radius-full);
+}
+
+.projectItemNext {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.76rem;
+  color: var(--astryx-text-muted);
+}
+
+.itemAction {
+  color: var(--astryx-gold);
+  font-weight: 700;
+}
+
+@media (max-width: 1024px) {
+  .splitGrid {
+    grid-template-columns: 1fr;
+  }
+}
