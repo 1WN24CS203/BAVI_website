@@ -10,7 +10,8 @@ import {
   KeyRound, 
   Save, 
   CheckCircle2,
-  Building
+  Building,
+  MapPin
 } from 'lucide-react';
 import { useDesignerAuth } from '@/context/AuthContext';
 import DesignerHeader from '@/components/Header';
@@ -21,10 +22,10 @@ export default function DesignerProfilePage() {
 
   const [formData, setFormData] = useState({
     full_name: designer?.full_name || 'Arun Bahubali',
-    email: designer?.email || 'arun.designer@bavi.in',
-    phone: designer?.phone || '+91 98450 12345',
-    specialization: designer?.specialization || 'Principal Architect & Luxury Villa Specialist',
-    bio: designer?.bio || 'Over 14 years shaping iconic luxury residential structures and villas in Karnataka.',
+    email: designer?.email || 'Interiorsbavi@gmail.com',
+    phone: designer?.phone || '8277762487',
+    specialization: designer?.specialization || 'Principal Architect & Visionary Interiors',
+    bio: designer?.bio || '! WE BOND YOUR SPACE WITH BAHUBALI GRACE !',
   });
 
   const [saved, setSaved] = useState(false);
@@ -93,7 +94,7 @@ export default function DesignerProfilePage() {
               </div>
 
               <div className={styles.formGroup}>
-                <label className={styles.formLabel}>Direct Mobile / WhatsApp</label>
+                <label className={styles.formLabel}>Primary Mobile Number</label>
                 <input 
                   type="tel" 
                   value={formData.phone}
@@ -113,7 +114,7 @@ export default function DesignerProfilePage() {
               </div>
 
               <div className={styles.formGroup}>
-                <label className={styles.formLabel}>Professional Biography</label>
+                <label className={styles.formLabel}>Studio Motto & Bio</label>
                 <textarea 
                   rows={3}
                   value={formData.bio}
@@ -129,7 +130,7 @@ export default function DesignerProfilePage() {
             </form>
           </div>
 
-          {/* Security & Authorization Details */}
+          {/* Security & Official Address Details */}
           <div className={styles.sideCol}>
             <div className={styles.card}>
               <div className={styles.cardHeader}>
@@ -137,7 +138,7 @@ export default function DesignerProfilePage() {
                 <h3 className={styles.cardTitle}>Authorization Token</h3>
               </div>
               <p className={styles.securityText}>
-                Your company code is your exclusive authorization key for validating architectural blueprints and releasing escrow funds.
+                Your company code is your exclusive authorization key for validating architectural blueprints and verifying milestone clearance.
               </p>
               <div className={styles.tokenBox}>
                 <span className={styles.tokenLabel}>Verified Security Code:</span>
@@ -148,11 +149,15 @@ export default function DesignerProfilePage() {
             <div className={styles.card}>
               <div className={styles.cardHeader}>
                 <Building size={20} color="var(--color-gold)" />
-                <h3 className={styles.cardTitle}>BAVI Company Office</h3>
+                <h3 className={styles.cardTitle}>Official Studio Office</h3>
               </div>
               <p className={styles.securityText}>
-                Bahubali Builders & Visionary Interiors HQ<br />
-                HAL 2nd Stage, Indiranagar, Bengaluru, Karnataka 560038
+                <strong>BAVI INTERIORS</strong><br />
+                Bahubali Builders & Visionary Interiors<br />
+                GURU Bhavana Backside, Ambikanagar, BM Road,<br />
+                CHANNARAYAPATNA<br /><br />
+                📞 Phone: 8277762487, 8660562173<br />
+                ✉️ Email: Interiorsbavi@gmail.com
               </p>
             </div>
           </div>

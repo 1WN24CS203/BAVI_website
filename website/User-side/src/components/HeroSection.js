@@ -153,9 +153,9 @@ export default function HeroSection() {
             </h1>
 
             <p className={styles.subtext}>
-              Transforming structural blueprints into living environments. 
-              We blend engineering precision, sustainable stone craftsmanship, and custom 
-              finishes for discerning homeowners and commercial spaces.
+              <strong>! WE BOND YOUR SPACE WITH BAHUBALI GRACE !</strong><br />
+              Transforming structural blueprints into living environments with engineering precision, 
+              custom millwork, and turnkey execution across Karnataka.
             </p>
 
             {/* Action Buttons */}

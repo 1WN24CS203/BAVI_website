@@ -24,7 +24,7 @@ export default function ContactPage() {
     email: '',
     phone: '',
     projectType: 'Luxury Villa Architecture',
-    budget: '₹2 Cr - ₹5 Cr',
+    budget: 'Flexible / Turnkey',
     location: '',
     message: '',
   });
@@ -49,14 +49,14 @@ export default function ContactPage() {
           <div className={styles.container}>
             <div className={styles.badge}>
               <Sparkles size={13} />
-              <span>Architectural Commission Inquiries</span>
+              <span>BAVI INTERIORS • Inquiry Concierge</span>
             </div>
             <h1 className={styles.title}>
               Schedule Your Private <span className={styles.goldText}>Design Consultation</span>
             </h1>
             <p className={styles.subtitle}>
-              Connect directly with Principal Architect Arun Bahubali to review plot feasibility, 
-              budget architecture, and master planning.
+              ! WE BOND YOUR SPACE WITH BAHUBALI GRACE !<br />
+              Connect with our master architects to review plot feasibility, structural blueprints, and custom interior execution.
             </p>
           </div>
         </section>
@@ -65,14 +65,14 @@ export default function ContactPage() {
         <section className={styles.contentSection}>
           <div className={styles.container}>
             <div className={styles.grid}>
-              {/* Left Column: Contact Cards */}
+              {/* Left Column: Official Contact Cards */}
               <div className={styles.infoCol}>
                 <div className={styles.conciergeCard}>
                   <div className={styles.conciergeHeader}>
                     <img src="/logo.png" alt="BAVI" className={styles.conciergeLogo} />
                     <div>
-                      <h3 className={styles.conciergeTitle}>Studio Concierge</h3>
-                      <span className={styles.conciergeSub}>Sadashivanagar Studio</span>
+                      <h3 className={styles.conciergeTitle}>BAVI INTERIORS</h3>
+                      <span className={styles.conciergeSub}>Bahubali Builders & Visionary Interiors</span>
                     </div>
                   </div>
 
@@ -81,23 +81,30 @@ export default function ContactPage() {
                       <MapPin size={18} className={styles.infoIcon} />
                       <div>
                         <div className={styles.infoLabel}>Studio Address</div>
-                        <div className={styles.infoValue}>#42, 8th Main, Sadashivanagar, Bengaluru, KA 560080</div>
+                        <div className={styles.infoValue}>
+                          GURU Bhavana Backside, Ambikanagar, BM Road, CHANNARAYAPATNA
+                        </div>
                       </div>
                     </div>
 
                     <div className={styles.infoItem}>
                       <Phone size={18} className={styles.infoIcon} />
                       <div>
-                        <div className={styles.infoLabel}>Direct Line</div>
-                        <a href="tel:+919845012345" className={styles.infoLink}>+91 98450 12345</a>
+                        <div className={styles.infoLabel}>Direct Contact Numbers</div>
+                        <div className={styles.infoValue}>
+                          <a href="tel:8277762487" className={styles.infoLink}>+91 8277762487</a> (Primary)
+                        </div>
+                        <div style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)', marginTop: '4px' }}>
+                          Alt Lines: 8660562173, 6362979162,<br />8660614227, 7022330698
+                        </div>
                       </div>
                     </div>
 
                     <div className={styles.infoItem}>
                       <Mail size={18} className={styles.infoIcon} />
                       <div>
-                        <div className={styles.infoLabel}>Inquiries</div>
-                        <a href="mailto:concierge@bavi.in" className={styles.infoLink}>concierge@bavi.in</a>
+                        <div className={styles.infoLabel}>Official Email</div>
+                        <a href="mailto:Interiorsbavi@gmail.com" className={styles.infoLink}>Interiorsbavi@gmail.com</a>
                       </div>
                     </div>
 
@@ -105,19 +112,19 @@ export default function ContactPage() {
                       <Clock size={18} className={styles.infoIcon} />
                       <div>
                         <div className={styles.infoLabel}>Consultation Hours</div>
-                        <div className={styles.infoValue}>Mon – Sat: 09:30 AM – 06:30 PM (By Prior Appointment)</div>
+                        <div className={styles.infoValue}>Mon – Sat: 09:30 AM – 07:00 PM (By Appointment)</div>
                       </div>
                     </div>
                   </div>
 
                   <div className={styles.trustBadge}>
                     <ShieldCheck size={16} className={styles.trustIcon} />
-                    <span>Non-Disclosure Agreement (NDA) Protected Consultation</span>
+                    <span>Verified Architectural & Interior Design Studio</span>
                   </div>
                 </div>
               </div>
 
-              {/* Right Column: Astryx Form Card */}
+              {/* Right Column: Form Card */}
               <div className={styles.formCol}>
                 <div className={styles.formCard}>
                   {submitted ? (
@@ -125,13 +132,13 @@ export default function ContactPage() {
                       <div className={styles.successIconWrap}>
                         <CheckCircle2 size={48} className={styles.successIcon} />
                       </div>
-                      <h3 className={styles.successTitle}>Consultation Request Confirmed</h3>
+                      <h3 className={styles.successTitle}>Consultation Request Received</h3>
                       <p className={styles.successText}>
-                        Thank you, <strong>{formData.name}</strong>. Our senior architectural concierge has received 
-                        your commission brief for <strong>{formData.projectType}</strong> in <strong>{formData.location || 'Bengaluru'}</strong>.
+                        Thank you, <strong>{formData.name}</strong>. BAVI Interiors has received 
+                        your inquiry for <strong>{formData.projectType}</strong> in <strong>{formData.location || 'Channarayapatna'}</strong>.
                       </p>
                       <p className={styles.successSubtext}>
-                        We will reach out to you via phone at <strong>{formData.phone}</strong> within 2 business hours.
+                        We will reach out to you via phone at <strong>{formData.phone}</strong> shortly.
                       </p>
                       <button 
                         onClick={() => setSubmitted(false)} 
@@ -142,8 +149,8 @@ export default function ContactPage() {
                     </div>
                   ) : (
                     <form onSubmit={handleSubmit} className={styles.form}>
-                      <h3 className={styles.formHeaderTitle}>Commission Feasibility Form</h3>
-                      <p className={styles.formHeaderSub}>Please provide project parameters for review.</p>
+                      <h3 className={styles.formHeaderTitle}>Project Consultation Form</h3>
+                      <p className={styles.formHeaderSub}>Please provide details about your property or project.</p>
 
                       <div className={styles.formRow}>
                         <div className={styles.inputGroup}>
@@ -151,7 +158,7 @@ export default function ContactPage() {
                           <input
                             type="text"
                             required
-                            placeholder="e.g. Rajesh Sharma"
+                            placeholder="Your name"
                             value={formData.name}
                             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                             className={styles.input}
@@ -163,7 +170,7 @@ export default function ContactPage() {
                           <input
                             type="tel"
                             required
-                            placeholder="+91 98450 XXXXX"
+                            placeholder="Primary mobile number"
                             value={formData.phone}
                             onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                             className={styles.input}
@@ -176,7 +183,7 @@ export default function ContactPage() {
                         <input
                           type="email"
                           required
-                          placeholder="client@luxury.in"
+                          placeholder="your@email.com"
                           value={formData.email}
                           onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                           className={styles.input}
@@ -185,51 +192,38 @@ export default function ContactPage() {
 
                       <div className={styles.formRow}>
                         <div className={styles.inputGroup}>
-                          <label className={styles.label}>Commission Discipline</label>
+                          <label className={styles.label}>Service Discipline</label>
                           <select
                             value={formData.projectType}
                             onChange={(e) => setFormData({ ...formData, projectType: e.target.value })}
                             className={styles.select}
                           >
                             <option value="Luxury Villa Architecture">Luxury Villa Architecture</option>
-                            <option value="Bespoke Penthouse Interior">Bespoke Penthouse Interior</option>
-                            <option value="Commercial Landmark HQ">Commercial Landmark HQ</option>
-                            <option value="Heritage Estate Restoration">Heritage Estate Restoration</option>
+                            <option value="Bespoke Interior Design">Bespoke Interior Design</option>
+                            <option value="Modular Kitchen & Wardrobe">Modular Kitchen & Wardrobe</option>
+                            <option value="Turnkey House Construction">Turnkey House Construction</option>
+                            <option value="3D Elevation & Blueprint">3D Elevation & Blueprint</option>
                           </select>
                         </div>
 
                         <div className={styles.inputGroup}>
-                          <label className={styles.label}>Estimated Budget Horizon</label>
-                          <select
-                            value={formData.budget}
-                            onChange={(e) => setFormData({ ...formData, budget: e.target.value })}
-                            className={styles.select}
-                          >
-                            <option value="₹1 Cr - ₹2 Cr">₹1 Cr - ₹2 Cr</option>
-                            <option value="₹2 Cr - ₹5 Cr">₹2 Cr - ₹5 Cr</option>
-                            <option value="₹5 Cr - ₹15 Cr">₹5 Cr - ₹15 Cr</option>
-                            <option value="₹15 Cr+">₹15 Cr+</option>
-                          </select>
+                          <label className={styles.label}>Location / Plot Details *</label>
+                          <input
+                            type="text"
+                            required
+                            placeholder="e.g. Channarayapatna / Mysuru / Hassan"
+                            value={formData.location}
+                            onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                            className={styles.input}
+                          />
                         </div>
                       </div>
 
                       <div className={styles.inputGroup}>
-                        <label className={styles.label}>Site Location / Plot Details *</label>
-                        <input
-                          type="text"
-                          required
-                          placeholder="e.g. Sadashivanagar / Whitefield / Mysuru"
-                          value={formData.location}
-                          onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                          className={styles.input}
-                        />
-                      </div>
-
-                      <div className={styles.inputGroup}>
-                        <label className={styles.label}>Vision / Architectural Requirements</label>
+                        <label className={styles.label}>Project Requirements / Vision</label>
                         <textarea
                           rows={4}
-                          placeholder="Describe your desired aesthetic, square footage, specific amenities (e.g. infinity pool, wine cellar, home cinema)..."
+                          placeholder="Describe your desired layout, square footage, timber preferences, or specific interior concepts..."
                           value={formData.message}
                           onChange={(e) => setFormData({ ...formData, message: e.target.value })}
                           className={styles.textarea}
@@ -242,7 +236,7 @@ export default function ContactPage() {
                         className={styles.submitBtn}
                       >
                         <CalendarCheck size={18} />
-                        <span>{loading ? 'Transmitting Commission...' : 'Request Private Consultation'}</span>
+                        <span>{loading ? 'Submitting Inquiry...' : 'Submit Consultation Request'}</span>
                       </button>
                     </form>
                   )}
