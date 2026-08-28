@@ -73,17 +73,20 @@ BAVI/
 
 ---
 
-## 💳 Stripe Test Mode (No PAN Required)
+## 📱 UPI QR Code Payment & Database Bill Storage (Zero-Fee, No PAN)
 
-To test payments without needing PAN verification or merchant onboarding:
-1. Obtain free test keys from [dashboard.stripe.com/test/apikeys](https://dashboard.stripe.com/test/apikeys):
-   - `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` (`pk_test_...`)
-   - `STRIPE_SECRET_KEY` (`sk_test_...`)
-2. Use Stripe's standard test card numbers:
-   - Card: `4242 4242 4242 4242`
-   - Exp: Any future date (e.g. `12/34`)
-   - CVC: `123`
-   - ZIP: `560001`
+The platform is configured with a **Direct UPI QR Payment Settlement** system:
+1. **Dynamic Scannable QR Code**: Automatically generated for each milestone linked to your corporate UPI ID (e.g. `bavi.builders@upi`).
+2. **Instant Mobile Intent**: 1-click button to open in **Google Pay, PhonePe, Paytm, or BHIM**.
+3. **12-Digit UTR Proof**: Client enters the transaction reference number.
+4. **Permanent Database Tax Bill**: Generates an official BAVI tax invoice stored in Supabase with receipt numbers (`BAVI-UPI-2026-XXXX`).
+5. **Architect Verification**: Designers can inspect and confirm UTR settlements directly in the Designer Portal.
+
+You can customize the UPI ID in your `.env.local` files:
+```env
+NEXT_PUBLIC_UPI_ID=yourname@upi
+NEXT_PUBLIC_UPI_NAME=BAVI Builders
+```
 
 ---
 

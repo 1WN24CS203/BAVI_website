@@ -11,40 +11,31 @@ import {
   Layers, 
   Compass,
   ArrowUpRight,
-  Play
+  Clock
 } from 'lucide-react';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import styles from './HeroSection.module.css';
 
 export default function HeroSection() {
   const canvasRef = useRef(null);
+  const [designerDesigns, setDesignerDesigns] = useState([]);
   const [activeTab, setActiveTab] = useState(0);
 
-  const heroShowcases = [
-    {
-      title: 'Skyline Villa Retreat',
-      category: 'Residential Estate',
-      area: '12,500 sq.ft',
-      location: 'Bengaluru',
-      image: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=1000&q=80',
-      stat: 'Turnkey Luxury'
-    },
-    {
-      title: 'The Celestial Penthouse',
-      category: 'Luxury Interior',
-      area: '6,200 sq.ft',
-      location: 'Whitefield',
-      image: 'https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?auto=format&fit=crop&w=1000&q=80',
-      stat: 'Italian Marble Finish'
-    },
-    {
-      title: 'Zenith Corporate HQ',
-      category: 'Commercial Architecture',
-      area: '45,000 sq.ft',
-      location: 'Hebbal',
-      image: 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=1000&q=80',
-      stat: 'LEED Certified'
+  useEffect(() => {
+    // Fetch designer uploaded highlighted designs from Supabase if active
+    if (isSupabaseConfigured()) {
+      supabase
+        .from('highlighted_designs')
+        .select('*')
+        .eq('is_active', true)
+        .order('display_order', { ascending: true })
+        .then(({ data, error }) => {
+          if (data && data.length > 0) {
+            setDesignerDesigns(data);
+          }
+        });
     }
-  ];
+  }, []);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -101,7 +92,6 @@ export default function HeroSection() {
     const animate = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      // Connect nearby particles with delicate champagne lines
       for (let i = 0; i < particles.length; i++) {
         for (let j = i + 1; j < particles.length; j++) {
           const dx = particles[i].x - particles[j].x;
@@ -133,6 +123,9 @@ export default function HeroSection() {
     };
   }, []);
 
+  const hasDesigns = designerDesigns.length > 0;
+  const currentDesign = hasDesigns ? designerDesigns[activeTab % designerDesigns.length] : null;
+
   return (
     <section className={styles.heroSection} id="hero-section">
       {/* Particle Background */}
@@ -146,11 +139,11 @@ export default function HeroSection() {
         <div className={styles.heroGrid}>
           {/* Left Column: Hero Content */}
           <div className={styles.contentCol}>
-            {/* Astryx Status Badge */}
+            {/* Status Badge */}
             <div className={styles.statusBadge}>
               <span className={styles.badgePulseRing} />
               <Sparkles size={14} className={styles.badgeIcon} />
-              <span>Asterisk Design System • Verified Architectural Practice</span>
+              <span>Architectural & Interior Design Practice</span>
             </div>
 
             {/* Main Headline */}
@@ -160,85 +153,118 @@ export default function HeroSection() {
             </h1>
 
             <p className={styles.subtext}>
-              Transforming ambitious structural blueprints into timeless living environments. 
-              We blend engineering precision, sustainable stone craftsmanship, and ultra-luxury 
-              finishes for discerning homeowners and corporate leaders.
+              Transforming structural blueprints into living environments. 
+              We blend engineering precision, sustainable stone craftsmanship, and custom 
+              finishes for discerning homeowners and commercial spaces.
             </p>
 
             {/* Action Buttons */}
             <div className={styles.buttonGroup}>
               <Link href="/contact" className={styles.primaryCta} id="hero-primary-cta">
-                <span>Start Your Commission</span>
+                <span>Start Your Consultation</span>
                 <ArrowRight size={18} />
               </Link>
 
               <Link href="/projects" className={styles.secondaryCta} id="hero-secondary-cta">
                 <Compass size={17} />
-                <span>Explore Masterpieces</span>
+                <span>Browse Portfolio</span>
               </Link>
             </div>
 
-            {/* Live Trust Metrics */}
+            {/* Authentic Brand Pillars */}
             <div className={styles.statsBar}>
               <div className={styles.statItem}>
-                <div className={styles.statValue}>150+</div>
-                <div className={styles.statLabel}>Villas & Landmarks</div>
+                <div className={styles.statValue}>Architectural</div>
+                <div className={styles.statLabel}>Excellence & Precision</div>
               </div>
 
               <div className={styles.statSeparator} />
 
               <div className={styles.statItem}>
-                <div className={styles.statValue}>₹250 Cr+</div>
-                <div className={styles.statLabel}>Portfolio Managed</div>
+                <div className={styles.statValue}>Transparent</div>
+                <div className={styles.statLabel}>Milestone Tracking</div>
               </div>
 
               <div className={styles.statSeparator} />
 
               <div className={styles.statItem}>
-                <div className={styles.statValue}>100%</div>
-                <div className={styles.statLabel}>Escrow Guaranteed</div>
+                <div className={styles.statValue}>Direct Connect</div>
+                <div className={styles.statLabel}>Verified Architect Portal</div>
               </div>
             </div>
           </div>
 
-          {/* Right Column: Astryx 3D Interactive Showcase Card */}
+          {/* Right Column: Showcase Card */}
           <div className={styles.showcaseCol}>
             <div className={styles.showcaseCard}>
-              <div 
-                className={styles.showcaseImage}
-                style={{ backgroundImage: `url(${heroShowcases[activeTab].image})` }}
-              >
-                <div className={styles.imageOverlay} />
-                <div className={styles.topPill}>
-                  <ShieldCheck size={14} />
-                  <span>{heroShowcases[activeTab].stat}</span>
-                </div>
+              {hasDesigns && currentDesign ? (
+                <>
+                  <div 
+                    className={styles.showcaseImage}
+                    style={{ backgroundImage: `url(${currentDesign.image_url})` }}
+                  >
+                    <div className={styles.imageOverlay} />
+                    <div className={styles.topPill}>
+                      <ShieldCheck size={14} />
+                      <span>{currentDesign.category}</span>
+                    </div>
 
-                <div className={styles.bottomCardInfo}>
-                  <span className={styles.categoryPill}>{heroShowcases[activeTab].category}</span>
-                  <h3 className={styles.showcaseTitle}>{heroShowcases[activeTab].title}</h3>
-                  <div className={styles.showcaseMeta}>
-                    <span>{heroShowcases[activeTab].area}</span>
-                    <span>•</span>
-                    <span>{heroShowcases[activeTab].location}</span>
+                    <div className={styles.bottomCardInfo}>
+                      <span className={styles.categoryPill}>{currentDesign.category}</span>
+                      <h3 className={styles.showcaseTitle}>{currentDesign.title}</h3>
+                      <div className={styles.showcaseMeta}>
+                        <span>{currentDesign.location}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className={styles.tabsRow}>
+                    {designerDesigns.map((item, idx) => (
+                      <button
+                        key={item.id || idx}
+                        onClick={() => setActiveTab(idx)}
+                        className={`${styles.tabBtn} ${activeTab === idx ? styles.tabBtnActive : ''}`}
+                      >
+                        <span className={styles.tabNum}>0{idx + 1}</span>
+                        <span className={styles.tabLabel}>{item.category}</span>
+                      </button>
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <div style={{
+                  padding: '50px 30px',
+                  textAlign: 'center',
+                  background: '#141414',
+                  borderRadius: '16px',
+                  border: '1px dashed rgba(201, 168, 76, 0.3)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: '16px'
+                }}>
+                  <div style={{
+                    width: '56px',
+                    height: '56px',
+                    borderRadius: '50%',
+                    background: 'rgba(201, 168, 76, 0.12)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'var(--color-gold)'
+                  }}>
+                    <Clock size={24} />
+                  </div>
+                  <div>
+                    <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: '1.2rem', color: '#f8f8f8', marginBottom: '6px' }}>
+                      Designs Uploading Soon
+                    </h3>
+                    <p style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)', maxWidth: '320px', margin: '0 auto', lineHeight: '1.5' }}>
+                      Our architects are curating verified blueprints and interior concepts. Check back soon or book a direct consultation.
+                    </p>
                   </div>
                 </div>
-              </div>
-
-              {/* Showcase Tab Switcher */}
-              <div className={styles.tabsRow}>
-                {heroShowcases.map((item, idx) => (
-                  <button
-                    key={item.title}
-                    onClick={() => setActiveTab(idx)}
-                    className={`${styles.tabBtn} ${activeTab === idx ? styles.tabBtnActive : ''}`}
-                    aria-label={`View ${item.title}`}
-                  >
-                    <span className={styles.tabNum}>0{idx + 1}</span>
-                    <span className={styles.tabLabel}>{item.category.split(' ')[0]}</span>
-                  </button>
-                ))}
-              </div>
+              )}
             </div>
           </div>
         </div>
