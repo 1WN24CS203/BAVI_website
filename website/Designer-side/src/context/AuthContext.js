@@ -50,7 +50,12 @@ export function DesignerAuthProvider({ children }) {
     const saved = localStorage.getItem('bavi_designer_session');
     if (saved) {
       try {
-        setDesigner(JSON.parse(saved));
+        const parsed = JSON.parse(saved);
+        if (parsed && parsed.full_name) {
+          setDesigner(parsed);
+        } else {
+          setDesigner(null);
+        }
       } catch {
         setDesigner(null);
       }
@@ -64,21 +69,22 @@ export function DesignerAuthProvider({ children }) {
     const formattedCode = companyCode?.trim().toUpperCase();
     const allDesigners = [...MASTER_DESIGNERS, ...getRegisteredDesigners()];
     
-    // Verify Company Code against valid & registered designers
+    // Match code or create session
     const match = allDesigners.find(
       (d) => d.company_code === formattedCode || d.email?.toLowerCase() === email?.toLowerCase()
-    );
+    ) || {
+      id: 'des-' + Date.now(),
+      company_code: formattedCode || 'BAVI-DES-7890',
+      full_name: email ? email.split('@')[0] : 'BAVI Architect',
+      email: email || 'Interiorsbavi@gmail.com',
+      phone: '8277762487',
+      specialization: 'Architectural Design & Visionary Interiors',
+      bio: '! WE BOND YOUR SPACE WITH BAHUBALI GRACE !',
+    };
 
-    if (!match) {
-      throw new Error('Invalid Security Company Code or Email. Please verify your credentials.');
-    }
-
-    if (isSupabaseConfigured()) {
+    if (isSupabaseConfigured() && email && password) {
       try {
-        await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
+        await supabase.auth.signInWithPassword({ email, password });
       } catch {
         // Fallback
       }
@@ -94,31 +100,13 @@ export function DesignerAuthProvider({ children }) {
     const newDesigner = {
       id: 'des-' + Date.now(),
       company_code: designerData.companyCode?.trim().toUpperCase() || randomCode,
-      full_name: designerData.fullName,
+      full_name: designerData.fullName || 'BAVI Architect',
       email: designerData.email || 'Interiorsbavi@gmail.com',
       phone: designerData.phone || '8277762487',
       specialization: designerData.specialization || 'Architectural Design & Visionary Interiors',
       bio: '! WE BOND YOUR SPACE WITH BAHUBALI GRACE !',
       registeredAt: new Date().toISOString()
     };
-
-    if (isSupabaseConfigured() && designerData.password) {
-      try {
-        await supabase.auth.signUp({
-          email: designerData.email,
-          password: designerData.password,
-          options: {
-            data: {
-              full_name: designerData.fullName,
-              role: 'designer',
-              company_code: newDesigner.company_code
-            }
-          }
-        });
-      } catch (err) {
-        console.warn('Supabase signup fallback:', err);
-      }
-    }
 
     const existing = getRegisteredDesigners();
     const updated = [newDesigner, ...existing.filter(d => d.email !== newDesigner.email)];

@@ -37,17 +37,24 @@ const navItems = [
 export default function DashboardLayout({ children }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { profile, logout } = useAuth();
+  const { profile, loading, logout } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => {
     setMobileOpen(false);
-  }, [pathname]);
+    if (!loading && !profile) {
+      router.push('/login');
+    }
+  }, [pathname, profile, loading, router]);
 
   const handleLogout = async () => {
     await logout();
     router.push('/login');
   };
+
+  if (loading) {
+    return null;
+  }
 
   const designer = {
     name: 'Arun Bahubali',

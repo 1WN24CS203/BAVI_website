@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { 
   ShieldCheck, 
@@ -9,7 +10,8 @@ import {
   KeyRound, 
   AlertCircle, 
   ArrowRight, 
-  ExternalLink
+  ExternalLink,
+  UserPlus
 } from 'lucide-react';
 import { useDesignerAuth } from '@/context/AuthContext';
 import styles from './login.module.css';
@@ -133,6 +135,10 @@ export default function DesignerLoginPage() {
             )}
           </button>
         </form>
+
+        <div style={{ textAlign: 'center', marginTop: '16px', fontSize: '0.85rem', color: '#888' }}>
+          Need designer authorization? <Link href="/register" style={{ color: 'var(--color-gold)', fontWeight: 600, textDecoration: 'underline' }}>Register New Architect Account</Link>
+        </div>
 
         {/* Bottom Link */}
         <div className={styles.footerLink}>
