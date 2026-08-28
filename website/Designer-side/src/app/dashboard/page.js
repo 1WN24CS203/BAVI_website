@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { 
   Building2, 
@@ -16,66 +16,61 @@ import {
   ShieldCheck,
   Sparkles,
   PlusCircle,
-  Eye
+  Eye,
+  Send
 } from 'lucide-react';
 import { useDesignerAuth } from '@/context/AuthContext';
 import DesignerHeader from '@/components/Header';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import styles from './dashboard.module.css';
 
 export default function DesignerDashboardPage() {
   const { designer } = useDesignerAuth();
 
-  const isArun = designer?.company_code === 'BAVI-DES-7890';
+  const [stats, setStats] = useState({
+    activeProjects: 0,
+    totalClients: 0,
+    revenueCleared: '₹0',
+    upcomingConsultations: 0
+  });
 
-  const stats = isArun ? {
-    activeProjects: 4,
-    totalClients: 6,
-    revenueCleared: '₹1.82 Cr',
-    pendingReviews: 2,
-    upcomingConsultations: 3
-  } : {
-    activeProjects: 3,
-    totalClients: 5,
-    revenueCleared: '₹93.5 Lakh',
-    pendingReviews: 1,
-    upcomingConsultations: 2
-  };
+  const [recentActivities, setRecentActivities] = useState([]);
 
-  const recentActivities = [
-    {
-      id: 1,
-      client: 'Rajesh Sharma',
-      project: 'The Grand Serenity Villa (Sadashivanagar)',
-      action: 'Paid Milestone 2: Foundation Structure',
-      amount: '₹54,00,000',
-      time: '2 hours ago',
-      status: 'success'
-    },
-    {
-      id: 2,
-      client: 'Pooja Reddy',
-      project: 'Whitefield Penthouse Renovation',
-      action: 'Requested On-Site Material Selection Review',
-      amount: '₹18,50,000',
-      time: '4 hours ago',
-      status: 'pending'
-    },
-    {
-      id: 3,
-      client: 'Vikramaditya Rao',
-      project: 'Mysuru Heritage Corporate Hub',
-      action: 'Approved Stage 1 Conceptual Blueprint',
-      amount: '₹32,00,000',
-      time: '1 day ago',
-      status: 'success'
+  useEffect(() => {
+    fetchDashboardStats();
+  }, []);
+
+  const fetchDashboardStats = async () => {
+    if (isSupabaseConfigured()) {
+      try {
+        const { data: projects } = await supabase.from('projects').select('*');
+        const { data: clients } = await supabase.from('profiles').select('*').eq('role', 'customer');
+        const { data: payments } = await supabase.from('payments').select('*');
+        const { data: consultations } = await supabase.from('consultations').select('*');
+
+        const totalPaidSum = payments?.reduce((acc, p) => acc + (parseFloat(p.amount) || 0), 0) || 0;
+
+        setStats({
+          activeProjects: projects?.length || 0,
+          totalClients: clients?.length || 0,
+          revenueCleared: totalPaidSum > 0 ? '₹' + totalPaidSum.toLocaleString('en-IN') : '₹0',
+          upcomingConsultations: consultations?.length || 0
+        });
+
+        if (payments && payments.length > 0) {
+          setRecentActivities(payments.slice(0, 5));
+        }
+      } catch (err) {
+        console.warn('Supabase fetch dashboard stats error:', err);
+      }
     }
-  ];
+  };
 
   return (
     <>
       <DesignerHeader 
         title="Architect Command Center" 
-        subtitle={`Logged in as ${designer?.full_name || 'Principal Architect'} • ${designer?.specialization || 'Monolithic Architecture'}`} 
+        subtitle={`Logged in as ${designer?.full_name || 'Principal Architect'} • ${designer?.specialization || 'BAVI Architecture & Interiors'}`} 
       />
 
       <div className={styles.container}>
@@ -96,46 +91,46 @@ export default function DesignerDashboardPage() {
               <Users size={20} className={styles.metricIcon} />
             </div>
             <div className={styles.metricValue}>{stats.totalClients}</div>
-            <span className={styles.metricSub}>High-net-worth portfolio</span>
+            <span className={styles.metricSub}>Client portfolio</span>
           </div>
 
           <div className={styles.metricCard}>
             <div className={styles.metricTop}>
-              <span className={styles.metricLabel}>Total Escrow Cleared</span>
+              <span className={styles.metricLabel}>Total Payments Cleared</span>
               <CreditCard size={20} className={styles.metricIcon} />
             </div>
             <div className={styles.metricValueGold}>{stats.revenueCleared}</div>
-            <span className={styles.metricSub}>Bank escrow milestone cleared</span>
+            <span className={styles.metricSub}>Received via Phone & UPI QR</span>
           </div>
 
           <div className={styles.metricCard}>
             <div className={styles.metricTop}>
-              <span className={styles.metricLabel}>Consultations Pending</span>
+              <span className={styles.metricLabel}>Consultations Requested</span>
               <CalendarDays size={20} className={styles.metricIcon} />
             </div>
             <div className={styles.metricValue}>{stats.upcomingConsultations}</div>
-            <span className={styles.metricSub}>Scheduled this week</span>
+            <span className={styles.metricSub}>Client appointments</span>
           </div>
         </div>
 
-        {/* Quick Commission Actions */}
+        {/* Quick Actions Bar */}
         <div className={styles.actionBanner}>
           <div className={styles.actionBannerText}>
             <span className={styles.actionBannerTag}>Quick Architect Actions</span>
-            <h3 className={styles.actionBannerTitle}>Commission Dispatch & File Deliverables</h3>
+            <h3 className={styles.actionBannerTitle}>Initiate Bill Payment or Update Milestone</h3>
           </div>
           <div className={styles.actionBtnGroup}>
-            <Link href="/dashboard/projects" className={styles.primaryActionBtn}>
+            <Link href="/dashboard/payments" className={styles.primaryActionBtn}>
+              <Send size={16} />
+              <span>Initiate Bill Payment Request</span>
+            </Link>
+            <Link href="/dashboard/projects" className={styles.secondaryActionBtn}>
               <PlusCircle size={16} />
-              <span>Update Project Milestone</span>
+              <span>Create New Project</span>
             </Link>
             <Link href="/dashboard/designs" className={styles.secondaryActionBtn}>
               <Sparkles size={16} />
-              <span>Upload Signature Design</span>
-            </Link>
-            <Link href="/dashboard/payments" className={styles.secondaryActionBtn}>
-              <FileSpreadsheet size={16} />
-              <span>Escrow Ledger</span>
+              <span>Upload Design Showcase</span>
             </Link>
           </div>
         </div>
@@ -145,77 +140,50 @@ export default function DesignerDashboardPage() {
           {/* Recent Client Interactions */}
           <div className={styles.cardSection}>
             <div className={styles.sectionHeader}>
-              <h2 className={styles.sectionTitle}>Real-Time Client Activity</h2>
-              <Link href="/dashboard/customers" className={styles.viewAllLink}>
-                <span>View All Clients</span>
+              <h2 className={styles.sectionTitle}>Real-Time Payment Activity</h2>
+              <Link href="/dashboard/payments" className={styles.viewAllLink}>
+                <span>View Escrow Ledger</span>
                 <ArrowUpRight size={14} />
               </Link>
             </div>
 
-            <div className={styles.activityList}>
-              {recentActivities.map((act) => (
-                <div key={act.id} className={styles.activityItem}>
-                  <div className={styles.activityIconWrap}>
-                    {act.status === 'success' ? (
+            {recentActivities.length > 0 ? (
+              <div className={styles.activityList}>
+                {recentActivities.map((act) => (
+                  <div key={act.id} className={styles.activityItem}>
+                    <div className={styles.activityIconWrap}>
                       <CheckCircle2 size={18} className={styles.iconSuccess} />
-                    ) : (
-                      <Clock size={18} className={styles.iconPending} />
-                    )}
-                  </div>
-                  <div className={styles.activityContent}>
-                    <div className={styles.activityClientRow}>
-                      <span className={styles.clientName}>{act.client}</span>
-                      <span className={styles.activityTime}>{act.time}</span>
                     </div>
-                    <div className={styles.activityProject}>{act.project}</div>
-                    <div className={styles.activityActionText}>{act.action}</div>
+                    <div className={styles.activityContent}>
+                      <div className={styles.activityClientRow}>
+                        <span className={styles.clientName}>{act.receipt_number || 'Receipt'}</span>
+                        <span className={styles.activityTime}>{act.paid_at || 'Recently'}</span>
+                      </div>
+                      <div className={styles.activityActionText}>{act.description || 'Milestone Payment'}</div>
+                    </div>
+                    <div className={styles.activityAmount}>₹{parseFloat(act.amount)?.toLocaleString('en-IN')}</div>
                   </div>
-                  <div className={styles.activityAmount}>{act.amount}</div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <div style={{ padding: '30px', textAlign: 'center', color: 'var(--color-text-secondary)', fontSize: '0.85rem' }}>
+                No recent payment transactions recorded yet. Click "Initiate Bill Payment Request" above to send a bill to a client.
+              </div>
+            )}
           </div>
 
           {/* Quick Active Projects Overview */}
           <div className={styles.cardSection}>
             <div className={styles.sectionHeader}>
-              <h2 className={styles.sectionTitle}>Priority Milestones</h2>
+              <h2 className={styles.sectionTitle}>Priority Projects</h2>
               <Link href="/dashboard/projects" className={styles.viewAllLink}>
-                <span>Manage All ({stats.activeProjects})</span>
+                <span>Manage All Projects</span>
                 <ArrowUpRight size={14} />
               </Link>
             </div>
 
-            <div className={styles.projectList}>
-              <div className={styles.projectCardItem}>
-                <div className={styles.projectItemHeader}>
-                  <h4 className={styles.projectItemTitle}>The Grand Serenity Villa</h4>
-                  <span className={styles.statusPill}>65% Complete</span>
-                </div>
-                <div className={styles.projectItemClient}>Rajesh Sharma • Sadashivanagar</div>
-                <div className={styles.progressBar}>
-                  <div className={styles.progressFill} style={{ width: '65%' }} />
-                </div>
-                <div className={styles.projectItemNext}>
-                  <span>Next: Brick Masonry & Electrical Conduits</span>
-                  <Link href="/dashboard/projects" className={styles.itemAction}>Manage</Link>
-                </div>
-              </div>
-
-              <div className={styles.projectCardItem}>
-                <div className={styles.projectItemHeader}>
-                  <h4 className={styles.projectItemTitle}>Whitefield Penthouse</h4>
-                  <span className={styles.statusPill}>50% Complete</span>
-                </div>
-                <div className={styles.projectItemClient}>Pooja Reddy • Whitefield</div>
-                <div className={styles.progressBar}>
-                  <div className={styles.progressFill} style={{ width: '50%' }} />
-                </div>
-                <div className={styles.projectItemNext}>
-                  <span>Next: Italian Marble & False Ceiling</span>
-                  <Link href="/dashboard/projects" className={styles.itemAction}>Manage</Link>
-                </div>
-              </div>
+            <div style={{ padding: '30px', textAlign: 'center', color: 'var(--color-text-secondary)', fontSize: '0.85rem' }}>
+              No active projects created yet. Go to <Link href="/dashboard/projects" style={{ color: 'var(--color-gold)', fontWeight: 600 }}>Projects</Link> to create your first client project roadmap.
             </div>
           </div>
         </div>

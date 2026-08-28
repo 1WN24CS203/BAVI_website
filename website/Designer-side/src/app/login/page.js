@@ -9,19 +9,18 @@ import {
   KeyRound, 
   AlertCircle, 
   ArrowRight, 
-  Sparkles,
   ExternalLink
 } from 'lucide-react';
-import { useDesignerAuth, VALID_DESIGNERS } from '@/context/AuthContext';
+import { useDesignerAuth } from '@/context/AuthContext';
 import styles from './login.module.css';
 
 export default function DesignerLoginPage() {
   const router = useRouter();
   const { login } = useDesignerAuth();
 
-  const [email, setEmail] = useState('arun.designer@bavi.in');
-  const [password, setPassword] = useState('Designer@123');
-  const [companyCode, setCompanyCode] = useState('BAVI-DES-7890');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [companyCode, setCompanyCode] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -34,16 +33,10 @@ export default function DesignerLoginPage() {
       await login(email, password, companyCode);
       router.push('/dashboard');
     } catch (err) {
-      setError(err.message || 'Authentication failed. Please verify credentials and company code.');
+      setError(err.message || 'Authentication failed. Please verify email, password, and security company code.');
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleQuickFill = (d) => {
-    setEmail(d.email);
-    setCompanyCode(d.company_code);
-    setPassword('Designer@123');
   };
 
   return (
@@ -57,7 +50,7 @@ export default function DesignerLoginPage() {
         <div className={styles.brandHeader}>
           <img src="/logo.png" alt="BAVI" className={styles.logo} />
           <div>
-            <h1 className={styles.brandTitle}>BAVI</h1>
+            <h1 className={styles.brandTitle}>BAVI INTERIORS</h1>
             <span className={styles.brandTag}>Architect & Designer Command Portal</span>
           </div>
         </div>
@@ -68,25 +61,7 @@ export default function DesignerLoginPage() {
         <div className={styles.noticeBox}>
           <ShieldCheck size={18} className={styles.shieldIcon} />
           <div className={styles.noticeText}>
-            <strong>Restricted Access:</strong> Validated company code required for project blueprint management and milestone approvals.
-          </div>
-        </div>
-
-        {/* Quick Demo Credentials */}
-        <div className={styles.quickFillBox}>
-          <span className={styles.quickFillLabel}>One-Click Test Designers:</span>
-          <div className={styles.quickButtons}>
-            {VALID_DESIGNERS.map((d) => (
-              <button
-                key={d.company_code}
-                type="button"
-                onClick={() => handleQuickFill(d)}
-                className={`${styles.quickBtn} ${companyCode === d.company_code ? styles.quickBtnActive : ''}`}
-              >
-                <span>{d.full_name.split(' ')[0]}</span>
-                <code>{d.company_code}</code>
-              </button>
-            ))}
+            <strong>Architect Access:</strong> Validated security company code required for project milestone approvals and bill management.
           </div>
         </div>
 
@@ -108,7 +83,7 @@ export default function DesignerLoginPage() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="designer@bavi.in"
+                placeholder="Interiorsbavi@gmail.com"
                 className={styles.formInput}
               />
             </div>
@@ -123,7 +98,7 @@ export default function DesignerLoginPage() {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••••••"
+                placeholder="Enter portal password"
                 className={styles.formInput}
               />
             </div>
@@ -141,7 +116,7 @@ export default function DesignerLoginPage() {
                 required
                 value={companyCode}
                 onChange={(e) => setCompanyCode(e.target.value.toUpperCase())}
-                placeholder="BAVI-DES-XXXX"
+                placeholder="e.g. BAVI-DES-7890"
                 className={`${styles.formInput} ${styles.inputGold}`}
               />
             </div>

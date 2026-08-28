@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   CalendarDays, 
   Clock, 
@@ -11,42 +11,43 @@ import {
   CheckCircle2, 
   ExternalLink,
   MessageSquare,
-  Sparkles
+  Sparkles,
+  CalendarCheck
 } from 'lucide-react';
 import DesignerHeader from '@/components/Header';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import styles from './consultations.module.css';
 
 export default function DesignerConsultationsPage() {
-  const [consultations, setConsultations] = useState([
-    {
-      id: 'c-req-1',
-      client: 'Pooja Reddy',
-      email: 'pooja.reddy@example.com',
-      project: 'Whitefield Penthouse Renovation',
-      type: 'On-Site Material & Closet Measurements',
-      date: '2026-09-08',
-      time: '03:30 PM - 05:00 PM',
-      mode: 'In-Person Site Visit',
-      status: 'pending',
-      notes: 'Client wants to finalize imported quartz countertop edge profiles and master walk-in wardrobe hardware.'
-    },
-    {
-      id: 'c-req-2',
-      client: 'Rajesh Sharma',
-      email: 'rajesh.sharma@example.com',
-      project: 'The Grand Serenity Villa',
-      type: 'Italian Marble & False Ceiling Review',
-      date: '2026-09-05',
-      time: '11:00 AM - 12:30 PM',
-      mode: 'On-Site Indiranagar Plot',
-      status: 'confirmed',
-      notes: 'Sample slab selection of Botticino & Statuario marble with architect Arun Bahubali.'
-    }
-  ]);
-
+  const [consultations, setConsultations] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState('');
 
-  const handleStatus = (id, newStatus) => {
+  useEffect(() => {
+    fetchConsultations();
+  }, []);
+
+  const fetchConsultations = async () => {
+    if (isSupabaseConfigured()) {
+      try {
+        const { data, error } = await supabase
+          .from('consultations')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (data && data.length > 0) {
+          setConsultations(data);
+        } else {
+          setConsultations([]);
+        }
+      } catch (err) {
+        console.warn('Supabase fetch consultations error:', err);
+      }
+    }
+    setLoading(false);
+  };
+
+  const handleStatus = async (id, newStatus) => {
     const updated = consultations.map(c => {
       if (c.id === id) {
         return { ...c, status: newStatus };
@@ -54,7 +55,15 @@ export default function DesignerConsultationsPage() {
       return c;
     });
     setConsultations(updated);
-    setToast(`Consultation slot updated to "${newStatus.toUpperCase()}" and notified client.`);
+
+    if (isSupabaseConfigured()) {
+      await supabase
+        .from('consultations')
+        .update({ status: newStatus })
+        .eq('id', id);
+    }
+
+    setToast(`Consultation slot updated to "${newStatus.toUpperCase()}"`);
     setTimeout(() => setToast(''), 3000);
   };
 
@@ -73,65 +82,90 @@ export default function DesignerConsultationsPage() {
           </div>
         )}
 
-        <div className={styles.grid}>
-          {consultations.map((item) => (
-            <div key={item.id} className={`${styles.card} ${item.status === 'pending' ? styles.cardPending : ''}`}>
-              <div className={styles.cardHeader}>
-                <div>
-                  <span className={styles.clientTag}>Client: {item.client}</span>
-                  <h3 className={styles.cardTitle}>{item.type}</h3>
-                  <span className={styles.projectSub}>{item.project}</span>
+        {consultations.length > 0 ? (
+          <div className={styles.grid}>
+            {consultations.map((item) => (
+              <div key={item.id} className={`${styles.card} ${item.status === 'pending' ? styles.cardPending : ''}`}>
+                <div className={styles.cardHeader}>
+                  <div>
+                    <span className={styles.clientTag}>Client: {item.customer_name || 'Client'}</span>
+                    <h3 className={styles.cardTitle}>{item.consultation_type || 'Design Consultation'}</h3>
+                  </div>
+                  <span className={`
+                    ${styles.statusBadge}
+                    ${item.status === 'confirmed' ? styles.badgeConfirmed : styles.badgePending}
+                  `}>
+                    {item.status === 'confirmed' ? 'Confirmed Slot' : 'Action Required'}
+                  </span>
                 </div>
-                <span className={`
-                  ${styles.statusBadge}
-                  ${item.status === 'confirmed' ? styles.badgeConfirmed : styles.badgePending}
-                `}>
-                  {item.status === 'confirmed' ? 'Confirmed Slot' : 'Action Required'}
-                </span>
-              </div>
 
-              <div className={styles.metaBox}>
-                <div className={styles.metaRow}>
-                  <CalendarDays size={16} color="var(--color-gold)" />
-                  <span><strong>{item.date}</strong> ({item.time})</span>
+                <div className={styles.metaBox}>
+                  <div className={styles.metaRow}>
+                    <CalendarDays size={16} color="var(--color-gold)" />
+                    <span><strong>{item.preferred_date}</strong> ({item.preferred_time})</span>
+                  </div>
+                  <div className={styles.metaRow}>
+                    <MapPin size={16} color="var(--color-gold)" />
+                    <span>{item.location || 'Studio / Site Visit'}</span>
+                  </div>
                 </div>
-                <div className={styles.metaRow}>
-                  <MapPin size={16} color="var(--color-gold)" />
-                  <span>{item.mode}</span>
-                </div>
-              </div>
 
-              <div className={styles.notesBox}>
-                <span className={styles.notesLabel}>Client Agenda:</span>
-                <p className={styles.notesText}>{item.notes}</p>
-              </div>
+                {item.notes && (
+                  <div className={styles.notesBox}>
+                    <span className={styles.notesLabel}>Client Agenda:</span>
+                    <p className={styles.notesText}>{item.notes}</p>
+                  </div>
+                )}
 
-              {item.status === 'pending' ? (
-                <div className={styles.actionsRow}>
-                  <button 
-                    onClick={() => handleStatus(item.id, 'confirmed')}
-                    className={styles.confirmBtn}
-                  >
-                    <Check size={16} />
-                    <span>Confirm Slot</span>
-                  </button>
-                  <button 
-                    onClick={() => handleStatus(item.id, 'rescheduled')}
-                    className={styles.rescheduleBtn}
-                  >
-                    <X size={16} />
-                    <span>Reschedule</span>
-                  </button>
-                </div>
-              ) : (
-                <div className={styles.confirmedMeta}>
-                  <CheckCircle2 size={16} color="var(--color-success)" />
-                  <span>Slot confirmed in Designer Master Calendar</span>
-                </div>
-              )}
+                {item.status === 'pending' ? (
+                  <div className={styles.actionsRow}>
+                    <button 
+                      onClick={() => handleStatus(item.id, 'confirmed')}
+                      className={styles.confirmBtn}
+                    >
+                      <Check size={16} />
+                      <span>Confirm Slot</span>
+                    </button>
+                    <button 
+                      onClick={() => handleStatus(item.id, 'rescheduled')}
+                      className={styles.rescheduleBtn}
+                    >
+                      <X size={16} />
+                      <span>Reschedule</span>
+                    </button>
+                  </div>
+                ) : (
+                  <div className={styles.confirmedMeta}>
+                    <CheckCircle2 size={16} color="var(--color-success)" />
+                    <span>Slot confirmed in Designer Master Calendar</span>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div style={{
+            background: 'var(--color-dark)',
+            border: '1px dashed rgba(201, 168, 76, 0.3)',
+            borderRadius: 'var(--radius-lg)',
+            padding: '60px 24px',
+            textAlign: 'center',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '14px'
+          }}>
+            <CalendarCheck size={36} color="var(--color-gold)" />
+            <div>
+              <h4 style={{ fontFamily: 'var(--font-heading)', fontSize: '1.2rem', color: '#f8f8f8', marginBottom: '6px' }}>
+                No Consultations Scheduled Yet
+              </h4>
+              <p style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)', maxWidth: '400px', margin: '0 auto' }}>
+                When clients request private design consultations on the website, they will appear here for your confirmation.
+              </p>
             </div>
-          ))}
-        </div>
+          </div>
+        )}
       </div>
     </>
   );

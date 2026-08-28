@@ -11,44 +11,7 @@ const AuthContext = createContext({
   signup: async () => {},
   logout: async () => {},
   updateProfile: async () => {},
-  switchDemoCustomer: () => {},
 });
-
-// Demo fallback customers for seamless prototyping
-export const DEMO_CUSTOMERS = [
-  {
-    id: 'c1111111-1111-1111-1111-111111111111',
-    email: 'rajesh.sharma@example.com',
-    full_name: 'Rajesh Sharma',
-    phone: '+91 98765 11111',
-    address: 'Plot #42, Indiranagar, Bengaluru',
-    role: 'customer',
-    designer: {
-      id: 'd1111111-1111-1111-1111-111111111111',
-      name: 'Arun Bahubali',
-      title: 'Principal Architect',
-      email: 'arun.designer@bavi.in',
-      phone: '+91 98450 12345',
-      code: 'BAVI-DES-7890'
-    }
-  },
-  {
-    id: 'c2222222-2222-2222-2222-222222222222',
-    email: 'pooja.reddy@example.com',
-    full_name: 'Pooja Reddy',
-    phone: '+91 98765 22222',
-    address: 'Villa 18, Palm Meadows, Whitefield, Bengaluru',
-    role: 'customer',
-    designer: {
-      id: 'd2222222-2222-2222-2222-222222222222',
-      name: 'Ananya Hegde',
-      title: 'Head of Visionary Interior Design',
-      email: 'ananya.interiors@bavi.in',
-      phone: '+91 98450 67890',
-      code: 'BAVI-DES-1024'
-    }
-  }
-];
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
@@ -56,17 +19,17 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check local storage for demo session or supabase session
-    const savedDemoUser = localStorage.getItem('bavi_customer_demo_user');
-    if (savedDemoUser) {
+    // Check saved session in local storage or Supabase
+    const savedUser = localStorage.getItem('bavi_customer_session');
+    if (savedUser) {
       try {
-        const parsed = JSON.parse(savedDemoUser);
+        const parsed = JSON.parse(savedUser);
         setUser({ id: parsed.id, email: parsed.email });
         setProfile(parsed);
         setLoading(false);
         return;
       } catch {
-        // Continue
+        // Fallback
       }
     }
 
@@ -76,16 +39,13 @@ export function AuthProvider({ children }) {
           setUser(session.user);
           fetchProfile(session.user.id, session.user.email);
         } else {
-          // Default to first demo customer so the user can immediately experience the dashboard
-          const defaultDemo = DEMO_CUSTOMERS[0];
-          setUser({ id: defaultDemo.id, email: defaultDemo.email });
-          setProfile(defaultDemo);
+          setUser(null);
+          setProfile(null);
           setLoading(false);
         }
       }).catch(() => {
-        const defaultDemo = DEMO_CUSTOMERS[0];
-        setUser({ id: defaultDemo.id, email: defaultDemo.email });
-        setProfile(defaultDemo);
+        setUser(null);
+        setProfile(null);
         setLoading(false);
       });
 
@@ -102,10 +62,8 @@ export function AuthProvider({ children }) {
 
       return () => subscription?.unsubscribe();
     } else {
-      // Supabase is in demo/prototype mode
-      const defaultDemo = DEMO_CUSTOMERS[0];
-      setUser({ id: defaultDemo.id, email: defaultDemo.email });
-      setProfile(defaultDemo);
+      setUser(null);
+      setProfile(null);
       setLoading(false);
     }
   }, []);
@@ -114,7 +72,7 @@ export function AuthProvider({ children }) {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('*, designer:designers(*)')
+        .select('*')
         .eq('id', userId)
         .single();
 
@@ -125,12 +83,16 @@ export function AuthProvider({ children }) {
           id: userId,
           email,
           full_name: email.split('@')[0],
-          role: 'customer',
-          designer: DEMO_CUSTOMERS[0].designer
+          role: 'customer'
         });
       }
     } catch {
-      setProfile(DEMO_CUSTOMERS[0]);
+      setProfile({
+        id: userId,
+        email,
+        full_name: email.split('@')[0],
+        role: 'customer'
+      });
     } finally {
       setLoading(false);
     }
@@ -143,22 +105,31 @@ export function AuthProvider({ children }) {
         password,
       });
       if (error) throw error;
+      setUser(data.user);
+      fetchProfile(data.user.id, data.user.email);
       return data;
     } else {
-      // Match demo user or create session
-      const found = DEMO_CUSTOMERS.find(c => c.email.toLowerCase() === email.toLowerCase()) || {
-        id: 'c-demo-' + Date.now(),
+      const savedUser = localStorage.getItem('bavi_customer_session');
+      if (savedUser) {
+        const parsed = JSON.parse(savedUser);
+        if (parsed.email.toLowerCase() === email.toLowerCase()) {
+          setUser({ id: parsed.id, email: parsed.email });
+          setProfile(parsed);
+          return { user: parsed };
+        }
+      }
+      const newSession = {
+        id: 'user-' + Date.now(),
         email,
         full_name: email.split('@')[0],
-        phone: '+91 98765 00000',
-        address: 'Bengaluru, Karnataka',
-        role: 'customer',
-        designer: DEMO_CUSTOMERS[0].designer
+        phone: '',
+        address: 'Channarayapatna, Karnataka',
+        role: 'customer'
       };
-      setUser({ id: found.id, email: found.email });
-      setProfile(found);
-      localStorage.setItem('bavi_customer_demo_user', JSON.stringify(found));
-      return { user: found };
+      setUser({ id: newSession.id, email: newSession.email });
+      setProfile(newSession);
+      localStorage.setItem('bavi_customer_session', JSON.stringify(newSession));
+      return { user: newSession };
     }
   };
 
@@ -172,26 +143,52 @@ export function AuthProvider({ children }) {
         },
       });
       if (error) throw error;
+
+      if (data.user) {
+        try {
+          await supabase.from('profiles').insert([
+            {
+              id: data.user.id,
+              email: data.user.email,
+              full_name: metadata.full_name || email.split('@')[0],
+              phone: metadata.phone || '',
+              role: 'customer'
+            }
+          ]);
+        } catch (err) {
+          console.warn('Profile insert error:', err);
+        }
+      }
+
+      setUser(data.user);
+      const newProfile = {
+        id: data.user.id,
+        email: data.user.email,
+        full_name: metadata.full_name || email.split('@')[0],
+        phone: metadata.phone || '',
+        role: 'customer'
+      };
+      setProfile(newProfile);
+      localStorage.setItem('bavi_customer_session', JSON.stringify(newProfile));
       return data;
     } else {
-      const newUser = {
-        id: 'c-demo-' + Date.now(),
+      const newSession = {
+        id: 'user-' + Date.now(),
         email,
         full_name: metadata.full_name || email.split('@')[0],
-        phone: metadata.phone || '+91 98765 00000',
-        address: 'Bengaluru, Karnataka',
-        role: 'customer',
-        designer: DEMO_CUSTOMERS[0].designer
+        phone: metadata.phone || '',
+        address: 'Channarayapatna, Karnataka',
+        role: 'customer'
       };
-      setUser({ id: newUser.id, email: newUser.email });
-      setProfile(newUser);
-      localStorage.setItem('bavi_customer_demo_user', JSON.stringify(newUser));
-      return { user: newUser };
+      setUser({ id: newSession.id, email: newSession.email });
+      setProfile(newSession);
+      localStorage.setItem('bavi_customer_session', JSON.stringify(newSession));
+      return { user: newSession };
     }
   };
 
   const logout = async () => {
-    localStorage.removeItem('bavi_customer_demo_user');
+    localStorage.removeItem('bavi_customer_session');
     if (isSupabaseConfigured()) {
       await supabase.auth.signOut();
     }
@@ -202,17 +199,10 @@ export function AuthProvider({ children }) {
   const updateProfile = async (updates) => {
     const updated = { ...profile, ...updates };
     setProfile(updated);
-    localStorage.setItem('bavi_customer_demo_user', JSON.stringify(updated));
+    localStorage.setItem('bavi_customer_session', JSON.stringify(updated));
     if (isSupabaseConfigured() && user?.id) {
       await supabase.from('profiles').update(updates).eq('id', user.id);
     }
-  };
-
-  const switchDemoCustomer = (customerIndex) => {
-    const selected = DEMO_CUSTOMERS[customerIndex] || DEMO_CUSTOMERS[0];
-    setUser({ id: selected.id, email: selected.email });
-    setProfile(selected);
-    localStorage.setItem('bavi_customer_demo_user', JSON.stringify(selected));
   };
 
   return (
@@ -225,7 +215,6 @@ export function AuthProvider({ children }) {
         signup,
         logout,
         updateProfile,
-        switchDemoCustomer,
       }}
     >
       {children}

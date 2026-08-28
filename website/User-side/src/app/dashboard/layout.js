@@ -37,7 +37,7 @@ const navItems = [
 export default function DashboardLayout({ children }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { profile, logout, switchDemoCustomer } = useAuth();
+  const { profile, logout } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => {
@@ -49,10 +49,10 @@ export default function DashboardLayout({ children }) {
     router.push('/login');
   };
 
-  const designer = profile?.designer || {
+  const designer = {
     name: 'Arun Bahubali',
-    title: 'Principal Architect & Founder',
-    phone: '+91 98450 12345',
+    title: 'Principal Architect & Lead Engineer',
+    phone: '8277762487',
     code: 'BAVI-DES-7890'
   };
 
@@ -65,7 +65,7 @@ export default function DashboardLayout({ children }) {
         <Link href="/" className={styles.mobileLogo}>
           <img src="/logo.png" alt="BAVI" className={styles.mobileLogoImg} />
           <div>
-            <span className={styles.mobileBrandName}>BAVI</span>
+            <span className={styles.mobileBrandName}>BAVI INTERIORS</span>
             <span className={styles.mobileBrandTag}>Client Portal</span>
           </div>
         </Link>
@@ -79,15 +79,15 @@ export default function DashboardLayout({ children }) {
         </button>
       </div>
 
-      {/* Astryx Sidebar Navigation */}
+      {/* Sidebar Navigation */}
       <aside className={`${styles.sidebar} ${mobileOpen ? styles.sidebarOpen : ''}`}>
         {/* Brand Area */}
         <div className={styles.brandArea}>
           <Link href="/" className={styles.logoLink}>
             <img src="/logo.png" alt="BAVI" className={styles.brandLogo} />
             <div>
-              <div className={styles.brandName}>BAVI</div>
-              <div className={styles.brandTag}>Astryx Client Portal</div>
+              <div className={styles.brandName}>BAVI INTERIORS</div>
+              <div className={styles.brandTag}>Client Portal</div>
             </div>
           </Link>
           <button 
@@ -97,28 +97,6 @@ export default function DashboardLayout({ children }) {
           >
             <X size={18} />
           </button>
-        </div>
-
-        {/* Demo Customer Switcher */}
-        <div className={styles.demoSwitcher}>
-          <div className={styles.demoHeader}>
-            <Sparkles size={12} className={styles.demoSparkle} />
-            <span>Active Demo Client</span>
-          </div>
-          <div className={styles.demoButtons}>
-            <button 
-              onClick={() => switchDemoCustomer(0)}
-              className={`${styles.demoBtn} ${profile?.email?.includes('rajesh') ? styles.demoBtnActive : ''}`}
-            >
-              Rajesh (Sadashivanagar)
-            </button>
-            <button 
-              onClick={() => switchDemoCustomer(1)}
-              className={`${styles.demoBtn} ${profile?.email?.includes('pooja') ? styles.demoBtnActive : ''}`}
-            >
-              Pooja (Whitefield)
-            </button>
-          </div>
         </div>
 
         {/* Navigation Items */}
@@ -162,7 +140,7 @@ export default function DashboardLayout({ children }) {
             {profile?.full_name?.charAt(0) || 'C'}
           </div>
           <div className={styles.userInfo}>
-            <div className={styles.userName}>{profile?.full_name || 'Valued Client'}</div>
+            <div className={styles.userName}>{profile?.full_name || 'Client'}</div>
             <div className={styles.userEmail}>{profile?.email || 'client@bavi.in'}</div>
           </div>
           <button 
@@ -183,7 +161,7 @@ export default function DashboardLayout({ children }) {
           <div className={styles.headerLeft}>
             <h1 className={styles.pageHeading}>{currentPage}</h1>
             <p className={styles.pageSubheading}>
-              Bahubali Builders luxury client management dashboard
+              BAVI Interiors client management portal
             </p>
           </div>
           <div className={styles.headerRight}>

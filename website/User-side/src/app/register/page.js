@@ -4,10 +4,12 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Mail, Lock, Eye, EyeOff, User, Phone, ArrowRight, AlertCircle, CheckCircle } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
 import styles from '../login/login.module.css';
 
 export default function RegisterPage() {
   const router = useRouter();
+  const { signup } = useAuth();
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
@@ -17,7 +19,6 @@ export default function RegisterPage() {
   });
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
@@ -42,26 +43,13 @@ export default function RegisterPage() {
     }
 
     try {
-      const { createClient } = await import('@/lib/supabase');
-      const supabase = createClient();
-      const { error: authError } = await supabase.auth.signUp({
-        email: formData.email,
-        password: formData.password,
-        options: {
-          data: {
-            full_name: formData.fullName,
-            phone: formData.phone,
-          },
-        },
+      await signup(formData.email, formData.password, {
+        full_name: formData.fullName,
+        phone: formData.phone,
       });
-
-      if (authError) {
-        setError(authError.message);
-      } else {
-        setSuccess(true);
-      }
-    } catch {
-      setError('Unable to connect. Please check your internet connection.');
+      router.push('/dashboard');
+    } catch (err) {
+      setError(err.message || 'Registration failed. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -77,17 +65,17 @@ export default function RegisterPage() {
         <Link href="/" className={styles.logo}>
           <img src="/logo.png" alt="BAVI" className={styles.logoImage} />
           <div>
-            <div className={styles.logoBrand}>BAVI</div>
-            <div className={styles.logoSub}>Builders & Visionary Interiors</div>
+            <div className={styles.logoBrand}>BAVI INTERIORS</div>
+            <div className={styles.logoSub}>Bahubali Builders & Visionary Interiors</div>
           </div>
         </Link>
         <div className={styles.brandContent}>
           <h1 className={styles.brandTitle}>
-            Join <span className={styles.gold}>BAVI</span>
+            Register <span className={styles.gold}>Account</span>
           </h1>
           <p className={styles.brandText}>
-            Create your account to access your personalized dashboard, track your 
-            project, and connect with your assigned designer.
+            ! WE BOND YOUR SPACE WITH BAHUBALI GRACE !<br /><br />
+            Create your client account to access your personalized project dashboard, track construction milestones, and communicate with your designer.
           </p>
           <div className={styles.features}>
             <div className={styles.feature}>
@@ -109,150 +97,134 @@ export default function RegisterPage() {
       {/* Form Side */}
       <div className={styles.formSide}>
         <div className={styles.formCard}>
-          {success ? (
-            <div style={{ textAlign: 'center', padding: '40px 0' }}>
-              <CheckCircle size={60} color="var(--color-success)" style={{ marginBottom: '20px' }} />
-              <h2 className={styles.formTitle} style={{ marginBottom: '10px' }}>Check Your Email</h2>
-              <p className={styles.formSubtitle} style={{ marginBottom: '30px' }}>
-                We&apos;ve sent a verification link to <strong style={{ color: 'var(--color-gold)' }}>{formData.email}</strong>. 
-                Please verify your email to continue.
-              </p>
-              <Link href="/login" className={styles.link}>
-                Go to Login →
-              </Link>
+          <h2 className={styles.formTitle}>Create Client Account</h2>
+          <p className={styles.formSubtitle}>Fill in your details to get started</p>
+
+          <form onSubmit={handleSubmit} className={styles.form} id="register-form">
+            <div className={styles.formGroup}>
+              <label htmlFor="reg-name" className={styles.formLabel}>Full Name *</label>
+              <div className={styles.inputWrapper}>
+                <User size={18} className={styles.inputIcon} />
+                <input
+                  type="text"
+                  id="reg-name"
+                  name="fullName"
+                  value={formData.fullName}
+                  onChange={handleChange}
+                  className={styles.formInput}
+                  placeholder="Your full name"
+                  required
+                />
+              </div>
             </div>
-          ) : (
-            <>
-              <h2 className={styles.formTitle}>Create Account</h2>
-              <p className={styles.formSubtitle}>Fill in your details to get started</p>
 
-              <form onSubmit={handleSubmit} className={styles.form} id="register-form">
-                <div className={styles.formGroup}>
-                  <label htmlFor="reg-name" className={styles.formLabel}>Full Name</label>
-                  <div className={styles.inputWrapper}>
-                    <User size={18} className={styles.inputIcon} />
-                    <input
-                      type="text"
-                      id="reg-name"
-                      name="fullName"
-                      value={formData.fullName}
-                      onChange={handleChange}
-                      className={styles.formInput}
-                      placeholder="Your full name"
-                      required
-                    />
-                  </div>
-                </div>
+            <div className={styles.formGroup}>
+              <label htmlFor="reg-email" className={styles.formLabel}>Email Address *</label>
+              <div className={styles.inputWrapper}>
+                <Mail size={18} className={styles.inputIcon} />
+                <input
+                  type="email"
+                  id="reg-email"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  className={styles.formInput}
+                  placeholder="your@email.com"
+                  required
+                />
+              </div>
+            </div>
 
-                <div className={styles.formGroup}>
-                  <label htmlFor="reg-email" className={styles.formLabel}>Email Address</label>
-                  <div className={styles.inputWrapper}>
-                    <Mail size={18} className={styles.inputIcon} />
-                    <input
-                      type="email"
-                      id="reg-email"
-                      name="email"
-                      value={formData.email}
-                      onChange={handleChange}
-                      className={styles.formInput}
-                      placeholder="your@email.com"
-                      required
-                    />
-                  </div>
-                </div>
+            <div className={styles.formGroup}>
+              <label htmlFor="reg-phone" className={styles.formLabel}>Phone Number</label>
+              <div className={styles.inputWrapper}>
+                <Phone size={18} className={styles.inputIcon} />
+                <input
+                  type="tel"
+                  id="reg-phone"
+                  name="phone"
+                  value={formData.phone}
+                  onChange={handleChange}
+                  className={styles.formInput}
+                  placeholder="+91 XXXXX XXXXX"
+                />
+              </div>
+            </div>
 
-                <div className={styles.formGroup}>
-                  <label htmlFor="reg-phone" className={styles.formLabel}>Phone Number</label>
-                  <div className={styles.inputWrapper}>
-                    <Phone size={18} className={styles.inputIcon} />
-                    <input
-                      type="tel"
-                      id="reg-phone"
-                      name="phone"
-                      value={formData.phone}
-                      onChange={handleChange}
-                      className={styles.formInput}
-                      placeholder="+91 XXXXX XXXXX"
-                    />
-                  </div>
-                </div>
-
-                <div className={styles.formGroup}>
-                  <label htmlFor="reg-password" className={styles.formLabel}>Password</label>
-                  <div className={styles.inputWrapper}>
-                    <Lock size={18} className={styles.inputIcon} />
-                    <input
-                      type={showPassword ? 'text' : 'password'}
-                      id="reg-password"
-                      name="password"
-                      value={formData.password}
-                      onChange={handleChange}
-                      className={styles.formInput}
-                      placeholder="Min. 6 characters"
-                      required
-                    />
-                    <button
-                      type="button"
-                      className={styles.togglePassword}
-                      onClick={() => setShowPassword(!showPassword)}
-                      aria-label="Toggle password"
-                    >
-                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                    </button>
-                  </div>
-                </div>
-
-                <div className={styles.formGroup}>
-                  <label htmlFor="reg-confirm" className={styles.formLabel}>Confirm Password</label>
-                  <div className={styles.inputWrapper}>
-                    <Lock size={18} className={styles.inputIcon} />
-                    <input
-                      type="password"
-                      id="reg-confirm"
-                      name="confirmPassword"
-                      value={formData.confirmPassword}
-                      onChange={handleChange}
-                      className={styles.formInput}
-                      placeholder="Re-enter password"
-                      required
-                    />
-                  </div>
-                </div>
-
-                {error && (
-                  <div className={styles.errorMsg}>
-                    <AlertCircle size={16} />
-                    {error}
-                  </div>
-                )}
-
+            <div className={styles.formGroup}>
+              <label htmlFor="reg-password" className={styles.formLabel}>Password *</label>
+              <div className={styles.inputWrapper}>
+                <Lock size={18} className={styles.inputIcon} />
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  id="reg-password"
+                  name="password"
+                  value={formData.password}
+                  onChange={handleChange}
+                  className={styles.formInput}
+                  placeholder="Min. 6 characters"
+                  required
+                />
                 <button
-                  type="submit"
-                  className={styles.submitBtn}
-                  disabled={loading}
-                  id="register-submit"
+                  type="button"
+                  className={styles.togglePassword}
+                  onClick={() => setShowPassword(!showPassword)}
+                  aria-label="Toggle password"
                 >
-                  {loading ? (
-                    <span className={styles.spinner} />
-                  ) : (
-                    <>
-                      Create Account
-                      <ArrowRight size={18} />
-                    </>
-                  )}
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
-              </form>
+              </div>
+            </div>
 
-              <div className={styles.divider}><span>or</span></div>
+            <div className={styles.formGroup}>
+              <label htmlFor="reg-confirm" className={styles.formLabel}>Confirm Password *</label>
+              <div className={styles.inputWrapper}>
+                <Lock size={18} className={styles.inputIcon} />
+                <input
+                  type="password"
+                  id="reg-confirm"
+                  name="confirmPassword"
+                  value={formData.confirmPassword}
+                  onChange={handleChange}
+                  className={styles.formInput}
+                  placeholder="Re-enter password"
+                  required
+                />
+              </div>
+            </div>
 
-              <p className={styles.signupLink}>
-                Already have an account?{' '}
-                <Link href="/login" className={styles.link}>Sign in</Link>
-              </p>
+            {error && (
+              <div className={styles.errorMsg}>
+                <AlertCircle size={16} />
+                {error}
+              </div>
+            )}
 
-              <Link href="/" className={styles.backLink}>← Back to Home</Link>
-            </>
-          )}
+            <button
+              type="submit"
+              className={styles.submitBtn}
+              disabled={loading}
+              id="register-submit"
+            >
+              {loading ? (
+                <span className={styles.spinner} />
+              ) : (
+                <>
+                  Register Account
+                  <ArrowRight size={18} />
+                </>
+              )}
+            </button>
+          </form>
+
+          <div className={styles.divider}><span>or</span></div>
+
+          <p className={styles.signupLink}>
+            Already have an account?{' '}
+            <Link href="/login" className={styles.link}>Sign in</Link>
+          </p>
+
+          <Link href="/" className={styles.backLink}>← Back to Home Studio</Link>
         </div>
       </div>
     </div>

@@ -4,14 +4,14 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Mail, Lock, Eye, EyeOff, ArrowRight, AlertCircle, Sparkles } from 'lucide-react';
-import { useAuth, DEMO_CUSTOMERS } from '@/context/AuthContext';
+import { useAuth } from '@/context/AuthContext';
 import styles from './login.module.css';
 
 export default function LoginPage() {
   const router = useRouter();
   const { login } = useAuth();
-  const [email, setEmail] = useState('rajesh.sharma@example.com');
-  const [password, setPassword] = useState('Customer@123');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -25,15 +25,10 @@ export default function LoginPage() {
       await login(email, password);
       router.push('/dashboard');
     } catch (err) {
-      setError(err.message || 'Login failed. Please check credentials.');
+      setError(err.message || 'Login failed. Please check credentials or register a new account.');
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleQuickDemo = (demo) => {
-    setEmail(demo.email);
-    setPassword('Customer@123');
   };
 
   return (
@@ -47,8 +42,8 @@ export default function LoginPage() {
         <Link href="/" className={styles.logo}>
           <img src="/logo.png" alt="BAVI" className={styles.logoImage} />
           <div>
-            <div className={styles.logoBrand}>BAVI</div>
-            <div className={styles.logoSub}>Builders & Visionary Interiors</div>
+            <div className={styles.logoBrand}>BAVI INTERIORS</div>
+            <div className={styles.logoSub}>Bahubali Builders & Visionary Interiors</div>
           </div>
         </Link>
         <div className={styles.brandContent}>
@@ -56,21 +51,22 @@ export default function LoginPage() {
             Welcome <span className={styles.gold}>Back</span>
           </h1>
           <p className={styles.brandText}>
-            Access your project dashboard, track progress, manage consultations, 
-            and stay connected with your designer.
+            ! WE BOND YOUR SPACE WITH BAHUBALI GRACE !<br /><br />
+            Sign in to access your project dashboard, track milestone roadmaps, manage consultations, 
+            and view verified tax bills.
           </p>
           <div className={styles.features}>
             <div className={styles.feature}>
               <span className={styles.featureDot} />
-              Track project progress in real-time
+              Track construction milestones in real-time
             </div>
             <div className={styles.feature}>
               <span className={styles.featureDot} />
-              Book and manage consultations
+              Book and manage design consultations
             </div>
             <div className={styles.feature}>
               <span className={styles.featureDot} />
-              Secure payment processing
+              Pay milestone bills via Phone / UPI QR
             </div>
           </div>
         </div>
@@ -79,49 +75,8 @@ export default function LoginPage() {
       {/* Form Side */}
       <div className={styles.formSide}>
         <div className={styles.formCard}>
-          <h2 className={styles.formTitle}>Sign In</h2>
-          <p className={styles.formSubtitle}>Enter your credentials to access your dashboard</p>
-
-          {/* Quick Demo Credentials */}
-          <div style={{
-            background: 'rgba(201, 168, 76, 0.08)',
-            border: '1px dashed rgba(201, 168, 76, 0.3)',
-            borderRadius: '6px',
-            padding: '10px',
-            marginBottom: '16px'
-          }}>
-            <span style={{
-              display: 'block',
-              fontSize: '0.65rem',
-              textTransform: 'uppercase',
-              color: 'var(--color-gold)',
-              fontWeight: 700,
-              letterSpacing: '0.5px',
-              marginBottom: '6px'
-            }}>One-Click Demo Clients:</span>
-            <div style={{ display: 'flex', gap: '8px' }}>
-              {DEMO_CUSTOMERS.map((c) => (
-                <button
-                  key={c.email}
-                  type="button"
-                  onClick={() => handleQuickDemo(c)}
-                  style={{
-                    flex: 1,
-                    padding: '6px 8px',
-                    background: email === c.email ? 'var(--color-gold)' : 'var(--color-dark)',
-                    color: email === c.email ? 'var(--color-black)' : 'var(--color-text-secondary)',
-                    fontWeight: email === c.email ? 700 : 500,
-                    border: '1px solid var(--color-dark-border)',
-                    borderRadius: '4px',
-                    fontSize: '0.75rem',
-                    cursor: 'pointer'
-                  }}
-                >
-                  {c.full_name.split(' ')[0]} ({c.designer?.name?.split(' ')[0]})
-                </button>
-              ))}
-            </div>
-          </div>
+          <h2 className={styles.formTitle}>Client Sign In</h2>
+          <p className={styles.formSubtitle}>Enter your account credentials to access your dashboard</p>
 
           <form onSubmit={handleSubmit} className={styles.form} id="login-form">
             <div className={styles.formGroup}>
@@ -193,11 +148,11 @@ export default function LoginPage() {
           </div>
 
           <p className={styles.signupLink}>
-            Don&apos;t have an account?{' '}
-            <Link href="/register" className={styles.link}>Create one</Link>
+            Don&apos;t have an account yet?{' '}
+            <Link href="/register" className={styles.link}>Register New Account</Link>
           </p>
 
-          <Link href="/" className={styles.backLink}>← Back to Home</Link>
+          <Link href="/" className={styles.backLink}>← Back to Home Studio</Link>
         </div>
       </div>
     </div>

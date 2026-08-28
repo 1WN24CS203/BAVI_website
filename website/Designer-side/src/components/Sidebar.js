@@ -30,7 +30,7 @@ const navItems = [
 export default function DesignerSidebar({ mobileOpen, onClose }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { designer, logout, switchDemoDesigner } = useDesignerAuth();
+  const { designer, logout } = useDesignerAuth();
 
   const handleLogout = () => {
     logout();
@@ -45,7 +45,7 @@ export default function DesignerSidebar({ mobileOpen, onClose }) {
           <img src="/logo.png" alt="BAVI" className={styles.brandLogo} />
         </div>
         <div className={styles.brandText}>
-          <div className={styles.brandName}>BAVI</div>
+          <div className={styles.brandName}>BAVI INTERIORS</div>
           <div className={styles.brandSub}>Architect Command Center</div>
         </div>
         {onClose && (
@@ -63,26 +63,10 @@ export default function DesignerSidebar({ mobileOpen, onClose }) {
       <div className={styles.designerBadge}>
         <div className={styles.badgeHeader}>
           <ShieldCheck size={14} className={styles.shieldIcon} />
-          <span>Council Certified Architect</span>
+          <span>Architect Portal Token</span>
         </div>
-        <div className={styles.designerName}>{designer?.full_name || 'Arun Bahubali'}</div>
+        <div className={styles.designerName}>{designer?.full_name || 'Architect'}</div>
         <div className={styles.companyCode}>Security Token: {designer?.company_code || 'BAVI-DES-7890'}</div>
-
-        {/* Quick Demo Switcher */}
-        <div className={styles.switchRow}>
-          <button 
-            onClick={() => switchDemoDesigner(0)}
-            className={`${styles.switchBtn} ${designer?.company_code === 'BAVI-DES-7890' ? styles.switchActive : ''}`}
-          >
-            Arun (Principal)
-          </button>
-          <button 
-            onClick={() => switchDemoDesigner(1)}
-            className={`${styles.switchBtn} ${designer?.company_code === 'BAVI-DES-1024' ? styles.switchActive : ''}`}
-          >
-            Ananya (Interiors)
-          </button>
-        </div>
       </div>
 
       {/* Navigation Menu */}
@@ -113,7 +97,7 @@ export default function DesignerSidebar({ mobileOpen, onClose }) {
           </div>
           <div className={styles.textWrap}>
             <span className={styles.footerName}>{designer?.full_name || 'Architect'}</span>
-            <span className={styles.footerEmail}>{designer?.email || 'architect@bavi.in'}</span>
+            <span className={styles.footerEmail}>{designer?.email || 'Interiorsbavi@gmail.com'}</span>
           </div>
         </div>
         <button 

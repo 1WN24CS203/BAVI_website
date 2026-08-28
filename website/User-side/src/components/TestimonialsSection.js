@@ -1,49 +1,33 @@
 'use client';
 
-import { useState } from 'react';
-import { Star, Quote, ChevronLeft, ChevronRight, ShieldCheck, Sparkles } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Star, Quote, ShieldCheck, Sparkles, MessageSquare } from 'lucide-react';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import styles from './TestimonialsSection.module.css';
 
-const testimonials = [
-  {
-    id: 1,
-    name: 'Rajesh Sharma',
-    role: 'Managing Director, Sharma Tech Holdings',
-    project: 'Sadashivanagar Villa (12,500 sq.ft)',
-    quote: 'BAVI executed our luxury villa from bare earth to turnkey handover flawlessly. The live site cameras and milestone escrow system gave us total peace of mind. Arun and his architectural team are unmatched.',
-    rating: 5,
-    city: 'Bengaluru'
-  },
-  {
-    id: 2,
-    name: 'Pooja Reddy',
-    role: 'Co-Founder & Creative Director',
-    project: 'Whitefield Penthouse (6,200 sq.ft)',
-    quote: 'The interior craftsmanship is sensational. The fluted walnut panels, Italian bookmatched marble, and concealed cove lighting transformed our penthouse into a private sanctuary. Truly world-class.',
-    rating: 5,
-    city: 'Bengaluru'
-  },
-  {
-    id: 3,
-    name: 'Vikramaditya Rao',
-    role: 'Heritage Property Investor',
-    project: 'Jayalakshmipuram Bungalow Restoration',
-    quote: 'Restoring a 70-year-old family estate is fraught with structural risks, but BAVI treated our heritage with immense reverence while modernizing the electrical and acoustic infrastructure seamlessly.',
-    rating: 5,
-    city: 'Mysuru'
-  }
-];
-
 export default function TestimonialsSection() {
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const [reviews, setReviews] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const prevSlide = () => {
-    setCurrentIndex((prev) => (prev === 0 ? testimonials.length - 1 : prev - 1));
-  };
-
-  const nextSlide = () => {
-    setCurrentIndex((prev) => (prev === testimonials.length - 1 ? 0 : prev + 1));
-  };
+  useEffect(() => {
+    if (isSupabaseConfigured()) {
+      supabase
+        .from('reviews')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .then(({ data }) => {
+          if (data && data.length > 0) {
+            setReviews(data);
+          } else {
+            setReviews([]);
+          }
+          setLoading(false);
+        })
+        .catch(() => setLoading(false));
+    } else {
+      setLoading(false);
+    }
+  }, []);
 
   return (
     <section className={styles.section} id="testimonials">
@@ -52,47 +36,82 @@ export default function TestimonialsSection() {
         <div className={styles.header}>
           <div className={styles.badge}>
             <Sparkles size={13} />
-            <span>Client Endorsements</span>
+            <span>Client Reviews</span>
           </div>
           <h2 className={styles.title}>
-            Trusted by Leaders & <span className={styles.goldText}>Visionaries</span>
+            Client <span className={styles.goldText}>Feedback</span> & Reviews
           </h2>
           <p className={styles.subtitle}>
-            Read firsthand accounts of how we deliver architectural distinction and luxury interior perfection.
+            Read verified feedback from our clients as construction stages complete.
           </p>
         </div>
 
-        {/* Carousel / Grid View */}
-        <div className={styles.testimonialsGrid}>
-          {testimonials.map((item, idx) => (
-            <div key={item.id} className={styles.testimonialCard}>
-              <div className={styles.cardHeader}>
-                <div className={styles.starsRow}>
-                  {[...Array(item.rating)].map((_, i) => (
-                    <Star key={i} size={15} className={styles.starIcon} fill="currentColor" />
-                  ))}
-                </div>
-                <Quote size={24} className={styles.quoteIcon} />
-              </div>
-
-              <p className={styles.quoteText}>"{item.quote}"</p>
-
-              <div className={styles.cardFooter}>
-                <div className={styles.avatarCircle}>
-                  {item.name.charAt(0)}
-                </div>
-                <div className={styles.authorInfo}>
-                  <div className={styles.nameRow}>
-                    <span className={styles.authorName}>{item.name}</span>
-                    <ShieldCheck size={14} className={styles.verifiedIcon} title="Verified Client" />
+        {/* Dynamic Reviews / Clean Empty State */}
+        {reviews.length > 0 ? (
+          <div className={styles.testimonialsGrid}>
+            {reviews.map((item, idx) => (
+              <div key={item.id || idx} className={styles.testimonialCard}>
+                <div className={styles.cardHeader}>
+                  <div className={styles.starsRow}>
+                    {[...Array(item.rating || 5)].map((_, i) => (
+                      <Star key={i} size={15} className={styles.starIcon} fill="currentColor" />
+                    ))}
                   </div>
-                  <div className={styles.authorRole}>{item.role}</div>
-                  <div className={styles.projectTag}>{item.project} • {item.city}</div>
+                  <Quote size={24} className={styles.quoteIcon} />
+                </div>
+
+                <p className={styles.quoteText}>"{item.review_text || item.title}"</p>
+
+                <div className={styles.cardFooter}>
+                  <div className={styles.avatarCircle}>
+                    {(item.customer_name || 'Client').charAt(0)}
+                  </div>
+                  <div className={styles.authorInfo}>
+                    <div className={styles.nameRow}>
+                      <span className={styles.authorName}>{item.customer_name || 'Verified Client'}</span>
+                      <ShieldCheck size={14} className={styles.verifiedIcon} title="Verified Client" />
+                    </div>
+                    <div className={styles.projectTag}>{item.title || 'Architectural Commission'}</div>
+                  </div>
                 </div>
               </div>
+            ))}
+          </div>
+        ) : (
+          <div style={{
+            background: 'var(--color-dark)',
+            border: '1px dashed rgba(201, 168, 76, 0.3)',
+            borderRadius: 'var(--radius-lg)',
+            padding: '50px 24px',
+            textAlign: 'center',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '14px',
+            marginTop: '20px'
+          }}>
+            <div style={{
+              width: '56px',
+              height: '56px',
+              borderRadius: '50%',
+              background: 'rgba(201, 168, 76, 0.12)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'var(--color-gold)'
+            }}>
+              <MessageSquare size={26} />
             </div>
-          ))}
-        </div>
+            <div>
+              <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: '1.25rem', color: '#f8f8f8', marginBottom: '6px' }}>
+                Client Reviews Uploading Soon
+              </h3>
+              <p style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)', maxWidth: '420px', margin: '0 auto', lineHeight: '1.5' }}>
+                Client testimonials and ratings will appear here as project milestones clear in real-time.
+              </p>
+            </div>
+          </div>
+        )}
       </div>
     </section>
   );
