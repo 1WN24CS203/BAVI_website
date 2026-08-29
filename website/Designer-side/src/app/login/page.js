@@ -139,10 +139,30 @@ export default function DesignerLoginPage() {
           </button>
         </form>
 
-        <div style={{ textAlign: 'center', marginTop: '16px', fontSize: '0.85rem', color: '#888' }}>
-          New architect or need a key?{' '}
-          <Link href="/register" style={{ color: 'var(--color-gold)', fontWeight: 600, textDecoration: 'underline' }}>
-            Request Security Key Approval
+        {/* Secondary Action: Key Request */}
+        <div style={{ marginTop: '18px' }}>
+          <Link 
+            href="/register" 
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
+              padding: '12px 16px',
+              background: 'rgba(201, 168, 76, 0.08)',
+              border: '1px solid rgba(201, 168, 76, 0.35)',
+              borderRadius: '8px',
+              color: 'var(--color-gold)',
+              fontWeight: 600,
+              fontSize: '0.88rem',
+              textDecoration: 'none',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease'
+            }}
+          >
+            <KeyRound size={16} />
+            <span>New Architect? Request Security Key</span>
+            <ArrowRight size={15} />
           </Link>
         </div>
 
