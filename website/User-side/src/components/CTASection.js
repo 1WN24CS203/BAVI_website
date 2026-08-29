@@ -24,7 +24,7 @@ export default function CTASection() {
             </h2>
 
             <p className={styles.subtitle}>
-              Schedule a confidential 1-on-1 design consultation with Principal Architect Arun Bahubali. 
+              Schedule a confidential 1-on-1 design consultation with our Principal Architect & engineering team. 
               We review site constraints, budget horizons, and bespoke material palettes.
             </p>
 
@@ -35,9 +35,9 @@ export default function CTASection() {
                 <ArrowRight size={16} />
               </Link>
 
-              <a href="tel:+919845012345" className={styles.callBtn} id="cta-call-direct">
+              <a href="tel:+918277762487" className={styles.callBtn} id="cta-call-direct">
                 <PhoneCall size={17} />
-                <span>+91 98450 12345</span>
+                <span>+91 82777 62487</span>
               </a>
             </div>
 

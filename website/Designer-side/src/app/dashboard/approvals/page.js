@@ -15,12 +15,11 @@ import {
   Copy, 
   Check, 
   Search,
-  Filter,
-  Sparkles,
+  Crown,
   AlertCircle
 } from 'lucide-react';
 import DesignerHeader from '@/components/Header';
-import { useDesignerAuth, MASTER_DESIGNERS } from '@/context/AuthContext';
+import { useDesignerAuth } from '@/context/AuthContext';
 import styles from './approvals.module.css';
 
 export default function DesignerApprovalsPage() {
@@ -59,7 +58,7 @@ export default function DesignerApprovalsPage() {
 
   const handleReject = async (id) => {
     try {
-      await rejectRequest(id, rejectReason || 'Credentials could not be verified by lead architect.');
+      await rejectRequest(id, rejectReason || 'Credentials could not be verified by owner.');
       loadRequests();
       setRejectingId(null);
       setRejectReason('');
@@ -92,7 +91,7 @@ export default function DesignerApprovalsPage() {
   return (
     <>
       <DesignerHeader 
-        title="Architect Access & Key Approvals" 
+        title="Designer Access & Key Approvals" 
         subtitle="Review credential submissions, issue unique security keys, and manage portal authorizations." 
       />
 
@@ -119,11 +118,13 @@ export default function DesignerApprovalsPage() {
 
           <div className={styles.metricCard}>
             <div className={styles.metricTop}>
-              <span className={styles.metricLabel}>Master Founders</span>
-              <ShieldCheck size={20} className={styles.metricIcon} />
+              <span className={styles.metricLabel}>Current Administrator</span>
+              <Crown size={20} className={styles.metricIconGold} />
             </div>
-            <div className={styles.metricValue}>{MASTER_DESIGNERS.length}</div>
-            <span className={styles.metricSub}>Permanent lead architect keys</span>
+            <div className={styles.metricValue} style={{ fontSize: '1.2rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {designer?.full_name || 'Site Owner'}
+            </div>
+            <span className={styles.metricSub}>Primary Site Authority</span>
           </div>
         </div>
 
@@ -133,30 +134,6 @@ export default function DesignerApprovalsPage() {
             <span>{toast}</span>
           </div>
         )}
-
-        {/* Master Accounts Info */}
-        <div className={styles.masterBox}>
-          <div className={styles.masterHeader}>
-            <ShieldCheck size={16} color="var(--color-gold)" />
-            <span>Pre-Authorized Master Architects (No Request Needed)</span>
-          </div>
-          <div className={styles.masterList}>
-            {MASTER_DESIGNERS.map(m => (
-              <div key={m.id} className={styles.masterItem}>
-                <div>
-                  <strong style={{ color: '#fff' }}>{m.full_name}</strong>
-                  <span style={{ color: '#888', fontSize: '0.78rem', marginLeft: '6px' }}>({m.specialization})</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ fontSize: '0.75rem', color: '#888' }}>{m.email}</span>
-                  <code style={{ background: '#222', padding: '2px 8px', borderRadius: '4px', color: 'var(--color-gold)', fontSize: '0.8rem' }}>
-                    {m.company_code}
-                  </code>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
 
         {/* Filter and Search Bar */}
         <div className={styles.controlBar}>

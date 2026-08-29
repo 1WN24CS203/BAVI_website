@@ -112,16 +112,15 @@ export default function DesignerLoginPage() {
           <div className={styles.formGroup}>
             <label className={styles.formLabel}>
               <span>Security Key</span>
-              <span className={styles.goldLabel}>(Assigned Token)</span>
+              <span className={styles.goldLabel}>(Required for Designers • Optional for Owner)</span>
             </label>
             <div className={styles.inputWrapper}>
               <KeyRound size={17} className={styles.inputIconGold} />
               <input 
                 type="text" 
-                required
                 value={companyCode}
                 onChange={(e) => setCompanyCode(e.target.value.toUpperCase())}
-                placeholder="e.g. BAVI-DES-7890"
+                placeholder="e.g. BAVI-DES-XXXX"
                 className={`${styles.formInput} ${styles.inputGold}`}
               />
             </div>

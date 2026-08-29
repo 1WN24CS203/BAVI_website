@@ -32,14 +32,14 @@ const brandPillars = [
 
 const team = [
   {
-    name: 'Arun Bahubali',
-    role: 'Principal Architect',
+    name: 'Principal Architect & Founder',
+    role: 'Lead Architectural Practice',
     specialty: 'Luxury Villa Architecture & Structural Engineering'
   },
   {
-    name: 'Ananya Hegde',
-    role: 'Head of Visionary Interior Design',
-    specialty: 'Contemporary Italian Interiors & Custom Millwork'
+    name: 'Head of Visionary Interiors',
+    role: 'Lead Interior Architecture',
+    specialty: 'Contemporary Italian Interiors & Bespoke Millwork'
   }
 ];
 
