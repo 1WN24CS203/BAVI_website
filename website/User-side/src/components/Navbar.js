@@ -172,7 +172,7 @@ export default function Navbar() {
 
             <div className={styles.drawerHotline}>
               <PhoneCall size={14} />
-              <span>Direct Concierge: +91 98450 12345</span>
+              <span>Direct Concierge: +91 82777 62487</span>
             </div>
           </div>
         </div>

@@ -10,8 +10,7 @@ import {
   KeyRound, 
   AlertCircle, 
   ArrowRight, 
-  ExternalLink,
-  UserPlus
+  ExternalLink
 } from 'lucide-react';
 import { useDesignerAuth } from '@/context/AuthContext';
 import styles from './login.module.css';
@@ -26,6 +25,8 @@ export default function DesignerLoginPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  const customerPortalUrl = process.env.NEXT_PUBLIC_SITE_URL || '/';
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -35,7 +36,7 @@ export default function DesignerLoginPage() {
       await login(email, password, companyCode);
       router.push('/dashboard');
     } catch (err) {
-      setError(err.message || 'Authentication failed. Please verify email, password, and security company code.');
+      setError(err.message || 'Authentication failed. Please verify your email, password, and security code.');
     } finally {
       setLoading(false);
     }
@@ -63,7 +64,7 @@ export default function DesignerLoginPage() {
         <div className={styles.noticeBox}>
           <ShieldCheck size={18} className={styles.shieldIcon} />
           <div className={styles.noticeText}>
-            <strong>Architect Access:</strong> Validated security company code required for project milestone approvals and bill management.
+            <strong>Authorized Access Only:</strong> Valid security code and credentials required. Contact BAVI administration for portal access.
           </div>
         </div>
 
@@ -85,7 +86,7 @@ export default function DesignerLoginPage() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="Interiorsbavi@gmail.com"
+                placeholder="architect@company.com"
                 className={styles.formInput}
               />
             </div>
@@ -98,9 +99,10 @@ export default function DesignerLoginPage() {
               <input 
                 type="password" 
                 required
+                minLength={6}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter portal password"
+                placeholder="Enter your password"
                 className={styles.formInput}
               />
             </div>
@@ -108,8 +110,8 @@ export default function DesignerLoginPage() {
 
           <div className={styles.formGroup}>
             <label className={styles.formLabel}>
-              <span>Unique Company Code</span>
-              <span className={styles.goldLabel}>(Security Token)</span>
+              <span>Security Code</span>
+              <span className={styles.goldLabel}>(Assigned Token)</span>
             </label>
             <div className={styles.inputWrapper}>
               <KeyRound size={17} className={styles.inputIconGold} />
@@ -118,7 +120,7 @@ export default function DesignerLoginPage() {
                 required
                 value={companyCode}
                 onChange={(e) => setCompanyCode(e.target.value.toUpperCase())}
-                placeholder="e.g. BAVI-DES-7890"
+                placeholder="e.g. BAVI-DES-XXXX"
                 className={`${styles.formInput} ${styles.inputGold}`}
               />
             </div>
@@ -126,7 +128,7 @@ export default function DesignerLoginPage() {
 
           <button type="submit" disabled={loading} className={styles.submitBtn}>
             {loading ? (
-              <span>Validating Security Token...</span>
+              <span>Validating Credentials...</span>
             ) : (
               <>
                 <span>Access Command Dashboard</span>
@@ -137,13 +139,16 @@ export default function DesignerLoginPage() {
         </form>
 
         <div style={{ textAlign: 'center', marginTop: '16px', fontSize: '0.85rem', color: '#888' }}>
-          Need designer authorization? <Link href="/register" style={{ color: 'var(--color-gold)', fontWeight: 600, textDecoration: 'underline' }}>Register New Architect Account</Link>
+          Need architect portal access?{' '}
+          <span style={{ color: 'var(--color-gold)', fontWeight: 600 }}>
+            Contact BAVI administration
+          </span>
         </div>
 
         {/* Bottom Link */}
         <div className={styles.footerLink}>
-          <a href="http://localhost:3000" target="_blank" rel="noopener noreferrer" className={styles.publicLink}>
-            <span>Go to Customer Portal (Port 3000)</span>
+          <a href={customerPortalUrl} target="_blank" rel="noopener noreferrer" className={styles.publicLink}>
+            <span>Go to Customer Portal</span>
             <ExternalLink size={13} />
           </a>
         </div>

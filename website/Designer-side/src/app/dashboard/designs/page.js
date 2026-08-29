@@ -7,6 +7,7 @@ import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import styles from './designs.module.css';
 
 export default function DesignerDesignsPage() {
+  const customerPortalUrl = process.env.NEXT_PUBLIC_SITE_URL || '';
   const [designs, setDesigns] = useState([]);
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState('');
@@ -174,7 +175,7 @@ export default function DesignerDesignsPage() {
                     <span>Delete</span>
                   </button>
                   <a 
-                    href="http://localhost:3000/projects" 
+                    href={`${customerPortalUrl}/projects`}
                     target="_blank" 
                     rel="noopener noreferrer" 
                     className={styles.previewBtn}

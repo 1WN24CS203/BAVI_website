@@ -56,6 +56,8 @@ export default function DashboardLayout({ children }) {
     return null;
   }
 
+  // Assigned lead architect info — displayed in client sidebar
+  // In production, this should be fetched from Supabase based on the client's assigned designer
   const designer = {
     name: 'Arun Bahubali',
     title: 'Principal Architect & Lead Engineer',

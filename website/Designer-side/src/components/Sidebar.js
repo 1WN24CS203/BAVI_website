@@ -66,7 +66,7 @@ export default function DesignerSidebar({ mobileOpen, onClose }) {
           <span>Architect Portal Token</span>
         </div>
         <div className={styles.designerName}>{designer?.full_name || 'Architect'}</div>
-        <div className={styles.companyCode}>Security Token: {designer?.company_code || 'BAVI-DES-7890'}</div>
+        <div className={styles.companyCode}>Security Token: {designer?.company_code || '••••••••'}</div>
       </div>
 
       {/* Navigation Menu */}

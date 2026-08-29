@@ -6,6 +6,7 @@ import styles from './Header.module.css';
 
 export default function DesignerHeader({ title, subtitle, onToggleMobile }) {
   const { designer } = useDesignerAuth();
+  const customerPortalUrl = process.env.NEXT_PUBLIC_SITE_URL || '/';
 
   return (
     <header className={styles.header}>
@@ -34,7 +35,7 @@ export default function DesignerHeader({ title, subtitle, onToggleMobile }) {
 
         {/* Customer Site Link */}
         <a 
-          href="http://localhost:3000" 
+          href={customerPortalUrl}
           target="_blank" 
           rel="noopener noreferrer" 
           className={styles.clientSiteBtn}
