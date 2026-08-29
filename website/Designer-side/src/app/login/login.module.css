@@ -256,6 +256,8 @@
   font-weight: 700;
   font-size: 0.95rem;
   border-radius: var(--radius-sm);
+  border: none;
+  cursor: pointer;
   box-shadow: var(--shadow-gold);
   margin-top: 6px;
   transition: all var(--transition-base);
