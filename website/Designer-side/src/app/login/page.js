@@ -10,7 +10,8 @@ import {
   KeyRound, 
   AlertCircle, 
   ArrowRight, 
-  ExternalLink
+  ExternalLink,
+  UserPlus
 } from 'lucide-react';
 import { useDesignerAuth } from '@/context/AuthContext';
 import styles from './login.module.css';
@@ -64,7 +65,7 @@ export default function DesignerLoginPage() {
         <div className={styles.noticeBox}>
           <ShieldCheck size={18} className={styles.shieldIcon} />
           <div className={styles.noticeText}>
-            <strong>Authorized Access Only:</strong> Valid security code and credentials required. Contact BAVI administration for portal access.
+            <strong>Architect Access:</strong> Site owner & pre-authorized architects can sign in directly. New designers must request an access key.
           </div>
         </div>
 
@@ -86,7 +87,7 @@ export default function DesignerLoginPage() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="architect@company.com"
+                placeholder="interiorsbavi@gmail.com"
                 className={styles.formInput}
               />
             </div>
@@ -110,7 +111,7 @@ export default function DesignerLoginPage() {
 
           <div className={styles.formGroup}>
             <label className={styles.formLabel}>
-              <span>Security Code</span>
+              <span>Security Key</span>
               <span className={styles.goldLabel}>(Assigned Token)</span>
             </label>
             <div className={styles.inputWrapper}>
@@ -120,7 +121,7 @@ export default function DesignerLoginPage() {
                 required
                 value={companyCode}
                 onChange={(e) => setCompanyCode(e.target.value.toUpperCase())}
-                placeholder="e.g. BAVI-DES-XXXX"
+                placeholder="e.g. BAVI-DES-7890"
                 className={`${styles.formInput} ${styles.inputGold}`}
               />
             </div>
@@ -128,7 +129,7 @@ export default function DesignerLoginPage() {
 
           <button type="submit" disabled={loading} className={styles.submitBtn}>
             {loading ? (
-              <span>Validating Credentials...</span>
+              <span>Validating Security Key...</span>
             ) : (
               <>
                 <span>Access Command Dashboard</span>
@@ -139,10 +140,10 @@ export default function DesignerLoginPage() {
         </form>
 
         <div style={{ textAlign: 'center', marginTop: '16px', fontSize: '0.85rem', color: '#888' }}>
-          Need architect portal access?{' '}
-          <span style={{ color: 'var(--color-gold)', fontWeight: 600 }}>
-            Contact BAVI administration
-          </span>
+          New architect or need a key?{' '}
+          <Link href="/register" style={{ color: 'var(--color-gold)', fontWeight: 600, textDecoration: 'underline' }}>
+            Request Security Key Approval
+          </Link>
         </div>
 
         {/* Bottom Link */}

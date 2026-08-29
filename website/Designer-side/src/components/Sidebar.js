@@ -12,6 +12,7 @@ import {
   UserCheck, 
   LogOut,
   ShieldCheck,
+  KeyRound,
   X
 } from 'lucide-react';
 import { useDesignerAuth } from '@/context/AuthContext';
@@ -19,6 +20,7 @@ import styles from './Sidebar.module.css';
 
 const navItems = [
   { href: '/dashboard', label: 'Command Center', icon: LayoutDashboard },
+  { href: '/dashboard/approvals', label: 'Key & Access Approvals', icon: KeyRound },
   { href: '/dashboard/customers', label: 'My Client Directory', icon: Users },
   { href: '/dashboard/projects', label: 'Project Milestones', icon: FolderKanban },
   { href: '/dashboard/consultations', label: 'Consultation Calendar', icon: CalendarDays },

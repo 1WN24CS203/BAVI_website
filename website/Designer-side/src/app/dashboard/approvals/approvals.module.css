@@ -1,0 +1,430 @@
+.container {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.metricsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.metricCard {
+  background: var(--color-surface, #141414);
+  border: 1px solid var(--color-border, #222);
+  border-radius: 10px;
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.metricTop {
+  display: flex;
+  justifyContent: space-between;
+  align-items: center;
+}
+
+.metricLabel {
+  font-size: 0.8rem;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.metricIcon {
+  color: #888;
+}
+
+.metricIconGold {
+  color: var(--color-gold, #c9a84c);
+}
+
+.metricIconSuccess {
+  color: var(--color-success, #4ade80);
+}
+
+.metricValue {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #fff;
+  font-family: var(--font-heading, inherit);
+}
+
+.metricValueGold {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: var(--color-gold, #c9a84c);
+  font-family: var(--font-heading, inherit);
+}
+
+.metricSub {
+  font-size: 0.75rem;
+  color: #666;
+}
+
+.toast {
+  padding: 12px 18px;
+  background: rgba(74, 222, 128, 0.15);
+  border: 1px solid var(--color-success, #4ade80);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.88rem;
+  color: #fff;
+}
+
+.masterBox {
+  background: #111;
+  border: 1px dashed rgba(201, 168, 76, 0.3);
+  border-radius: 10px;
+  padding: 16px 20px;
+}
+
+.masterHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--color-gold, #c9a84c);
+  margin-bottom: 12px;
+}
+
+.masterList {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 12px;
+}
+
+.masterItem {
+  background: #1a1a1a;
+  border: 1px solid #282828;
+  border-radius: 6px;
+  padding: 10px 14px;
+  display: flex;
+  justifyContent: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.controlBar {
+  display: flex;
+  justifyContent: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.filterTabs {
+  display: flex;
+  gap: 6px;
+  background: #141414;
+  padding: 4px;
+  border-radius: 8px;
+  border: 1px solid #222;
+}
+
+.filterBtn {
+  padding: 8px 14px;
+  border: none;
+  background: transparent;
+  color: #888;
+  font-size: 0.82rem;
+  font-weight: 500;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.filterBtnActive {
+  background: var(--color-gold, #c9a84c);
+  color: #000;
+  font-weight: 700;
+}
+
+.searchWrap {
+  position: relative;
+  min-width: 260px;
+}
+
+.searchIcon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #666;
+}
+
+.searchInput {
+  width: 100%;
+  padding: 9px 12px 9px 36px;
+  background: #141414;
+  border: 1px solid #282828;
+  border-radius: 8px;
+  color: #fff;
+  font-size: 0.85rem;
+  outline: none;
+}
+
+.searchInput:focus {
+  border-color: var(--color-gold, #c9a84c);
+}
+
+.requestsList {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.requestCard {
+  background: #141414;
+  border: 1px solid #242424;
+  border-radius: 10px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  transition: border-color 0.2s ease;
+}
+
+.cardPending {
+  border-color: rgba(201, 168, 76, 0.4);
+  background: linear-gradient(180deg, rgba(201, 168, 76, 0.03) 0%, #141414 100%);
+}
+
+.cardHeader {
+  display: flex;
+  justifyContent: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.applicantInfo {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--color-gold, #c9a84c), #73571d);
+  color: #000;
+  font-weight: 800;
+  font-size: 1.1rem;
+  display: flex;
+  align-items: center;
+  justifyContent: center;
+}
+
+.applicantName {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #fff;
+  margin: 0;
+}
+
+.applicantSpecialty {
+  font-size: 0.82rem;
+  color: var(--color-gold, #c9a84c);
+  margin-top: 2px;
+}
+
+.statusBadge {
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.badgeApproved {
+  background: rgba(74, 222, 128, 0.15);
+  color: var(--color-success, #4ade80);
+  border: 1px solid rgba(74, 222, 128, 0.3);
+}
+
+.badgePending {
+  background: rgba(201, 168, 76, 0.15);
+  color: var(--color-gold, #c9a84c);
+  border: 1px solid rgba(201, 168, 76, 0.3);
+}
+
+.badgeRejected {
+  background: rgba(248, 113, 113, 0.15);
+  color: #f87171;
+  border: 1px solid rgba(248, 113, 113, 0.3);
+}
+
+.tokenDisplay {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.tokenLabel {
+  font-size: 0.72rem;
+  color: #888;
+}
+
+.tokenValueWrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #0d0d0d;
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px dashed var(--color-gold, #c9a84c);
+}
+
+.tokenCode {
+  font-size: 0.92rem;
+  color: var(--color-gold, #c9a84c);
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.copyBtn {
+  background: none;
+  border: none;
+  color: #888;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  padding: 2px;
+}
+
+.copyBtn:hover {
+  color: #fff;
+}
+
+.detailsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+  background: #0e0e0e;
+  padding: 12px 16px;
+  border-radius: 8px;
+  border: 1px solid #1f1f1f;
+}
+
+.detailItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.82rem;
+  color: #ccc;
+}
+
+.bioBox {
+  background: #111;
+  padding: 12px 16px;
+  border-radius: 6px;
+  border-left: 3px solid var(--color-gold, #c9a84c);
+  font-size: 0.82rem;
+  color: #aaa;
+  line-height: 1.5;
+}
+
+.actionRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding-top: 6px;
+}
+
+.approveBtn {
+  padding: 10px 18px;
+  background: linear-gradient(135deg, var(--color-gold, #c9a84c), #a8852c);
+  color: #000;
+  font-weight: 700;
+  font-size: 0.85rem;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: transform 0.15s ease;
+}
+
+.approveBtn:hover {
+  transform: translateY(-1px);
+}
+
+.rejectBtn {
+  padding: 10px 16px;
+  background: transparent;
+  color: #f87171;
+  border: 1px solid rgba(248, 113, 113, 0.3);
+  border-radius: 6px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.rejectBtn:hover {
+  background: rgba(248, 113, 113, 0.1);
+}
+
+.rejectForm {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+
+.rejectInput {
+  flex: 1;
+  padding: 8px 12px;
+  background: #1c1c1c;
+  border: 1px solid #333;
+  border-radius: 6px;
+  color: #fff;
+  font-size: 0.82rem;
+}
+
+.confirmRejectBtn {
+  padding: 8px 14px;
+  background: #f87171;
+  color: #000;
+  font-weight: 700;
+  font-size: 0.82rem;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.cancelRejectBtn {
+  padding: 8px 12px;
+  background: transparent;
+  color: #888;
+  border: 1px solid #444;
+  border-radius: 6px;
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+
+.emptyState {
+  padding: 60px 24px;
+  text-align: center;
+  background: #141414;
+  border: 1px dashed #2a2a2a;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justifyContent: center;
+}
