@@ -17,39 +17,66 @@ import styles from './site.module.css';
 
 export default function SiteDetailsPage() {
   const { profile } = useAuth();
-  const isPooja = profile?.email?.includes('pooja');
+  const [site, setSite] = useState(null);
 
-  const site = isPooja ? {
-    address: 'Villa 18, Palm Meadows, Ramagondanahalli, Whitefield',
-    city: 'Bengaluru',
-    state: 'Karnataka',
-    pincode: '560066',
-    zoning: 'Gated Villa Enclave (Residential Luxury)',
-    landArea: '3,800 sq.ft',
-    builtupArea: '4,600 sq.ft (Duplex Penthouse)',
-    sanctionStatus: 'Approved & Active',
-    sanctionAuthority: 'BPA & Gated Society Association Plan Sanction',
-    electricity: 'BESCOM 12KW 3-Phase + 100% DG Backup',
-    water: 'Dedicated RO treated softening unit + BWSSB line',
-    soilTest: 'Bedrock compaction verified',
-    orientation: 'North-East Facing (100% Vastu Compliant)',
-    designerNotes: 'Exclusive penthouse layout with 12ft high ceilings. Acoustic decoupling applied on common party walls.'
-  } : {
-    address: 'Plot #42, 12th Main Road, HAL 2nd Stage, Indiranagar',
-    city: 'Bengaluru',
-    state: 'Karnataka',
-    pincode: '560038',
-    zoning: 'Residential (R1 - Luxury Independent Villa)',
-    landArea: '4,200 sq.ft (60 x 70 ft corner plot)',
-    builtupArea: '6,800 sq.ft (G+2 + Rooftop Pool Terrace)',
-    sanctionStatus: 'Sanction Order BBMP/LP/2026/0891 Approved',
-    sanctionAuthority: 'BBMP East Zone Town Planning Sanction',
-    electricity: 'BESCOM 18KW 3-Phase Commercial/Residential + Solar Grid Ready',
-    water: 'BWSSB Dual-Line Supply + 600ft Hydro-filtered Borewell',
-    soilTest: 'Hard Red Clay soil with high load bearing capacity (240 kN/m²)',
-    orientation: 'East-Facing Main Foyer (Vastu Gold Standard)',
-    designerNotes: '40-foot approach road on both east and north sides. Retaining boundary walls reinforced with waterproofing slurry.'
-  };
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('bavi_client_site');
+      if (stored) {
+        setSite(JSON.parse(stored));
+      } else {
+        const activeProj = localStorage.getItem('bavi_client_active_project');
+        if (activeProj) {
+          const parsed = JSON.parse(activeProj);
+          if (parsed && parsed.location) {
+            setSite({
+              address: parsed.location,
+              city: 'Bengaluru',
+              state: 'Karnataka',
+              pincode: '560001',
+              zoning: parsed.category || 'Residential Luxury',
+              landArea: 'TBD',
+              builtupArea: 'TBD',
+              sanctionStatus: 'Under Verification',
+              sanctionAuthority: 'Municipal Town Planning Authority',
+              electricity: 'Grid Connection Pending',
+              water: 'Water Supply Verification in Progress',
+              soilTest: 'Soil Testing Scheduled',
+              orientation: 'East-Facing (Vastu Compliant)',
+              designerNotes: 'Site survey and geolocation assessment to be published by principal architect.'
+            });
+            return;
+          }
+        }
+        setSite(null);
+      }
+    } catch {
+      setSite(null);
+    }
+  }, []);
+
+  if (!site) {
+    return (
+      <div className={styles.container}>
+        <div style={{
+          textAlign: 'center',
+          padding: '80px 20px',
+          background: 'rgba(255,255,255,0.02)',
+          borderRadius: '16px',
+          border: '1px dashed rgba(255,255,255,0.1)',
+          maxWidth: '680px',
+          margin: '40px auto',
+          color: '#888'
+        }}>
+          <MapPin size={48} style={{ color: 'var(--astryx-gold, #c9a84c)', marginBottom: '16px' }} />
+          <h2 style={{ color: '#fff', fontSize: '1.4rem', margin: '0 0 8px' }}>No Site Specifications Published Yet</h2>
+          <p style={{ color: '#888', fontSize: '0.9rem', lineHeight: 1.6, margin: '0' }}>
+            Live geolocation coordinates, municipal sanction orders, soil bearing reports, and utility grid details will be published here once your site survey is conducted by our engineering team.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={styles.container}>

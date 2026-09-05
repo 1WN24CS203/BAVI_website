@@ -13,26 +13,14 @@ export default function ReviewsPage() {
   const [comment, setComment] = useState('');
   const [submitted, setSubmitted] = useState(false);
 
-  const [reviewsList, setReviewsList] = useState([
-    {
-      id: 1,
-      title: 'Flawless Plinth & Foundation Execution',
-      rating: 5,
-      date: '28 Apr 2026',
-      milestone: 'Stage 2: RCC Column & Foundation',
-      comment: 'Arun Bahubali and the civil engineering team at BAVI maintained exceptional precision on column alignment and curing. The milestone report and photo updates gave our family complete peace of mind.',
-      author: profile?.full_name || 'Rajesh Sharma'
-    },
-    {
-      id: 2,
-      title: 'Prompt Municipal Sanction & 3D Renders',
-      rating: 5,
-      date: '15 Feb 2026',
-      milestone: 'Stage 1: Architectural Blueprint',
-      comment: 'The 3D walkthrough was so realistic we could visualize every room before breaking ground. Sanction paperwork was handled completely seamlessly.',
-      author: profile?.full_name || 'Rajesh Sharma'
-    }
-  ]);
+  const [reviewsList, setReviewsList] = useState([]);
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('bavi_client_reviews');
+      if (stored) setReviewsList(JSON.parse(stored));
+    } catch {}
+  }, []);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -42,13 +30,17 @@ export default function ReviewsPage() {
       id: Date.now(),
       title: title || 'Milestone Feedback',
       rating,
-      date: 'Just Now',
+      date: new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }),
       milestone: 'Current Stage Progress Feedback',
       comment,
       author: profile?.full_name || 'Valued Client'
     };
 
-    setReviewsList([newRev, ...reviewsList]);
+    const updated = [newRev, ...reviewsList];
+    setReviewsList(updated);
+    try {
+      localStorage.setItem('bavi_client_reviews', JSON.stringify(updated));
+    } catch {}
     setSubmitted(true);
     setTitle('');
     setComment('');
@@ -140,22 +132,37 @@ export default function ReviewsPage() {
         <div className={styles.reviewsSide}>
           <h3 className={styles.cardTitle}>Your Submitted Reviews</h3>
           <div className={styles.reviewsList}>
-            {reviewsList.map((rev) => (
-              <div key={rev.id} className={styles.reviewItem}>
-                <div className={styles.revTop}>
-                  <div className={styles.revStars}>
-                    {[...Array(rev.rating)].map((_, i) => (
-                      <Star key={i} size={15} fill="var(--color-gold)" color="var(--color-gold)" />
-                    ))}
-                  </div>
-                  <span className={styles.revDate}>{rev.date}</span>
-                </div>
-                <h4 className={styles.revTitle}>{rev.title}</h4>
-                <span className={styles.revMilestone}>{rev.milestone}</span>
-                <p className={styles.revComment}>&ldquo;{rev.comment}&rdquo;</p>
-                <div className={styles.revAuthor}>— {rev.author}</div>
+            {reviewsList.length === 0 ? (
+              <div style={{
+                textAlign: 'center',
+                padding: '40px 16px',
+                background: 'rgba(255,255,255,0.02)',
+                borderRadius: '8px',
+                border: '1px dashed rgba(255,255,255,0.08)',
+                color: '#888',
+                fontSize: '0.85rem'
+              }}>
+                <MessageSquare size={28} style={{ color: 'var(--astryx-gold)', marginBottom: '8px' }} />
+                <p style={{ margin: 0 }}>No reviews submitted yet. Use the form on the left to submit your feedback on any completed milestone.</p>
               </div>
-            ))}
+            ) : (
+              reviewsList.map((rev) => (
+                <div key={rev.id} className={styles.reviewItem}>
+                  <div className={styles.revTop}>
+                    <div className={styles.revStars}>
+                      {[...Array(rev.rating)].map((_, i) => (
+                        <Star key={i} size={15} fill="var(--color-gold)" color="var(--color-gold)" />
+                      ))}
+                    </div>
+                    <span className={styles.revDate}>{rev.date}</span>
+                  </div>
+                  <h4 className={styles.revTitle}>{rev.title}</h4>
+                  <span className={styles.revMilestone}>{rev.milestone}</span>
+                  <p className={styles.revComment}>&ldquo;{rev.comment}&rdquo;</p>
+                  <div className={styles.revAuthor}>— {rev.author}</div>
+                </div>
+              ))
+            )}
           </div>
         </div>
       </div>

@@ -8,61 +8,6 @@ import {
 import DesignerHeader from '@/components/Header';
 import { Button, Badge, Card, TextInput, Select, Modal, SearchInput } from '@/components/astryx';
 
-const DEFAULT_CONTRACTORS = [
-  {
-    id: 'cntr-1',
-    agencyName: 'Apex Civil Engineering & Masonry',
-    leadContact: 'Rameshwar Reddy',
-    specialty: 'Civil & Structural Masonry',
-    phone: '+91 98450 12390',
-    email: 'info@apexcivil.in',
-    activeProjects: 2,
-    workforceCount: 28,
-    rating: '4.9/5.0',
-    complianceStatus: 'VERIFIED',
-    currentSite: 'Villa Serenity Penthouse',
-  },
-  {
-    id: 'cntr-2',
-    agencyName: 'VoltCraft MEP Services',
-    leadContact: 'Sunil Verghese',
-    specialty: 'Electrical & Automation',
-    phone: '+91 99800 45621',
-    email: 'contact@voltcraft.co',
-    activeProjects: 3,
-    workforceCount: 14,
-    rating: '4.8/5.0',
-    complianceStatus: 'VERIFIED',
-    currentSite: 'Skyline Minimalist Loft',
-  },
-  {
-    id: 'cntr-3',
-    agencyName: 'Prestige Millwork & Woodcraft',
-    leadContact: 'Gurpreet Singh',
-    specialty: 'Custom Millwork & Italian Joinery',
-    phone: '+91 98111 87654',
-    email: 'designs@prestigewood.com',
-    activeProjects: 1,
-    workforceCount: 18,
-    rating: '5.0/5.0',
-    complianceStatus: 'VERIFIED',
-    currentSite: 'Villa Serenity Penthouse',
-  },
-  {
-    id: 'cntr-4',
-    agencyName: 'Aquaflow Plumbing & Sanitary',
-    leadContact: 'Mahesh Kulkarni',
-    specialty: 'Plumbing & Concealed Piping',
-    phone: '+91 97400 33219',
-    email: 'billing@aquaflowplumb.in',
-    activeProjects: 1,
-    workforceCount: 10,
-    rating: '4.6/5.0',
-    complianceStatus: 'RENEWAL_DUE',
-    currentSite: 'Green Terraces Villa',
-  },
-];
-
 export default function ContractorRegistryPage() {
   const [contractors, setContractors] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -73,8 +18,8 @@ export default function ContractorRegistryPage() {
     specialty: 'Civil & Structural Masonry',
     phone: '',
     email: '',
-    workforceCount: 10,
-    currentSite: 'Villa Serenity Penthouse',
+    workforceCount: 0,
+    currentSite: '',
   });
 
   useEffect(() => {
@@ -83,11 +28,10 @@ export default function ContractorRegistryPage() {
       if (stored) {
         setContractors(JSON.parse(stored));
       } else {
-        setContractors(DEFAULT_CONTRACTORS);
-        localStorage.setItem('bavi_contractors_registry', JSON.stringify(DEFAULT_CONTRACTORS));
+        setContractors([]);
       }
     } catch {
-      setContractors(DEFAULT_CONTRACTORS);
+      setContractors([]);
     }
   }, []);
 

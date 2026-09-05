@@ -19,47 +19,22 @@ import styles from './consultations.module.css';
 export default function ConsultationsPage() {
   const { profile } = useAuth();
   const designer = profile?.designer || {
-    name: 'Arun Bahubali',
-    title: 'Principal Architect',
-    phone: '+91 98450 12345',
-    code: 'BAVI-DES-7890'
+    name: 'BAVI Architectural Studio',
+    title: 'Principal Architect & Site Concierge',
+    phone: '+91 8277762487',
+    code: 'BAVI-STUDIO'
   };
 
-  const [consultations, setConsultations] = useState([
-    {
-      id: 'cons-1',
-      type: 'Italian Marble & False Ceiling Review',
-      category: 'Design Review',
-      date: '2026-09-05',
-      time: '11:00 AM - 12:30 PM',
-      status: 'confirmed',
-      mode: 'On-Site Indiranagar Plot',
-      meetingLink: null,
-      notes: 'Sample slab selection of Botticino & Statuario marble with principal designer Arun Bahubali.'
-    },
-    {
-      id: 'cons-2',
-      type: 'Smart Home Automation & Lighting Plan',
-      category: 'Technical Consultation',
-      date: '2026-09-12',
-      time: '04:00 PM - 05:00 PM',
-      status: 'pending',
-      mode: 'Google Meet (Video Consultation)',
-      meetingLink: 'https://meet.google.com/bavi-arch-des',
-      notes: 'Reviewing Lutron & Philips Dynalite architectural cove lighting scenes and dimmer channels.'
-    },
-    {
-      id: 'cons-3',
-      type: 'Plinth Level Structural Inspection',
-      category: 'Site Inspection',
-      date: '2026-04-20',
-      time: '10:00 AM - 11:30 AM',
-      status: 'completed',
-      mode: 'On-Site Inspection',
-      meetingLink: null,
-      notes: 'Structural engineer certified column footing depth and plinth beam tie reinforcement.'
-    }
-  ]);
+  const [consultations, setConsultations] = useState([]);
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('bavi_client_consultations');
+      if (stored) {
+        setConsultations(JSON.parse(stored));
+      }
+    } catch {}
+  }, []);
 
   const [showModal, setShowModal] = useState(false);
   const [formData, setFormData] = useState({
@@ -86,7 +61,11 @@ export default function ConsultationsPage() {
       notes: formData.notes || 'Scheduled via client portal'
     };
 
-    setConsultations([newBooking, ...consultations]);
+    const updated = [newBooking, ...consultations];
+    setConsultations(updated);
+    try {
+      localStorage.setItem('bavi_client_consultations', JSON.stringify(updated));
+    } catch {}
     setSubmitted(true);
     setTimeout(() => {
       setSubmitted(false);
@@ -126,7 +105,27 @@ export default function ConsultationsPage() {
       <div className={styles.listSection}>
         <h3 className={styles.sectionTitle}>Scheduled & Past Sessions</h3>
         
-        <div className={styles.grid}>
+        {consultations.length === 0 ? (
+          <div style={{
+            textAlign: 'center',
+            padding: '60px 20px',
+            background: 'rgba(255,255,255,0.02)',
+            borderRadius: '12px',
+            border: '1px dashed rgba(255,255,255,0.1)',
+            color: '#888'
+          }}>
+            <CalendarDays size={36} style={{ color: 'var(--astryx-gold, #c9a84c)', marginBottom: '12px' }} />
+            <h4 style={{ color: '#fff', margin: '0 0 6px', fontSize: '1.1rem' }}>No Consultations Scheduled</h4>
+            <p style={{ margin: '0 0 16px', fontSize: '0.85rem' }}>
+              You have no active or upcoming review sessions with your architect.
+            </p>
+            <button onClick={() => setShowModal(true)} className={styles.bookBtn} style={{ margin: '0 auto' }}>
+              <Plus size={16} />
+              <span>Book First Session</span>
+            </button>
+          </div>
+        ) : (
+          <div className={styles.grid}>
           {consultations.map((item) => (
             <div key={item.id} className={styles.card}>
               <div className={styles.cardTop}>
@@ -172,7 +171,8 @@ export default function ConsultationsPage() {
             </div>
           ))}
         </div>
-      </div>
+      )}
+    </div>
 
       {/* Booking Modal */}
       {showModal && (

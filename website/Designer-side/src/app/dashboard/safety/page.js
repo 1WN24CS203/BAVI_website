@@ -8,52 +8,16 @@ import {
 import DesignerHeader from '@/components/Header';
 import { Button, Badge, Card, TextInput, Select, Modal, TextArea } from '@/components/astryx';
 
-const DEFAULT_SAFETY_LOGS = [
-  {
-    id: 'sft-1',
-    incidentType: 'Daily Toolbox Talk & PPE Audit',
-    projectName: 'Villa Serenity Penthouse',
-    safetyOfficer: 'D. Srinivas (HSE Officer)',
-    date: '2026-09-05',
-    severity: 'ROUTINE',
-    status: 'COMPLIANT',
-    workersBriefed: 32,
-    details: 'Full PPE mandatory check conducted. All scaffolding harnesses inspected and double-locked before high-elevation exterior plastering.',
-  },
-  {
-    id: 'sft-2',
-    incidentType: 'Temporary Electrical Panel Water Ingress Risk',
-    projectName: 'Skyline Minimalist Loft',
-    safetyOfficer: 'K. Mohan (Safety Lead)',
-    date: '2026-09-03',
-    severity: 'MODERATE',
-    status: 'RESOLVED',
-    workersBriefed: 14,
-    details: 'Temporary distribution board located near water outlet. Re-routed 4 meters away with weatherproof IP67 enclosure.',
-  },
-  {
-    id: 'sft-3',
-    incidentType: 'First Aid Kit & Fire Extinguisher Refill',
-    projectName: 'Green Terraces Villa',
-    safetyOfficer: 'D. Srinivas (HSE Officer)',
-    date: '2026-08-29',
-    severity: 'ROUTINE',
-    status: 'COMPLIANT',
-    workersBriefed: 22,
-    details: 'Refilled 4 ABC powder fire extinguishers on ground and first floors. First-aid eye wash station inspected.',
-  },
-];
-
 export default function SafetyCompliancePage() {
   const [safetyLogs, setSafetyLogs] = useState([]);
   const [modalOpen, setModalOpen] = useState(false);
   const [newLog, setNewLog] = useState({
     incidentType: '',
-    projectName: 'Villa Serenity Penthouse',
-    safetyOfficer: 'D. Srinivas (HSE Officer)',
+    projectName: '',
+    safetyOfficer: '',
     severity: 'ROUTINE',
     status: 'COMPLIANT',
-    workersBriefed: 25,
+    workersBriefed: 0,
     details: '',
   });
 
@@ -63,11 +27,10 @@ export default function SafetyCompliancePage() {
       if (stored) {
         setSafetyLogs(JSON.parse(stored));
       } else {
-        setSafetyLogs(DEFAULT_SAFETY_LOGS);
-        localStorage.setItem('bavi_safety_registry', JSON.stringify(DEFAULT_SAFETY_LOGS));
+        setSafetyLogs([]);
       }
     } catch {
-      setSafetyLogs(DEFAULT_SAFETY_LOGS);
+      setSafetyLogs([]);
     }
   }, []);
 

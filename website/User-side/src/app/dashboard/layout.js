@@ -92,12 +92,11 @@ export default function DashboardLayout({ children }) {
   }
 
   // Assigned lead architect info — displayed in client sidebar
-  // In production, this should be fetched from Supabase based on the client's assigned designer
-  const designer = {
-    name: 'Arun Bahubali',
-    title: 'Principal Architect & Lead Engineer',
+  const designer = profile?.designer || {
+    name: 'BAVI Architectural Studio',
+    title: 'Client Concierge & Advisory',
     phone: '8277762487',
-    code: 'BAVI-DES-7890'
+    code: 'BAVI-STUDIO'
   };
 
   const currentPage = navItems.find(item => item.href === pathname)?.label || 'Command Center';

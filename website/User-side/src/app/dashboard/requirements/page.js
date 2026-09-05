@@ -8,53 +8,18 @@ import {
 import { useAuth } from '@/context/AuthContext';
 import { Button, Badge, Card, TextArea, TextInput } from '@/components/astryx';
 
-const DEFAULT_REQUIREMENTS = {
-  id: 'req-proj-1',
-  projectId: 'proj-1',
-  projectName: 'Villa Serenity Penthouse',
-  clientName: 'Vikramaditya Roy',
-  clientPlainWords: `We want an open-concept European layout with an expansive kitchen island finished in Calacatta marble. The living room should maximize morning sunlight with double-glazed acoustic floor-to-ceiling glass. 
-
-In the master suite, we desire a walk-in wardrobe crafted in warm teakwood with integrated warm LED strip lighting, and a resort-style bathroom featuring a standalone soaking tub and concealed Grohe fixtures. 
-
-Also need a dedicated, soundproof home studio/office for executive video calls with integrated Cat-6 ethernet and smart motorized blackout blinds.`,
-  submittedAt: '2026-08-20',
-  status: 'SRS_GENERATED',
-  srs: {
-    title: 'Architectural & Spatial Requirements Specification (SRS-2026-V1)',
-    version: '2.1.0',
-    preparedBy: 'Arun Bahubali (Principal Architect)',
-    generatedAt: '2026-08-25',
-    clientApproved: false,
-    clientApprovedAt: null,
-    sections: [
-      {
-        id: 'sec-1',
-        title: '1. Spatial Layout & Architectural Program',
-        content: 'Open-concept layout spanning 4,200 sq.ft. Kitchen repositioned towards North-East for optimal Vastu and morning luminescence. Double-glazed structural acoustic facade (Rw 42dB rating) along living room perimeter.'
-      },
-      {
-        id: 'sec-2',
-        title: '2. Civil, Joinery & Materials Schedule',
-        content: 'Flooring: Imported 1200x1800mm Italian Statuario Marble. Wardrobes: Solid Burma Teak framing with soft-close Blum hinges and 2700K recessed indirect LED illumination. Countertops: 20mm Caesarstone Quartz.'
-      },
-      {
-        id: 'sec-3',
-        title: '3. Electrical, MEP & Smart Home Automation',
-        content: 'KNX or Lutron automated scene lighting with 5-channel dimming. CAT-6 Gigabit structured cabling in acoustic home office. Astral Silencio sound-insulated drainage lines.'
-      },
-      {
-        id: 'sec-4',
-        title: '4. Statutory Sanction & Safety Parameters',
-        content: 'BBMP municipal plan sanction compliant with fire safety clearances. Double fire-rated solid timber main door (120-minute barrier rating).'
-      }
-    ]
-  }
-};
-
 export default function ClientRequirementsPage() {
   const { profile } = useAuth();
-  const [data, setData] = useState(DEFAULT_REQUIREMENTS);
+  const [data, setData] = useState({
+    id: null,
+    projectId: null,
+    projectName: 'My Residence Project',
+    clientName: profile?.full_name || '',
+    clientPlainWords: '',
+    submittedAt: null,
+    status: 'NOT_SUBMITTED',
+    srs: null,
+  });
   const [isEditingWords, setIsEditingWords] = useState(false);
   const [plainWordsDraft, setPlainWordsDraft] = useState('');
   const [savedSuccess, setSavedSuccess] = useState(false);
@@ -68,15 +33,33 @@ export default function ClientRequirementsPage() {
         setData(parsed);
         setPlainWordsDraft(parsed.clientPlainWords || '');
       } else {
-        setData(DEFAULT_REQUIREMENTS);
-        setPlainWordsDraft(DEFAULT_REQUIREMENTS.clientPlainWords);
-        localStorage.setItem('bavi_client_requirements', JSON.stringify(DEFAULT_REQUIREMENTS));
+        const fresh = {
+          id: 'req-' + Date.now(),
+          projectId: 'proj-active',
+          projectName: 'My Residence Project',
+          clientName: profile?.full_name || 'Client',
+          clientPlainWords: '',
+          submittedAt: null,
+          status: 'NOT_SUBMITTED',
+          srs: null,
+        };
+        setData(fresh);
+        setPlainWordsDraft('');
       }
     } catch {
-      setData(DEFAULT_REQUIREMENTS);
-      setPlainWordsDraft(DEFAULT_REQUIREMENTS.clientPlainWords);
+      setData({
+        id: 'req-' + Date.now(),
+        projectId: 'proj-active',
+        projectName: 'My Residence Project',
+        clientName: profile?.full_name || 'Client',
+        clientPlainWords: '',
+        submittedAt: null,
+        status: 'NOT_SUBMITTED',
+        srs: null,
+      });
+      setPlainWordsDraft('');
     }
-  }, []);
+  }, [profile]);
 
   const handleSavePlainWords = (e) => {
     e.preventDefault();
@@ -195,7 +178,7 @@ export default function ClientRequirementsPage() {
               </Button>
             </div>
           </form>
-        ) : (
+        ) : data.clientPlainWords ? (
           <div style={{
             background: 'rgba(255, 255, 255, 0.03)',
             borderRadius: '10px',
@@ -207,6 +190,24 @@ export default function ClientRequirementsPage() {
             whiteSpace: 'pre-line'
           }}>
             {data.clientPlainWords}
+          </div>
+        ) : (
+          <div style={{
+            textAlign: 'center',
+            padding: '40px 20px',
+            background: 'rgba(255,255,255,0.02)',
+            borderRadius: '10px',
+            border: '1px dashed rgba(255,255,255,0.1)',
+            color: '#888'
+          }}>
+            <FileText size={32} style={{ color: 'var(--astryx-gold)', marginBottom: '10px' }} />
+            <h4 style={{ color: '#eee', margin: '0 0 6px' }}>No Requirements Submitted Yet</h4>
+            <p style={{ margin: '0 0 16px', fontSize: '0.85rem' }}>
+              Describe your living requirements, room preferences, and desired aesthetic in plain everyday language.
+            </p>
+            <Button variant="primary" size="sm" icon={<Edit3 size={14} />} onClick={() => setIsEditingWords(true)}>
+              Define My Vision
+            </Button>
           </div>
         )}
       </Card>
@@ -221,57 +222,74 @@ export default function ClientRequirementsPage() {
               </h2>
               {data.srs?.clientApproved ? (
                 <Badge variant="success">CLIENT SIGNED-OFF</Badge>
-              ) : (
+              ) : data.srs ? (
                 <Badge variant="warning">AWAITING CLIENT SIGN-OFF</Badge>
+              ) : (
+                <Badge variant="neutral">NOT YET GENERATED</Badge>
               )}
             </div>
             <span style={{ fontSize: '0.8rem', color: '#888' }}>
-              Document: {data.srs?.title} • Version: {data.srs?.version} • Lead: {data.srs?.preparedBy}
+              {data.srs ? `Document: ${data.srs.title} • Version: ${data.srs.version} • Lead: ${data.srs.preparedBy}` : 'Awaiting initial requirements submission'}
             </span>
           </div>
 
-          <div style={{ display: 'flex', gap: '10px' }}>
-            {!data.srs?.clientApproved ? (
-              <Button
-                variant="primary"
-                icon={<CheckCircle2 size={16} />}
-                onClick={handleApproveSRS}
-              >
-                Approve & Sign Off SRS
+          {data.srs && (
+            <div style={{ display: 'flex', gap: '10px' }}>
+              {!data.srs?.clientApproved ? (
+                <Button
+                  variant="primary"
+                  icon={<CheckCircle2 size={16} />}
+                  onClick={handleApproveSRS}
+                >
+                  Approve & Sign Off SRS
+                </Button>
+              ) : (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#4ade80', fontSize: '0.85rem', fontWeight: 600 }}>
+                  <CheckCircle2 size={16} />
+                  <span>Approved on {data.srs.clientApprovedAt}</span>
+                </div>
+              )}
+              <Button variant="secondary" size="sm" icon={<Download size={14} />}>
+                Export PDF
               </Button>
-            ) : (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#4ade80', fontSize: '0.85rem', fontWeight: 600 }}>
-                <CheckCircle2 size={16} />
-                <span>Approved on {data.srs.clientApprovedAt}</span>
-              </div>
-            )}
-            <Button variant="secondary" size="sm" icon={<Download size={14} />}>
-              Export PDF
-            </Button>
-          </div>
+            </div>
+          )}
         </div>
 
         {/* SRS Document Body */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          {data.srs?.sections?.map((sec) => (
-            <div
-              key={sec.id}
-              style={{
-                background: 'rgba(0, 0, 0, 0.25)',
-                borderRadius: '8px',
-                border: '1px solid rgba(255, 255, 255, 0.05)',
-                padding: '16px 20px'
-              }}
-            >
-              <h4 style={{ margin: '0 0 8px', fontSize: '0.98rem', color: 'var(--astryx-gold-light)', fontWeight: 600 }}>
-                {sec.title}
-              </h4>
-              <p style={{ margin: 0, fontSize: '0.88rem', color: '#ccc', lineHeight: 1.65 }}>
-                {sec.content}
-              </p>
-            </div>
-          ))}
-        </div>
+        {data.srs ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            {data.srs?.sections?.map((sec) => (
+              <div
+                key={sec.id}
+                style={{
+                  background: 'rgba(0, 0, 0, 0.25)',
+                  borderRadius: '8px',
+                  border: '1px solid rgba(255, 255, 255, 0.05)',
+                  padding: '16px 20px'
+                }}
+              >
+                <h4 style={{ margin: '0 0 8px', fontSize: '0.98rem', color: 'var(--astryx-gold-light)', fontWeight: 600 }}>
+                  {sec.title}
+                </h4>
+                <p style={{ margin: 0, fontSize: '0.88rem', color: '#ccc', lineHeight: 1.65 }}>
+                  {sec.content}
+                </p>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div style={{
+            textAlign: 'center',
+            padding: '36px 20px',
+            background: 'rgba(0,0,0,0.2)',
+            borderRadius: '8px',
+            color: '#777',
+            fontSize: '0.88rem'
+          }}>
+            Your architect team will formulate the formal technical SRS specifications once your plain-text requirements are reviewed.
+          </div>
+        )}
 
         {/* Dual Approval Footnote */}
         <div style={{ marginTop: '24px', padding: '14px 18px', borderRadius: '8px', background: 'rgba(201,168,76,0.06)', border: '1px solid rgba(201,168,76,0.2)', display: 'flex', alignItems: 'center', gap: '12px' }}>

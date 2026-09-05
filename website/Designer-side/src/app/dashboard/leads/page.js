@@ -16,61 +16,6 @@ const PIPELINE_STAGES = [
   'Contract Signed',
 ];
 
-const DEFAULT_LEADS = [
-  {
-    id: 'lead-1',
-    clientName: 'Sanjay & Malini Verma',
-    propertyType: '4BHK Ultra-Luxury Penthouse (5,200 sq.ft)',
-    location: 'Indiranagar, Bangalore',
-    budget: '₹ 85 Lakhs',
-    stage: 'Proposal Sent',
-    source: 'Website Callback Request',
-    assignedTo: 'Tanvi Shah (Senior Architect)',
-    phone: '+91 98451 09876',
-    email: 'sanjay.verma@techcorp.com',
-    createdAt: '2026-09-02',
-  },
-  {
-    id: 'lead-2',
-    clientName: 'Dr. Arvind & Neha Rao',
-    propertyType: 'Modernist Villa (6,800 sq.ft)',
-    location: 'Whitefield, Bangalore',
-    budget: '₹ 1.4 Crores',
-    stage: 'Site Survey Done',
-    source: 'Architecture Portfolio Referral',
-    assignedTo: 'Lead Architect',
-    phone: '+91 99002 34512',
-    email: 'arvind.rao@hospital.org',
-    createdAt: '2026-09-03',
-  },
-  {
-    id: 'lead-3',
-    clientName: 'Karan Mehra',
-    propertyType: 'Duplex Penthouse (3,800 sq.ft)',
-    location: 'Koramangala, Bangalore',
-    budget: '₹ 55 Lakhs',
-    stage: 'New Inquiry',
-    source: 'Direct Client Portal',
-    assignedTo: 'Marketing In-Charge',
-    phone: '+91 98234 56789',
-    email: 'karan.m@startups.in',
-    createdAt: '2026-09-05',
-  },
-  {
-    id: 'lead-4',
-    clientName: 'Vikramaditya Roy',
-    propertyType: 'Villa Serenity Penthouse (4,200 sq.ft)',
-    location: 'Sadashivanagar, Bangalore',
-    budget: '₹ 95 Lakhs',
-    stage: 'Contract Signed',
-    source: 'Executive Referral',
-    assignedTo: 'Principal Architect',
-    phone: '+91 98450 11223',
-    email: 'vikram.roy@prestige.com',
-    createdAt: '2026-08-20',
-  },
-];
-
 export default function LeadPipelinePage() {
   const [leads, setLeads] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -79,9 +24,9 @@ export default function LeadPipelinePage() {
     clientName: '',
     propertyType: '',
     location: 'Bangalore',
-    budget: '₹ 60 Lakhs',
+    budget: '',
     stage: 'New Inquiry',
-    source: 'Website Callback Request',
+    source: 'Direct Client Portal',
     phone: '',
     email: '',
   });
@@ -92,11 +37,10 @@ export default function LeadPipelinePage() {
       if (stored) {
         setLeads(JSON.parse(stored));
       } else {
-        setLeads(DEFAULT_LEADS);
-        localStorage.setItem('bavi_marketing_leads', JSON.stringify(DEFAULT_LEADS));
+        setLeads([]);
       }
     } catch {
-      setLeads(DEFAULT_LEADS);
+      setLeads([]);
     }
   }, []);
 

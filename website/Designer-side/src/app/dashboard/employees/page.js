@@ -9,57 +9,6 @@ import DesignerHeader from '@/components/Header';
 import { Button, Badge, Card, TextInput, Select, Modal, SearchInput } from '@/components/astryx';
 import { useDesignerAuth } from '@/context/AuthContext';
 
-const DEFAULT_EMPLOYEES = [
-  {
-    id: 'emp-1',
-    full_name: 'Vikramaditya Hegde',
-    email: 'bmsce.architect@bavi.in',
-    department: 'admin',
-    role: 'Principal Architect & Site Owner',
-    company_code: 'BAVI-OWNER-ADMIN',
-    isOwner: true,
-    phone: '+91 99800 11223',
-    status: 'ACTIVE',
-    joinedDate: '2026-08-01',
-  },
-  {
-    id: 'emp-2',
-    full_name: 'Ananya Rao',
-    email: 'ananya.rao@bavi.in',
-    department: 'architecture',
-    role: 'Senior Project Architect',
-    company_code: 'BAVI-DES-4102',
-    isOwner: false,
-    phone: '+91 98451 44556',
-    status: 'ACTIVE',
-    joinedDate: '2026-08-15',
-  },
-  {
-    id: 'emp-3',
-    full_name: 'Er. Rajesh Kumar',
-    email: 'rajesh.kumar@bavi.in',
-    department: 'construction',
-    role: 'Site Project Manager & QC Lead',
-    company_code: 'BAVI-DES-7721',
-    isOwner: false,
-    phone: '+91 97411 99882',
-    status: 'ACTIVE',
-    joinedDate: '2026-08-20',
-  },
-  {
-    id: 'emp-4',
-    full_name: 'Sneha Kulkarni',
-    email: 'sneha.k@bavi.in',
-    department: 'marketing',
-    role: 'Client Acquisition & Callback Lead',
-    company_code: 'BAVI-DES-3319',
-    isOwner: false,
-    phone: '+91 98220 77112',
-    status: 'ACTIVE',
-    joinedDate: '2026-08-22',
-  },
-];
-
 export default function EmployeeDirectoryPage() {
   const { getApprovedDesignersList } = useDesignerAuth();
   const [employees, setEmployees] = useState([]);
@@ -70,11 +19,30 @@ export default function EmployeeDirectoryPage() {
     try {
       const stored = localStorage.getItem('bavi_approved_designers');
       let list = stored ? JSON.parse(stored) : [];
-      // Combine with defaults if needed
-      const merged = [...DEFAULT_EMPLOYEES];
+      
+      // Include registered owner if present
+      const ownerStored = localStorage.getItem('bavi_site_owner');
+      const realEmployees = [];
+
+      if (ownerStored) {
+        const owner = JSON.parse(ownerStored);
+        realEmployees.push({
+          id: owner.id || 'owner-1',
+          full_name: owner.full_name,
+          email: owner.email,
+          department: 'admin',
+          role: 'Principal Architect & Site Owner',
+          company_code: owner.company_code || 'BAVI-OWNER-ADMIN',
+          isOwner: true,
+          phone: owner.phone || 'N/A',
+          status: 'ACTIVE',
+          joinedDate: owner.registeredAt ? owner.registeredAt.split('T')[0] : 'Today',
+        });
+      }
+
       list.forEach(item => {
-        if (!merged.some(m => m.email === item.email)) {
-          merged.push({
+        if (!realEmployees.some(m => m.email === item.email)) {
+          realEmployees.push({
             id: item.id || 'emp-' + Date.now(),
             full_name: item.full_name,
             email: item.email,
@@ -84,13 +52,13 @@ export default function EmployeeDirectoryPage() {
             isOwner: !!item.isOwner,
             phone: item.phone || 'N/A',
             status: 'ACTIVE',
-            joinedDate: item.approvedAt ? item.approvedAt.split('T')[0] : '2026-09-01',
+            joinedDate: item.approvedAt ? item.approvedAt.split('T')[0] : 'New',
           });
         }
       });
-      setEmployees(merged);
+      setEmployees(realEmployees);
     } catch {
-      setEmployees(DEFAULT_EMPLOYEES);
+      setEmployees([]);
     }
   }, []);
 
@@ -155,11 +123,27 @@ export default function EmployeeDirectoryPage() {
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: '20px' }}>
-        {filtered.map(emp => {
-          const DeptIcon = getDeptIcon(emp.department);
-          return (
-            <Card key={emp.id} style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+      {filtered.length === 0 ? (
+        <div style={{
+          textAlign: 'center',
+          padding: '60px 20px',
+          background: 'rgba(255,255,255,0.02)',
+          borderRadius: '12px',
+          border: '1px dashed rgba(255,255,255,0.1)',
+          color: '#888'
+        }}>
+          <Users size={36} style={{ color: 'var(--astryx-gold)', marginBottom: '12px' }} />
+          <h3 style={{ color: '#fff', margin: '0 0 6px', fontSize: '1.1rem' }}>No Employees Enrolled Yet</h3>
+          <p style={{ margin: 0, fontSize: '0.85rem' }}>
+            When staff members apply and you approve their security tokens, they will appear in this directory.
+          </p>
+        </div>
+      ) : (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: '20px' }}>
+          {filtered.map(emp => {
+            const DeptIcon = getDeptIcon(emp.department);
+            return (
+              <Card key={emp.id} style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '14px' }}>
                   <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
@@ -223,6 +207,7 @@ export default function EmployeeDirectoryPage() {
           );
         })}
       </div>
-    </div>
-  );
+    )}
+  </div>
+);
 }

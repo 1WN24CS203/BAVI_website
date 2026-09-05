@@ -8,74 +8,6 @@ import {
 import DesignerHeader from '@/components/Header';
 import { Button, Badge, Card, TextInput, Select, Modal, SearchInput } from '@/components/astryx';
 
-const DEFAULT_DOCUMENTS = [
-  {
-    id: 'doc-1',
-    name: 'Schematic_Floor_Plan_v3.pdf',
-    category: 'Architectural Drawings',
-    stage: 'Concept Design',
-    projectName: 'Villa Serenity Penthouse',
-    clientName: 'Vikramaditya Roy',
-    fileSize: '14.2 MB',
-    uploadedBy: 'Principal Architect',
-    uploadedAt: '2026-09-01',
-    status: 'Client Approved',
-    type: 'pdf',
-  },
-  {
-    id: 'doc-2',
-    name: 'Structural_Load_Calculations.dwg',
-    category: 'Engineering & Structural',
-    stage: 'Schematic Design',
-    projectName: 'Villa Serenity Penthouse',
-    clientName: 'Vikramaditya Roy',
-    fileSize: '28.6 MB',
-    uploadedBy: 'Structural Engineer',
-    uploadedAt: '2026-09-02',
-    status: 'Pending Review',
-    type: 'cad',
-  },
-  {
-    id: 'doc-3',
-    name: 'Living_Room_Photorealistic_3D.png',
-    category: '3D Renders & Visualizations',
-    stage: 'Design Development',
-    projectName: 'Skyline Minimalist Loft',
-    clientName: 'Ananya Deshmukh',
-    fileSize: '8.4 MB',
-    uploadedBy: 'Lead Visualizer',
-    uploadedAt: '2026-09-03',
-    status: 'Client Approved',
-    type: 'image',
-  },
-  {
-    id: 'doc-4',
-    name: 'Municipal_Sanction_Permit_Signed.pdf',
-    category: 'Statutory & Permits',
-    stage: 'Regulatory Approvals',
-    projectName: 'Green Terraces Villa',
-    clientName: 'Kavita Menon',
-    fileSize: '4.1 MB',
-    uploadedBy: 'Liaison Architect',
-    uploadedAt: '2026-08-28',
-    status: 'Verified',
-    type: 'pdf',
-  },
-  {
-    id: 'doc-5',
-    name: 'Bill_of_Quantities_Interior_Civil.xlsx',
-    category: 'Cost Estimates & BOQ',
-    stage: 'Detailed Estimation',
-    projectName: 'Skyline Minimalist Loft',
-    clientName: 'Ananya Deshmukh',
-    fileSize: '3.2 MB',
-    uploadedBy: 'Quantity Surveyor',
-    uploadedAt: '2026-09-04',
-    status: 'In Progress',
-    type: 'sheet',
-  }
-];
-
 export default function DocumentUploadCenterPage() {
   const [documents, setDocuments] = useState([]);
   const [filterCategory, setFilterCategory] = useState('ALL');
@@ -85,9 +17,9 @@ export default function DocumentUploadCenterPage() {
     name: '',
     category: 'Architectural Drawings',
     stage: 'Concept Design',
-    projectName: 'Villa Serenity Penthouse',
-    clientName: 'Vikramaditya Roy',
-    fileSize: '12.5 MB',
+    projectName: '',
+    clientName: '',
+    fileSize: '5.0 MB',
   });
 
   useEffect(() => {
@@ -96,11 +28,10 @@ export default function DocumentUploadCenterPage() {
       if (stored) {
         setDocuments(JSON.parse(stored));
       } else {
-        setDocuments(DEFAULT_DOCUMENTS);
-        localStorage.setItem('bavi_documents_registry', JSON.stringify(DEFAULT_DOCUMENTS));
+        setDocuments([]);
       }
     } catch {
-      setDocuments(DEFAULT_DOCUMENTS);
+      setDocuments([]);
     }
   }, []);
 

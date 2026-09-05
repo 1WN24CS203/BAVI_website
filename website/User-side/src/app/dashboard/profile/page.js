@@ -9,10 +9,10 @@ export default function ProfilePage() {
   const { profile, updateProfile } = useAuth();
   
   const [formData, setFormData] = useState({
-    full_name: profile?.full_name || 'Rajesh Sharma',
-    email: profile?.email || 'rajesh.sharma@example.com',
-    phone: profile?.phone || '+91 98765 11111',
-    address: profile?.address || 'Plot #42, Indiranagar, Bengaluru',
+    full_name: profile?.full_name || '',
+    email: profile?.email || '',
+    phone: profile?.phone || '',
+    address: profile?.address || '',
   });
 
   const [saved, setSaved] = useState(false);
@@ -123,9 +123,9 @@ export default function ProfilePage() {
               Your assigned designer is directly responsible for your architectural blueprints, site inspections, and contractor milestone handoffs.
             </p>
             <div className={styles.designerBox}>
-              <strong>{profile?.designer?.name || 'Arun Bahubali'}</strong>
-              <span>{profile?.designer?.title || 'Principal Architect'}</span>
-              <span className={styles.designerCode}>Code: {profile?.designer?.code || 'BAVI-DES-7890'}</span>
+              <strong>{profile?.designer?.name || 'BAVI Architectural Studio'}</strong>
+              <span>{profile?.designer?.title || 'Principal Architect & Studio Concierge'}</span>
+              <span className={styles.designerCode}>Code: {profile?.designer?.code || 'BAVI-STUDIO'}</span>
             </div>
           </div>
 

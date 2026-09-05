@@ -8,53 +8,6 @@ import {
 import DesignerHeader from '@/components/Header';
 import { Button, Badge, Card, TextInput, Select, Modal, SearchInput } from '@/components/astryx';
 
-const DEFAULT_EQUIPMENT = [
-  {
-    id: 'eq-1',
-    equipmentName: 'CAT Mini Hydraulic Excavator 303.5',
-    category: 'Heavy Earthmoving',
-    serialNo: 'CAT-3035-BLR-09',
-    assignedProject: 'Green Terraces Villa',
-    operator: 'Raju G. (Certified)',
-    operationalStatus: 'OPERATIONAL',
-    maintenanceDue: '2026-10-15',
-    hoursLogged: '412 hrs',
-  },
-  {
-    id: 'eq-2',
-    equipmentName: 'Schwing Stetter Concrete Mixer & Pump',
-    category: 'Concreting Machinery',
-    serialNo: 'SS-CP-400-88',
-    assignedProject: 'Villa Serenity Penthouse',
-    operator: 'Naveen Kumar',
-    operationalStatus: 'OPERATIONAL',
-    maintenanceDue: '2026-09-20',
-    hoursLogged: '890 hrs',
-  },
-  {
-    id: 'eq-3',
-    equipmentName: 'Laser Level & Total Station Robotic Theodolite',
-    category: 'Survey & Alignment',
-    serialNo: 'LEICA-TS16-01',
-    assignedProject: 'Skyline Minimalist Loft',
-    operator: 'Er. Anand Sharma',
-    operationalStatus: 'CALIBRATION_DUE',
-    maintenanceDue: '2026-09-10',
-    hoursLogged: '120 hrs',
-  },
-  {
-    id: 'eq-4',
-    equipmentName: 'Heavy-Duty Tubular Scaffolding System (4000 sq.ft)',
-    category: 'Access & Staging',
-    serialNo: 'SCAF-TUB-SYS-4',
-    assignedProject: 'Villa Serenity Penthouse',
-    operator: 'Apex Civil Team',
-    operationalStatus: 'OPERATIONAL',
-    maintenanceDue: '2026-11-01',
-    hoursLogged: 'Active Site',
-  },
-];
-
 export default function EquipmentTrackerPage() {
   const [equipment, setEquipment] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -63,10 +16,10 @@ export default function EquipmentTrackerPage() {
     equipmentName: '',
     category: 'Heavy Earthmoving',
     serialNo: '',
-    assignedProject: 'Villa Serenity Penthouse',
+    assignedProject: '',
     operator: '',
     operationalStatus: 'OPERATIONAL',
-    maintenanceDue: '2026-10-01',
+    maintenanceDue: '',
   });
 
   useEffect(() => {
@@ -75,11 +28,10 @@ export default function EquipmentTrackerPage() {
       if (stored) {
         setEquipment(JSON.parse(stored));
       } else {
-        setEquipment(DEFAULT_EQUIPMENT);
-        localStorage.setItem('bavi_equipment_registry', JSON.stringify(DEFAULT_EQUIPMENT));
+        setEquipment([]);
       }
     } catch {
-      setEquipment(DEFAULT_EQUIPMENT);
+      setEquipment([]);
     }
   }, []);
 

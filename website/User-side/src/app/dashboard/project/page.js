@@ -23,95 +23,9 @@ import { useAuth } from '@/context/AuthContext';
 import { Button, Badge, Card } from '@/components/astryx';
 import styles from './project.module.css';
 
-const DEFAULT_PROJECT = {
-  id: 'proj-1',
-  title: 'Villa Serenity Penthouse',
-  category: 'Luxury Residential Turnkey & Interior',
-  location: 'Sadashivanagar, Bengaluru',
-  status: 'In Progress (65%)',
-  budget: '₹ 1,85,00,000',
-  paid: '₹ 74,00,000',
-  clientName: 'Vikramaditya Roy',
-  builderName: 'Arun Bahubali (Principal Architect)',
-  startDate: '15 Jan 2026',
-  estCompletion: '30 Nov 2026',
-  description: '4BHK Ultra-Luxury contemporary penthouse with 5,200 sq.ft built-up area. Double-height living foyer, cantilevered master balconies, Italian Botticino marble, automated smart facades.',
-  milestones: [
-    {
-      id: 'stg-1',
-      stageNumber: 1,
-      title: 'Architectural Blueprint & Municipal BBMP Sanction',
-      date: '10 Feb 2026',
-      amount: '₹ 20,00,000',
-      desc: 'Structural engineering drawings, soil bearing capacity reports, and BBMP municipal plan sanction.',
-      builderApproved: true,
-      clientApproved: true,
-      status: 'COMPLETED',
-      documents: [
-        { name: 'BBMP_Sanction_Permit_Signed.pdf', size: '4.1 MB', type: 'pdf' },
-        { name: 'Structural_Load_Calculations.dwg', size: '28.6 MB', type: 'cad' }
-      ]
-    },
-    {
-      id: 'stg-2',
-      stageNumber: 2,
-      title: 'Civil Structure, Plinth & Column Reinforcement',
-      date: '25 Apr 2026',
-      amount: '₹ 54,00,000',
-      desc: 'Excavation, plinth beams, column casting, and ground/first floor RCC slab casting with M35 grade concrete.',
-      builderApproved: true,
-      clientApproved: true,
-      status: 'COMPLETED',
-      documents: [
-        { name: 'Concrete_Cube_Strength_Test_28Days.pdf', size: '3.2 MB', type: 'pdf' },
-        { name: 'Site_Plinth_Survey_Certified.pdf', size: '5.8 MB', type: 'pdf' }
-      ]
-    },
-    {
-      id: 'stg-3',
-      stageNumber: 3,
-      title: 'Brick Masonry, Plumbing & Electrical Rough-in',
-      date: '31 Jul 2026',
-      amount: '₹ 45,00,000',
-      desc: 'Double-coat clay brickwork, concealed Finolex flame-retardant wiring, and Astral SDR-11 acoustic plumbing lines.',
-      builderApproved: true,
-      clientApproved: false, // Client can sign off here!
-      status: 'AWAITING_CLIENT_APPROVAL',
-      documents: [
-        { name: 'Concealed_Conduit_Inspection_Log.pdf', size: '2.9 MB', type: 'pdf' },
-        { name: 'Hydrostatic_Plumbing_Test_Report.pdf', size: '1.8 MB', type: 'pdf' }
-      ]
-    },
-    {
-      id: 'stg-4',
-      stageNumber: 4,
-      title: 'Italian Marble Laying & False Ceiling Framing',
-      date: '30 Sep 2026',
-      amount: '₹ 40,00,000',
-      desc: 'Imported Statuario marble dry-lay layout, Gyproc designer perimeter ceiling, and primer coats.',
-      builderApproved: false,
-      clientApproved: false,
-      status: 'SCHEDULED',
-      documents: []
-    },
-    {
-      id: 'stg-5',
-      stageNumber: 5,
-      title: 'Smart Home Automation, Styling & Handover',
-      date: '30 Nov 2026',
-      amount: '₹ 26,00,000',
-      desc: 'KNX scene lighting, bespoke millwork, landscape illuminations, and ceremonial handover.',
-      builderApproved: false,
-      clientApproved: false,
-      status: 'SCHEDULED',
-      documents: []
-    },
-  ]
-};
-
 export default function MyProjectPage() {
   const { profile } = useAuth();
-  const [project, setProject] = useState(DEFAULT_PROJECT);
+  const [project, setProject] = useState(null);
   const [activeTab, setActiveTab] = useState('milestones');
   const [approvalNotification, setApprovalNotification] = useState(null);
 
@@ -121,11 +35,19 @@ export default function MyProjectPage() {
       if (stored) {
         setProject(JSON.parse(stored));
       } else {
-        setProject(DEFAULT_PROJECT);
-        localStorage.setItem('bavi_client_active_project', JSON.stringify(DEFAULT_PROJECT));
+        // Also check if any project exists in bavi_projects
+        const projectsList = localStorage.getItem('bavi_projects');
+        if (projectsList) {
+          const parsed = JSON.parse(projectsList);
+          if (parsed && parsed.length > 0) {
+            setProject(parsed[0]);
+            return;
+          }
+        }
+        setProject(null);
       }
     } catch {
-      setProject(DEFAULT_PROJECT);
+      setProject(null);
     }
   }, []);
 
@@ -159,7 +81,27 @@ export default function MyProjectPage() {
     saveProject(updatedProject);
     setApprovalNotification(`You have successfully authorized Stage ${stageId}. Dual permission verification recorded.`);
     setTimeout(() => setApprovalNotification(null), 5000);
-  };
+  if (!project) {
+    return (
+      <div className={styles.container}>
+        <div style={{
+          textAlign: 'center',
+          padding: '80px 20px',
+          background: 'rgba(255,255,255,0.02)',
+          borderRadius: '16px',
+          border: '1px dashed rgba(255,255,255,0.1)',
+          maxWidth: '700px',
+          margin: '40px auto'
+        }}>
+          <FolderKanban size={48} style={{ color: 'var(--astryx-gold, #c9a84c)', marginBottom: '16px' }} />
+          <h2 style={{ color: '#fff', fontSize: '1.4rem', margin: '0 0 8px' }}>No Active Project Assigned Yet</h2>
+          <p style={{ color: '#888', fontSize: '0.9rem', lineHeight: 1.6, margin: '0 0 24px' }}>
+            Your architectural roadmap, stage-by-stage document uploads, and dual-permission milestone verification will appear here once your design contract is activated.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={styles.container}>

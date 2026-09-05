@@ -8,57 +8,6 @@ import {
 import DesignerHeader from '@/components/Header';
 import { Button, Badge, Card, TextInput, Select, Modal, SearchInput, TextArea } from '@/components/astryx';
 
-const DEFAULT_INSPECTIONS = [
-  {
-    id: 'insp-1',
-    title: 'Reinforced Concrete Foundation Strength Test',
-    projectName: 'Villa Serenity Penthouse',
-    inspectorName: 'Er. Rajesh Kumar',
-    inspectionDate: '2026-09-03',
-    stage: 'Civil Construction',
-    category: 'Structural',
-    status: 'PASSED',
-    score: '96/100',
-    notes: 'Cube test reports verified at 28 days. Compressive strength meets M35 grade specifications.',
-  },
-  {
-    id: 'insp-2',
-    title: 'Concealed Conduit & Electrical Rough-in',
-    projectName: 'Skyline Minimalist Loft',
-    inspectorName: 'Er. Anand Sharma',
-    inspectionDate: '2026-09-04',
-    stage: 'MEP Services',
-    category: 'Electrical',
-    status: 'ACTION_REQUIRED',
-    score: '78/100',
-    notes: 'Master suite junction box depth needs 15mm adjustment. Earthing resistance to be re-measured.',
-  },
-  {
-    id: 'insp-3',
-    title: 'Waterproofing Integrity Hydrostatic Test',
-    projectName: 'Green Terraces Villa',
-    inspectorName: 'Er. S. Chandrasekhar',
-    inspectionDate: '2026-09-01',
-    stage: 'Civil Construction',
-    category: 'Waterproofing',
-    status: 'PASSED',
-    score: '100/100',
-    notes: '72-hour ponding test on terrace slabs completed with zero seepage detected.',
-  },
-  {
-    id: 'insp-4',
-    title: 'HVAC Ducting Pressure & Leakage Audit',
-    projectName: 'Villa Serenity Penthouse',
-    inspectorName: 'Er. N. Patel',
-    inspectionDate: '2026-08-30',
-    stage: 'Finishing & Services',
-    category: 'HVAC',
-    status: 'SCHEDULED',
-    score: 'Pending',
-    notes: 'Scheduled for next Monday after diffuser installations.',
-  }
-];
-
 export default function QualityInspectionsPage() {
   const [inspections, setInspections] = useState([]);
   const [filterStatus, setFilterStatus] = useState('ALL');
@@ -66,12 +15,12 @@ export default function QualityInspectionsPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [newInsp, setNewInsp] = useState({
     title: '',
-    projectName: 'Villa Serenity Penthouse',
-    inspectorName: 'Er. Rajesh Kumar',
+    projectName: '',
+    inspectorName: '',
     stage: 'Civil Construction',
     category: 'Structural',
     status: 'PASSED',
-    score: '95/100',
+    score: '100/100',
     notes: '',
   });
 
@@ -81,11 +30,10 @@ export default function QualityInspectionsPage() {
       if (stored) {
         setInspections(JSON.parse(stored));
       } else {
-        setInspections(DEFAULT_INSPECTIONS);
-        localStorage.setItem('bavi_inspections_registry', JSON.stringify(DEFAULT_INSPECTIONS));
+        setInspections([]);
       }
     } catch {
-      setInspections(DEFAULT_INSPECTIONS);
+      setInspections([]);
     }
   }, []);
 
