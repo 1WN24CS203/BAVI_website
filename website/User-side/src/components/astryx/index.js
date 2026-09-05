@@ -127,9 +127,21 @@ export function Button({
 
   const iconSize = size === 'xs' ? 12 : size === 'sm' ? 14 : size === 'lg' || size === 'xl' ? 18 : 16;
 
+  const renderIcon = (iconItem) => {
+    if (!iconItem) return null;
+    if (React.isValidElement(iconItem)) return iconItem;
+    if (typeof iconItem === 'function' || (typeof iconItem === 'object' && iconItem !== null)) {
+      return React.createElement(iconItem, { size: iconSize });
+    }
+    return null;
+  };
+
+  const currentVariant = variants[variant] || variants.primary;
+  const currentSize = sizes[size] || sizes.md;
+
   return (
     <button
-      style={{ ...baseStyles, ...sizes[size], ...variants[variant] }}
+      style={{ ...baseStyles, ...currentSize, ...currentVariant }}
       disabled={disabled || loading}
       onClick={onClick}
       type={type}
@@ -138,11 +150,9 @@ export function Button({
     >
       {loading ? (
         <span style={{ display: 'inline-flex', animation: 'ax-spin 1s linear infinite' }}>⟳</span>
-      ) : Icon ? (
-        typeof Icon === 'function' ? <Icon size={iconSize} /> : Icon
-      ) : null}
+      ) : renderIcon(Icon)}
       {children}
-      {IconRight && !loading && (typeof IconRight === 'function' ? <IconRight size={iconSize} /> : IconRight)}
+      {!loading && renderIcon(IconRight)}
     </button>
   );
 }
@@ -864,17 +874,20 @@ export function Card({
     xl: '36px',
   };
 
+  const v = variants[variant] || variants.default;
+  const p = paddings[padding] || (typeof padding === 'string' ? padding : paddings.md);
+
   return (
     <div
       className={className}
       onClick={onClick}
       style={{
         borderRadius: '14px',
-        padding: paddings[padding],
+        padding: p,
         transition: 'all 250ms ease',
         cursor: onClick ? 'pointer' : 'default',
         ...(animate ? { animation: 'ax-fadeIn 0.3s ease forwards' } : {}),
-        ...variants[variant],
+        ...v,
         ...customStyle,
       }}
       onMouseEnter={hoverable ? (e) => {
@@ -882,7 +895,7 @@ export function Card({
         e.currentTarget.style.transform = 'translateY(-2px)';
       } : undefined}
       onMouseLeave={hoverable ? (e) => {
-        e.currentTarget.style.borderColor = variants[variant].border?.split(' ').pop() || TOKENS.border;
+        e.currentTarget.style.borderColor = v.border?.split(' ').pop() || TOKENS.border;
         e.currentTarget.style.transform = 'translateY(0)';
       } : undefined}
     >
@@ -1260,6 +1273,15 @@ export function SearchInput({ value, onChange, placeholder = 'Search...', classN
 // 18. EMPTY STATE
 // ================================================================
 export function EmptyState({ icon: Icon, title, description, action, className = '' }) {
+  const renderEmptyIcon = () => {
+    if (!Icon) return null;
+    if (React.isValidElement(Icon)) return Icon;
+    if (typeof Icon === 'function' || (typeof Icon === 'object' && Icon !== null)) {
+      return React.createElement(Icon, { size: 40, color: TOKENS.gold, style: { marginBottom: '16px', opacity: 0.7 } });
+    }
+    return null;
+  };
+
   return (
     <div className={className} style={{
       display: 'flex',
@@ -1273,7 +1295,7 @@ export function EmptyState({ icon: Icon, title, description, action, className =
       borderRadius: '16px',
       animation: 'ax-fadeIn 0.3s ease',
     }}>
-      {Icon && <Icon size={40} color={TOKENS.gold} style={{ marginBottom: '16px', opacity: 0.7 }} />}
+      {renderEmptyIcon()}
       <h4 style={{ fontFamily: TOKENS.fontHeading, fontSize: '1.15rem', color: TOKENS.textPrimary, margin: '0 0 6px 0', fontWeight: 700 }}>
         {title}
       </h4>
