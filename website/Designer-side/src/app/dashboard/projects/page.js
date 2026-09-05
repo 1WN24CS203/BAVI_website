@@ -1,65 +1,83 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { 
-  FolderKanban, 
-  CheckCircle2, 
-  Clock, 
-  AlertCircle, 
-  Plus, 
-  Layers, 
-  FileUp, 
-  Sparkles,
-  Check,
-  Building
+import {
+  FolderKanban, CheckCircle2, Clock, AlertCircle, Plus, Layers, FileUp, Sparkles,
+  Check, Building, User, Phone, Mail, FileText, Upload, ChevronDown, ChevronUp,
+  Eye, Download
 } from 'lucide-react';
 import DesignerHeader from '@/components/Header';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
+import {
+  Button, Badge, Card, TextInput, TextArea, Select, FileUpload, Modal,
+  Toast, Tabs, ProgressBar, EmptyState, Divider, Tag, StatusDot, Stepper
+} from '@/components/astryx';
+import { useDesignerAuth } from '@/context/AuthContext';
 import styles from './projects.module.css';
 
 export default function DesignerProjectsPage() {
+  const { designer, logActivity } = useDesignerAuth();
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [toast, setToast] = useState('');
+  const [toastMsg, setToastMsg] = useState('');
+  const [toastVisible, setToastVisible] = useState(false);
+  const [toastVariant, setToastVariant] = useState('success');
+  const [expandedProject, setExpandedProject] = useState(null);
 
   // Modal State
   const [showAddModal, setShowAddModal] = useState(false);
   const [newProject, setNewProject] = useState({
-    title: '',
-    category: 'residential',
-    location: '',
-    budget: '',
-    description: ''
+    title: '', category: 'residential', location: '', budget: '', description: '',
+    client_name: '', client_phone: '', client_email: '', client_requirements: '',
   });
+  const [uploadedFiles, setUploadedFiles] = useState([]);
+
+  // Stage Document Upload Modal
+  const [showStageUploadModal, setShowStageUploadModal] = useState(false);
+  const [activeStageUpload, setActiveStageUpload] = useState(null);
+  const [stageFiles, setStageFiles] = useState([]);
 
   useEffect(() => {
     fetchProjects();
   }, []);
 
+  const showToast = (msg, variant = 'success') => {
+    setToastMsg(msg);
+    setToastVariant(variant);
+    setToastVisible(true);
+  };
+
   const fetchProjects = async () => {
     if (isSupabaseConfigured()) {
       try {
-        const { data, error } = await supabase
-          .from('projects')
-          .select('*')
-          .order('created_at', { ascending: false });
-
-        if (data && data.length > 0) {
-          setProjects(data);
-        } else {
-          setProjects([]);
-        }
+        const { data } = await supabase.from('projects').select('*').order('created_at', { ascending: false });
+        if (data && data.length > 0) setProjects(data);
+        else setProjects([]);
       } catch (err) {
         console.warn('Supabase fetch projects error:', err);
       }
     }
+    // Load from localStorage as fallback
+    try {
+      const local = localStorage.getItem('bavi_projects');
+      if (local) {
+        const parsed = JSON.parse(local);
+        if (parsed.length > 0 && projects.length === 0) setProjects(parsed);
+      }
+    } catch {}
     setLoading(false);
+  };
+
+  const saveProjectsLocal = (updated) => {
+    try {
+      localStorage.setItem('bavi_projects', JSON.stringify(updated));
+    } catch {}
   };
 
   const handleCreateProject = async (e) => {
     e.preventDefault();
-    if (!newProject.title || !newProject.location) {
-      alert('Please enter project title and location');
+    if (!newProject.title || !newProject.location || !newProject.client_name) {
+      showToast('Please fill in project title, location, and client name', 'error');
       return;
     }
 
@@ -68,313 +86,376 @@ export default function DesignerProjectsPage() {
       id: `proj-${Date.now()}`,
       progress: 0,
       completion_percentage: 0,
+      srs_status: 'not_started',
+      created_at: new Date().toISOString(),
       stages: [
-        { id: 1, name: 'Architectural Blueprint & Sanction', status: 'in_progress' },
-        { id: 2, name: 'Excavation & RCC Foundation Structure', status: 'pending' },
-        { id: 3, name: 'Brick Masonry, Plumbing & Electrical Conduits', status: 'pending' },
-        { id: 4, name: 'Flooring, False Ceiling & Premium Painting', status: 'pending' },
-        { id: 5, name: 'Smart Home Automation & Final Handover', status: 'pending' },
-      ]
+        { id: 1, name: 'Requirement Analysis & SRS Preparation', status: 'in_progress', builder_approved: false, client_approved: false, documents: [] },
+        { id: 2, name: 'Architectural Blueprint & Sanction', status: 'pending', builder_approved: false, client_approved: false, documents: [] },
+        { id: 3, name: 'Excavation & RCC Foundation Structure', status: 'pending', builder_approved: false, client_approved: false, documents: [] },
+        { id: 4, name: 'Brick Masonry, Plumbing & Electrical Conduits', status: 'pending', builder_approved: false, client_approved: false, documents: [] },
+        { id: 5, name: 'Flooring, False Ceiling & Premium Painting', status: 'pending', builder_approved: false, client_approved: false, documents: [] },
+        { id: 6, name: 'Smart Home Automation & Final Handover', status: 'pending', builder_approved: false, client_approved: false, documents: [] },
+      ],
     };
 
     if (isSupabaseConfigured()) {
       try {
-        await supabase.from('projects').insert([
-          {
-            title: newProject.title,
-            category: newProject.category,
-            location: newProject.location,
-            budget: parseFloat(newProject.budget) || 0,
-            description: newProject.description
-          }
-        ]);
+        await supabase.from('projects').insert([{
+          title: newProject.title,
+          category: newProject.category,
+          location: newProject.location,
+          budget: parseFloat(newProject.budget) || 0,
+          description: newProject.description,
+          client_name: newProject.client_name,
+          client_phone: newProject.client_phone,
+          client_email: newProject.client_email,
+          client_requirements_plain_text: newProject.client_requirements,
+        }]);
       } catch (err) {
         console.warn('Supabase save error:', err);
       }
     }
 
-    setProjects([created, ...projects]);
+    const updated = [created, ...projects];
+    setProjects(updated);
+    saveProjectsLocal(updated);
     setShowAddModal(false);
-    setNewProject({ title: '', category: 'residential', location: '', budget: '', description: '' });
-    setToast(`New project "${newProject.title}" initialized successfully!`);
-    setTimeout(() => setToast(''), 3500);
+    setNewProject({ title: '', category: 'residential', location: '', budget: '', description: '', client_name: '', client_phone: '', client_email: '', client_requirements: '' });
+    showToast(`Project "${created.title}" for client "${created.client_name}" created successfully!`);
+    logActivity('created_project', 'project', created.title, { client: created.client_name });
   };
 
-  const handleStageApproval = (projectId, stageId) => {
+  // Builder approves a stage
+  const handleBuilderApprove = (projectId, stageId) => {
     const updated = projects.map(p => {
       if (p.id === projectId) {
-        const currentStages = p.stages || [
-          { id: 1, name: 'Architectural Blueprint & Sanction', status: 'completed' },
-          { id: 2, name: 'Excavation & RCC Foundation Structure', status: 'in_progress' },
-          { id: 3, name: 'Brick Masonry & Electrical Conduits', status: 'pending' },
-        ];
-        const nextStages = currentStages.map(s => {
+        const nextStages = (p.stages || []).map(s => {
           if (s.id === stageId) {
-            return { ...s, status: 'completed' };
+            const newStage = { ...s, builder_approved: true, builder_approved_at: new Date().toISOString() };
+            // If both approved, mark as completed
+            if (newStage.client_approved) {
+              newStage.status = 'completed';
+            } else {
+              newStage.status = 'awaiting_approval';
+            }
+            return newStage;
           }
           return s;
         });
-        const completedCount = nextStages.filter(s => s.status === 'completed').length;
-        const newProgress = Math.round((completedCount / nextStages.length) * 100);
-        return { ...p, stages: nextStages, progress: newProgress };
+        // Unlock next stage if current is completed
+        const completedIds = nextStages.filter(s => s.status === 'completed').map(s => s.id);
+        const finalStages = nextStages.map(s => {
+          if (s.status === 'pending') {
+            const prevStage = nextStages.find(ps => ps.id === s.id - 1);
+            if (prevStage && prevStage.status === 'completed') {
+              return { ...s, status: 'in_progress' };
+            }
+          }
+          return s;
+        });
+        const completedCount = finalStages.filter(s => s.status === 'completed').length;
+        return { ...p, stages: finalStages, progress: Math.round((completedCount / finalStages.length) * 100) };
       }
       return p;
     });
-
     setProjects(updated);
-    setToast('Stage verification approved and synced with client portal!');
-    setTimeout(() => setToast(''), 3500);
+    saveProjectsLocal(updated);
+    showToast('Builder approval recorded! Waiting for client sign-off.');
+    logActivity('builder_approved_stage', 'stage', `Stage ${stageId}`, { projectId });
+  };
+
+  // Open stage upload modal
+  const openStageUpload = (projectId, stageId) => {
+    setActiveStageUpload({ projectId, stageId });
+    setStageFiles([]);
+    setShowStageUploadModal(true);
+  };
+
+  // Handle stage document upload
+  const handleStageDocUpload = () => {
+    if (stageFiles.length === 0) return;
+    const updated = projects.map(p => {
+      if (p.id === activeStageUpload.projectId) {
+        const nextStages = (p.stages || []).map(s => {
+          if (s.id === activeStageUpload.stageId) {
+            const newDocs = stageFiles.map(f => ({
+              name: f.name,
+              size: f.size,
+              type: f.type,
+              uploaded_by: designer?.full_name || 'Builder',
+              uploaded_at: new Date().toISOString(),
+            }));
+            return { ...s, documents: [...(s.documents || []), ...newDocs] };
+          }
+          return s;
+        });
+        return { ...p, stages: nextStages };
+      }
+      return p;
+    });
+    setProjects(updated);
+    saveProjectsLocal(updated);
+    setShowStageUploadModal(false);
+    showToast(`${stageFiles.length} document(s) uploaded to stage successfully!`);
+    logActivity('uploaded_stage_document', 'document', stageFiles.map(f => f.name).join(', '), {
+      projectId: activeStageUpload.projectId,
+      stageId: activeStageUpload.stageId,
+    });
+  };
+
+  const getStageStatusBadge = (stage) => {
+    if (stage.status === 'completed') return <Badge variant="success" dot>Completed</Badge>;
+    if (stage.status === 'awaiting_approval') return <Badge variant="warning" dot>Awaiting Dual Approval</Badge>;
+    if (stage.status === 'in_progress') return <Badge variant="gold" dot>Under Review</Badge>;
+    return <Badge variant="neutral">Scheduled</Badge>;
   };
 
   return (
     <>
-      <DesignerHeader 
-        title="Project Milestone Engineering" 
-        subtitle="Initialize projects, approve construction stages, and release client sign-offs" 
+      <DesignerHeader
+        title="Project Milestone Engineering"
+        subtitle="Create projects with client info, upload documents per stage, and track dual approvals"
       />
 
       <div className={styles.container}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
           <div>
-            <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: '1.2rem', fontWeight: 700 }}>
+            <h3 style={{ fontFamily: "var(--font-heading, 'Playfair Display', Georgia, serif)", fontSize: '1.2rem', fontWeight: 700, color: '#f8f8f8' }}>
               Active Projects ({projects.length})
             </h3>
-            <p style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)' }}>
-              Client milestone roadmaps and structural engineering approvals
+            <p style={{ fontSize: '0.8rem', color: '#a0a0a0' }}>
+              Client milestone roadmaps with document upload & dual approval system
             </p>
           </div>
-          <button 
-            onClick={() => setShowAddModal(true)}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '8px',
-              padding: '10px 18px',
-              background: 'linear-gradient(135deg, var(--color-gold), var(--color-gold-dark))',
-              color: 'var(--color-black)',
-              fontWeight: 700,
-              fontSize: '0.85rem',
-              borderRadius: '6px',
-              border: 'none',
-              cursor: 'pointer'
-            }}
-          >
-            <Plus size={16} />
-            <span>Create New Project</span>
-          </button>
+          <Button icon={Plus} onClick={() => setShowAddModal(true)}>
+            Create New Project
+          </Button>
         </div>
 
-        {toast && (
-          <div className={styles.toast}>
-            <CheckCircle2 size={18} color="var(--color-success)" />
-            <span>{toast}</span>
-          </div>
-        )}
+        {/* Toast */}
+        <Toast message={toastMsg} variant={toastVariant} isVisible={toastVisible} onClose={() => setToastVisible(false)} />
 
+        {/* Project List */}
         {projects.length > 0 ? (
-          <div className={styles.projectsList}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', marginTop: '20px' }}>
             {projects.map((p) => (
-              <div key={p.id} className={styles.projectCard}>
-                <div className={styles.cardHeader}>
-                  <div>
-                    <span className={styles.badgeGold}>{p.category || 'Residential'}</span>
-                    <h3 className={styles.projectTitle}>{p.title}</h3>
-                    <p className={styles.projectLocation}>{p.location} • Budget: <strong>₹{p.budget?.toLocaleString('en-IN') || 'Flexible'}</strong></p>
+              <Card key={p.id} variant="gold" padding="lg">
+                {/* Project Header */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px', marginBottom: '16px' }}>
+                  <div style={{ flex: 1, minWidth: '200px' }}>
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap' }}>
+                      <Tag variant="gold">{p.category || 'Residential'}</Tag>
+                      {p.client_name && <Tag variant="info">Client: {p.client_name}</Tag>}
+                    </div>
+                    <h3 style={{ fontFamily: "var(--font-heading, 'Playfair Display', Georgia, serif)", fontSize: '1.15rem', fontWeight: 700, color: '#f8f8f8', margin: '0 0 4px 0' }}>
+                      {p.title}
+                    </h3>
+                    <p style={{ fontSize: '0.82rem', color: '#a0a0a0', margin: 0 }}>
+                      {p.location} {p.budget ? `• Budget: ₹${Number(p.budget).toLocaleString('en-IN')}` : ''}
+                    </p>
+                    {p.client_email && (
+                      <p style={{ fontSize: '0.75rem', color: '#6e6e6e', margin: '4px 0 0 0', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <Mail size={12} /> {p.client_email}
+                        {p.client_phone && <><Phone size={12} style={{ marginLeft: '8px' }} /> {p.client_phone}</>}
+                      </p>
+                    )}
                   </div>
-                  <div className={styles.progressBox}>
-                    <span className={styles.progressNum}>{p.completion_percentage || p.progress || 0}%</span>
-                    <span className={styles.progressLabel}>Overall Completed</span>
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontFamily: "var(--font-heading, 'Playfair Display', Georgia, serif)", fontSize: '1.6rem', fontWeight: 700, color: '#c9a84c' }}>
+                      {p.completion_percentage || p.progress || 0}%
+                    </div>
+                    <div style={{ fontSize: '0.7rem', color: '#6e6e6e', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                      Overall Completed
+                    </div>
                   </div>
                 </div>
 
-                {/* Progress Bar */}
-                <div className={styles.progressBar}>
-                  <div className={styles.progressFill} style={{ width: `${p.completion_percentage || p.progress || 0}%` }} />
-                </div>
+                <ProgressBar value={p.completion_percentage || p.progress || 0} label="Construction Progress" />
 
-                {/* Stage Approvals Table */}
-                <div className={styles.stagesSection}>
-                  <h4 className={styles.stagesTitle}>Milestone Approval Roadmap</h4>
-                  <div className={styles.stagesGrid}>
-                    {(p.stages || [
-                      { id: 1, name: 'Architectural Blueprint & Sanction', status: 'in_progress' },
-                      { id: 2, name: 'Excavation & RCC Foundation Structure', status: 'pending' },
-                      { id: 3, name: 'Brick Masonry, Plumbing & Electrical Conduits', status: 'pending' },
-                      { id: 4, name: 'Flooring, False Ceiling & Premium Painting', status: 'pending' },
-                      { id: 5, name: 'Smart Home Automation & Final Handover', status: 'pending' },
-                    ]).map((stage) => (
-                      <div key={stage.id} className={`${styles.stageCard} ${stage.status === 'completed' ? styles.stageCompleted : stage.status === 'in_progress' ? styles.stageActive : ''}`}>
-                        <div className={styles.stageTop}>
-                          <span className={styles.stageIndex}>Stage 0{stage.id}</span>
-                          {stage.status === 'completed' ? (
-                            <span className={styles.badgeSuccess}>Verified</span>
-                          ) : stage.status === 'in_progress' ? (
-                            <span className={styles.badgeActive}>Under Review</span>
-                          ) : (
-                            <span className={styles.badgePending}>Scheduled</span>
-                          )}
+                {/* Expand/Collapse Stages */}
+                <button
+                  onClick={() => setExpandedProject(expandedProject === p.id ? null : p.id)}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: '6px', background: 'none', border: 'none',
+                    color: '#c9a84c', fontSize: '0.82rem', fontWeight: 600, cursor: 'pointer', marginTop: '14px',
+                    fontFamily: 'inherit', padding: '6px 0',
+                  }}
+                >
+                  {expandedProject === p.id ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                  {expandedProject === p.id ? 'Hide' : 'Show'} Milestone Stages ({(p.stages || []).length})
+                </button>
+
+                {/* Stages */}
+                {expandedProject === p.id && (
+                  <div style={{ marginTop: '14px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    {(p.stages || []).map((stage) => (
+                      <Card key={stage.id} variant={stage.status === 'completed' ? 'default' : stage.status === 'in_progress' || stage.status === 'awaiting_approval' ? 'gold' : 'outlined'} padding="md">
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px', marginBottom: '8px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span style={{ fontSize: '0.7rem', color: '#6e6e6e', fontWeight: 600 }}>Stage 0{stage.id}</span>
+                            {getStageStatusBadge(stage)}
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            {/* Dual Approval Indicators */}
+                            <span style={{ fontSize: '0.68rem', display: 'flex', alignItems: 'center', gap: '4px', color: stage.builder_approved ? '#4ade80' : '#6e6e6e' }}>
+                              {stage.builder_approved ? <CheckCircle2 size={13} /> : <Clock size={13} />}
+                              Builder
+                            </span>
+                            <span style={{ fontSize: '0.68rem', display: 'flex', alignItems: 'center', gap: '4px', color: stage.client_approved ? '#4ade80' : '#6e6e6e' }}>
+                              {stage.client_approved ? <CheckCircle2 size={13} /> : <Clock size={13} />}
+                              Client
+                            </span>
+                          </div>
                         </div>
 
-                        <h5 className={styles.stageName}>{stage.name}</h5>
+                        <h5 style={{ fontSize: '0.9rem', fontWeight: 600, color: '#f8f8f8', margin: '0 0 8px 0' }}>{stage.name}</h5>
 
-                        {stage.status === 'in_progress' ? (
-                          <button 
-                            onClick={() => handleStageApproval(p.id, stage.id)}
-                            className={styles.approveBtn}
-                          >
-                            <Check size={14} />
-                            <span>Approve & Release Milestone</span>
-                          </button>
-                        ) : stage.status === 'completed' ? (
-                          <div className={styles.verifiedMeta}>
-                            <CheckCircle2 size={14} color="var(--color-success)" />
-                            <span>Signed off by Architect</span>
+                        {/* Documents */}
+                        {(stage.documents || []).length > 0 && (
+                          <div style={{ marginBottom: '10px' }}>
+                            <span style={{ fontSize: '0.7rem', color: '#6e6e6e', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.3px' }}>
+                              Uploaded Documents ({stage.documents.length})
+                            </span>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '6px' }}>
+                              {stage.documents.map((doc, di) => (
+                                <div key={di} style={{
+                                  display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 10px',
+                                  background: '#181818', borderRadius: '6px', fontSize: '0.78rem', color: '#a0a0a0',
+                                }}>
+                                  <FileText size={14} color="#c9a84c" />
+                                  <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{doc.name}</span>
+                                  <span style={{ fontSize: '0.68rem', color: '#4a4a4a' }}>{doc.uploaded_by}</span>
+                                </div>
+                              ))}
+                            </div>
                           </div>
-                        ) : (
-                          <span className={styles.waitingNote}>Awaiting prior stage</span>
                         )}
-                      </div>
+
+                        {/* Actions */}
+                        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                          {(stage.status === 'in_progress' || stage.status === 'awaiting_approval') && (
+                            <>
+                              <Button size="sm" variant="outline" icon={Upload} onClick={() => openStageUpload(p.id, stage.id)}>
+                                Upload Documents
+                              </Button>
+                              {!stage.builder_approved && (
+                                <Button size="sm" variant="success" icon={Check} onClick={() => handleBuilderApprove(p.id, stage.id)}>
+                                  Builder Approve
+                                </Button>
+                              )}
+                            </>
+                          )}
+                          {stage.status === 'completed' && (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.78rem', color: '#4ade80' }}>
+                              <CheckCircle2 size={14} /> Both parties signed off
+                            </div>
+                          )}
+                          {stage.status === 'pending' && (
+                            <span style={{ fontSize: '0.78rem', color: '#4a4a4a' }}>Awaiting prior stage completion</span>
+                          )}
+                        </div>
+                      </Card>
                     ))}
                   </div>
-                </div>
-              </div>
+                )}
+              </Card>
             ))}
           </div>
         ) : (
-          <div style={{
-            background: 'var(--color-dark)',
-            border: '1px dashed rgba(201, 168, 76, 0.3)',
-            borderRadius: 'var(--radius-lg)',
-            padding: '60px 24px',
-            textAlign: 'center',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: '14px'
-          }}>
-            <Building size={36} color="var(--color-gold)" />
-            <div>
-              <h4 style={{ fontFamily: 'var(--font-heading)', fontSize: '1.2rem', color: '#f8f8f8', marginBottom: '6px' }}>
-                No Active Projects Created Yet
-              </h4>
-              <p style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)', maxWidth: '400px', margin: '0 auto' }}>
-                Click <strong>"Create New Project"</strong> to set up a clean construction milestone roadmap for your clients.
-              </p>
-            </div>
+          <div style={{ marginTop: '20px' }}>
+            <EmptyState
+              icon={Building}
+              title="No Active Projects Created Yet"
+              description='Click "Create New Project" to set up a client project with milestone roadmap, file uploads, and dual approval tracking.'
+              action={<Button icon={Plus} onClick={() => setShowAddModal(true)}>Create First Project</Button>}
+            />
           </div>
         )}
 
-        {/* Modal for Creating New Project */}
-        {showAddModal && (
-          <div style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(0,0,0,0.8)',
-            backdropFilter: 'blur(8px)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000,
-            padding: '16px'
-          }} onClick={() => setShowAddModal(false)}>
-            <div style={{
-              background: '#141414',
-              border: '1px solid rgba(201, 168, 76, 0.3)',
-              borderRadius: '12px',
-              padding: '24px',
-              maxWidth: '520px',
-              width: '100%',
-              boxShadow: '0 20px 50px rgba(0,0,0,0.8)'
-            }} onClick={(e) => e.stopPropagation()}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: '1.2rem', fontWeight: 700, margin: 0 }}>
-                  Create New Construction Project
-                </h3>
-                <button onClick={() => setShowAddModal(false)} style={{ background: 'none', border: 'none', color: '#888', cursor: 'pointer' }}>✕</button>
-              </div>
-
-              <form onSubmit={handleCreateProject} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, marginBottom: '4px', color: '#aaa' }}>Project Title *</label>
-                  <input 
-                    type="text"
-                    required
-                    placeholder="e.g. Channarayapatna Villa Project"
-                    value={newProject.title}
-                    onChange={(e) => setNewProject({ ...newProject, title: e.target.value })}
-                    style={{ width: '100%', padding: '10px', background: '#1c1c1c', border: '1px solid #333', borderRadius: '4px', color: '#fff' }}
-                  />
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, marginBottom: '4px', color: '#aaa' }}>Category</label>
-                    <select
-                      value={newProject.category}
-                      onChange={(e) => setNewProject({ ...newProject, category: e.target.value })}
-                      style={{ width: '100%', padding: '10px', background: '#1c1c1c', border: '1px solid #333', borderRadius: '4px', color: '#fff' }}
-                    >
-                      <option value="residential">Residential</option>
-                      <option value="commercial">Commercial</option>
-                      <option value="interior">Interior</option>
-                      <option value="renovation">Renovation</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, marginBottom: '4px', color: '#aaa' }}>Location / Site *</label>
-                    <input 
-                      type="text"
-                      required
-                      placeholder="e.g. BM Road, Channarayapatna"
-                      value={newProject.location}
-                      onChange={(e) => setNewProject({ ...newProject, location: e.target.value })}
-                      style={{ width: '100%', padding: '10px', background: '#1c1c1c', border: '1px solid #333', borderRadius: '4px', color: '#fff' }}
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, marginBottom: '4px', color: '#aaa' }}>Total Contract Budget (INR)</label>
-                  <input 
-                    type="number"
-                    placeholder="e.g. 5000000"
-                    value={newProject.budget}
-                    onChange={(e) => setNewProject({ ...newProject, budget: e.target.value })}
-                    style={{ width: '100%', padding: '10px', background: '#1c1c1c', border: '1px solid #333', borderRadius: '4px', color: '#fff' }}
-                  />
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, marginBottom: '4px', color: '#aaa' }}>Project Scope / Notes</label>
-                  <textarea 
-                    rows={3}
-                    placeholder="Key structural features, square footage, timber specifications..."
-                    value={newProject.description}
-                    onChange={(e) => setNewProject({ ...newProject, description: e.target.value })}
-                    style={{ width: '100%', padding: '10px', background: '#1c1c1c', border: '1px solid #333', borderRadius: '4px', color: '#fff', resize: 'vertical' }}
-                  />
-                </div>
-
-                <button 
-                  type="submit"
-                  style={{
-                    padding: '12px',
-                    background: 'linear-gradient(135deg, var(--color-gold), var(--color-gold-dark))',
-                    color: '#000',
-                    fontWeight: 700,
-                    borderRadius: '6px',
-                    border: 'none',
-                    cursor: 'pointer',
-                    marginTop: '6px'
-                  }}
-                >
-                  Create Project Roadmap
-                </button>
-              </form>
+        {/* Create Project Modal */}
+        <Modal isOpen={showAddModal} onClose={() => setShowAddModal(false)} title="Create New Client Project" size="lg">
+          <form onSubmit={handleCreateProject} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <Divider label="Client Information" />
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px' }}>
+              <TextInput
+                label="Client Name" required placeholder="e.g. Rajesh Kumar"
+                value={newProject.client_name} onChange={(e) => setNewProject({ ...newProject, client_name: e.target.value })}
+                icon={User}
+              />
+              <TextInput
+                label="Client Phone" placeholder="+91 98450 XXXXX"
+                value={newProject.client_phone} onChange={(e) => setNewProject({ ...newProject, client_phone: e.target.value })}
+                icon={Phone}
+              />
+              <TextInput
+                label="Client Email" type="email" placeholder="client@email.com"
+                value={newProject.client_email} onChange={(e) => setNewProject({ ...newProject, client_email: e.target.value })}
+                icon={Mail}
+              />
             </div>
+
+            <Divider label="Project Details" />
+            <TextInput
+              label="Project Title" required placeholder="e.g. Channarayapatna Villa Project"
+              value={newProject.title} onChange={(e) => setNewProject({ ...newProject, title: e.target.value })}
+            />
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px' }}>
+              <Select
+                label="Category" value={newProject.category}
+                onChange={(e) => setNewProject({ ...newProject, category: e.target.value })}
+                options={[
+                  { value: 'residential', label: 'Residential' },
+                  { value: 'commercial', label: 'Commercial' },
+                  { value: 'interior', label: 'Interior' },
+                  { value: 'renovation', label: 'Renovation' },
+                ]}
+              />
+              <TextInput
+                label="Location / Site" required placeholder="e.g. BM Road, Channarayapatna"
+                value={newProject.location} onChange={(e) => setNewProject({ ...newProject, location: e.target.value })}
+              />
+              <TextInput
+                label="Total Budget (INR)" type="number" placeholder="e.g. 5000000"
+                value={newProject.budget} onChange={(e) => setNewProject({ ...newProject, budget: e.target.value })}
+              />
+            </div>
+            <TextArea
+              label="Project Scope / Notes" rows={2}
+              placeholder="Key features, square footage, specifications..."
+              value={newProject.description} onChange={(e) => setNewProject({ ...newProject, description: e.target.value })}
+            />
+
+            <Divider label="Client Requirements (Plain Text)" />
+            <TextArea
+              label="Client's Requirements (In their own words)" rows={4}
+              placeholder="Let the client describe what they want in plain words... e.g. 'I want a 3BHK villa with modern design, open kitchen, garden area, and smart home features. Budget is flexible but prefer quality materials...'"
+              value={newProject.client_requirements}
+              onChange={(e) => setNewProject({ ...newProject, client_requirements: e.target.value })}
+              showCharCount maxLength={5000}
+              hint="This will be used to generate the SRS document"
+            />
+
+            <Button type="submit" fullWidth size="lg">
+              Create Project Roadmap
+            </Button>
+          </form>
+        </Modal>
+
+        {/* Stage Upload Modal */}
+        <Modal isOpen={showStageUploadModal} onClose={() => setShowStageUploadModal(false)} title="Upload Stage Documents" size="md">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <FileUpload
+              label="Upload construction documents for this stage"
+              multiple
+              onFilesSelected={(files) => setStageFiles(prev => [...prev, ...files])}
+              files={stageFiles}
+              hint="Upload blueprints, reports, photos, invoices, permits — any relevant documents"
+            />
+            <Button fullWidth onClick={handleStageDocUpload} disabled={stageFiles.length === 0} icon={Upload}>
+              Upload {stageFiles.length} Document(s)
+            </Button>
           </div>
-        )}
+        </Modal>
       </div>
     </>
   );

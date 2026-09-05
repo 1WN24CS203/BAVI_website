@@ -105,6 +105,21 @@
   margin-bottom: 8px;
 }
 
+.departmentTag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  font-size: 0.63rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  border-radius: 9999px;
+  background: rgba(201, 168, 76, 0.08);
+  color: #c9a84c;
+  border: 1px solid rgba(201, 168, 76, 0.2);
+}
+
 .switchRow {
   display: flex;
   gap: 6px;

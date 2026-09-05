@@ -1,0 +1,220 @@
+/* ================================================================
+   ASTRYX / ASTERISK — Global Design System Styles
+   BAVI Interiors — Bahubali Builders & Visionary Interiors
+   ================================================================ */
+
+/* --- Design Tokens --- */
+:root {
+  --ax-gold: #c9a84c;
+  --ax-gold-dark: #a8893d;
+  --ax-gold-glow: rgba(201, 168, 76, 0.25);
+  --ax-gold-border: rgba(201, 168, 76, 0.3);
+  --ax-gold-bg: rgba(201, 168, 76, 0.08);
+
+  --ax-bg-primary: #0a0a0a;
+  --ax-bg-card: #141414;
+  --ax-bg-elevated: #181818;
+  --ax-bg-input: #1c1c1c;
+  --ax-bg-hover: #222222;
+
+  --ax-border: #2a2a2a;
+  --ax-border-focus: rgba(201, 168, 76, 0.5);
+  --ax-border-subtle: #333333;
+
+  --ax-text-primary: #f8f8f8;
+  --ax-text-secondary: #a0a0a0;
+  --ax-text-muted: #6e6e6e;
+  --ax-text-disabled: #4a4a4a;
+
+  --ax-success: #4ade80;
+  --ax-success-bg: rgba(74, 222, 128, 0.12);
+  --ax-success-border: rgba(74, 222, 128, 0.3);
+
+  --ax-warning: #fbbf24;
+  --ax-warning-bg: rgba(251, 191, 36, 0.12);
+  --ax-warning-border: rgba(251, 191, 36, 0.3);
+
+  --ax-danger: #f87171;
+  --ax-danger-bg: rgba(248, 113, 113, 0.12);
+  --ax-danger-border: rgba(248, 113, 113, 0.3);
+
+  --ax-info: #60a5fa;
+  --ax-info-bg: rgba(96, 165, 250, 0.12);
+  --ax-info-border: rgba(96, 165, 250, 0.3);
+
+  --ax-radius-sm: 4px;
+  --ax-radius-md: 8px;
+  --ax-radius-lg: 12px;
+  --ax-radius-xl: 16px;
+  --ax-radius-full: 9999px;
+
+  --ax-font-body: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --ax-font-heading: 'Playfair Display', Georgia, serif;
+  --ax-font-mono: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+
+  --ax-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
+  --ax-shadow-md: 0 8px 24px rgba(0, 0, 0, 0.4);
+  --ax-shadow-lg: 0 20px 50px rgba(0, 0, 0, 0.6);
+  --ax-shadow-gold: 0 4px 15px rgba(201, 168, 76, 0.25);
+
+  --ax-transition-fast: 150ms ease;
+  --ax-transition-normal: 250ms ease;
+  --ax-transition-slow: 400ms ease;
+}
+
+/* --- Custom Scrollbars --- */
+*::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+*::-webkit-scrollbar-track {
+  background: var(--ax-bg-primary);
+  border-radius: 3px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: var(--ax-border-subtle);
+  border-radius: 3px;
+  transition: background var(--ax-transition-fast);
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--ax-gold-dark);
+}
+
+*::-webkit-scrollbar-corner {
+  background: var(--ax-bg-primary);
+}
+
+/* Firefox scrollbar */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--ax-border-subtle) var(--ax-bg-primary);
+}
+
+/* --- Focus Rings --- */
+.ax-focus-ring:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+button:focus-visible {
+  outline: 2px solid var(--ax-gold);
+  outline-offset: 2px;
+}
+
+/* --- Animations --- */
+@keyframes ax-fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes ax-fadeInScale {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes ax-slideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes ax-slideDown {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes ax-slideInRight {
+  from { opacity: 0; transform: translateX(20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes ax-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+@keyframes ax-shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes ax-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes ax-toast-enter {
+  from { opacity: 0; transform: translateY(12px) scale(0.95); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes ax-toast-exit {
+  from { opacity: 1; transform: translateY(0) scale(1); }
+  to { opacity: 0; transform: translateY(12px) scale(0.95); }
+}
+
+@keyframes ax-statusPulse {
+  0%, 100% { box-shadow: 0 0 0 0 var(--ax-gold-glow); }
+  50% { box-shadow: 0 0 0 6px transparent; }
+}
+
+@keyframes ax-progressStripe {
+  0% { background-position: 1rem 0; }
+  100% { background-position: 0 0; }
+}
+
+/* --- Utility Classes --- */
+.ax-animate-fadeIn { animation: ax-fadeIn 0.3s ease forwards; }
+.ax-animate-slideUp { animation: ax-slideUp 0.35s ease forwards; }
+.ax-animate-slideDown { animation: ax-slideDown 0.25s ease forwards; }
+.ax-animate-pulse { animation: ax-pulse 2s infinite; }
+.ax-animate-spin { animation: ax-spin 1s linear infinite; }
+
+/* --- Responsive Breakpoints (used via media queries) --- */
+/* Mobile: max-width: 480px */
+/* Tablet: 481px - 1024px */
+/* Desktop: > 1024px */
+
+/* --- Global Reset for Astryx --- */
+.astryx-root input,
+.astryx-root textarea,
+.astryx-root select {
+  font-family: var(--ax-font-body);
+  font-size: 0.85rem;
+  color: var(--ax-text-primary);
+  background: var(--ax-bg-input);
+  border: 1px solid var(--ax-border);
+  border-radius: var(--ax-radius-md);
+  padding: 10px 14px;
+  width: 100%;
+  box-sizing: border-box;
+  transition: border-color var(--ax-transition-fast), box-shadow var(--ax-transition-fast);
+}
+
+.astryx-root input:hover,
+.astryx-root textarea:hover,
+.astryx-root select:hover {
+  border-color: var(--ax-border-subtle);
+}
+
+.astryx-root input:focus,
+.astryx-root textarea:focus,
+.astryx-root select:focus {
+  border-color: var(--ax-gold);
+  box-shadow: 0 0 0 3px var(--ax-gold-glow);
+  outline: none;
+}
+
+.astryx-root input::placeholder,
+.astryx-root textarea::placeholder {
+  color: var(--ax-text-muted);
+}
+
+.astryx-root input:disabled,
+.astryx-root textarea:disabled,
+.astryx-root select:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: var(--ax-bg-primary);
+}

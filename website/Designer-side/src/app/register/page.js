@@ -454,7 +454,44 @@ export default function DesignerRegisterPage() {
 
                     <div className={styles.formRow}>
                       <div className={styles.formGroup}>
-                        <label className={styles.formLabel}>Architectural Discipline *</label>
+                        <label className={styles.formLabel}>Department *</label>
+                        <div className={styles.inputWrapper}>
+                          <Compass size={16} className={styles.inputIconGold} />
+                          <select
+                            value={applicantData.department || 'architecture'}
+                            onChange={(e) => setApplicantData({ ...applicantData, department: e.target.value })}
+                            className={`${styles.formInput} ${styles.selectInput}`}
+                            required
+                          >
+                            <option value="architecture">Architecture & Design</option>
+                            <option value="construction">Construction & Management</option>
+                            <option value="marketing">Marketing & Sales</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      <div className={styles.formGroup}>
+                        <label className={styles.formLabel}>Requested Role</label>
+                        <div className={styles.inputWrapper}>
+                          <Award size={16} className={styles.inputIcon} />
+                          <select
+                            value={applicantData.requestedRole || 'designer'}
+                            onChange={(e) => setApplicantData({ ...applicantData, requestedRole: e.target.value })}
+                            className={`${styles.formInput} ${styles.selectInput}`}
+                          >
+                            <option value="designer">Designer / Architect</option>
+                            <option value="engineer">Site Engineer</option>
+                            <option value="manager">Project Manager</option>
+                            <option value="marketer">Marketing Executive</option>
+                            <option value="owner">Owner / Co-Admin</option>
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className={styles.formRow}>
+                      <div className={styles.formGroup}>
+                        <label className={styles.formLabel}>Specialization *</label>
                         <div className={styles.inputWrapper}>
                           <Compass size={16} className={styles.inputIconGold} />
                           <select
@@ -467,6 +504,11 @@ export default function DesignerRegisterPage() {
                             <option value="Commercial & Institutional Lead">Commercial & Institutional Lead</option>
                             <option value="Heritage Restoration Specialist">Heritage Restoration Specialist</option>
                             <option value="BIM & 3D Visualization Engineer">BIM & 3D Visualization Engineer</option>
+                            <option value="Site Supervision Engineer">Site Supervision Engineer</option>
+                            <option value="Quality Assurance Engineer">Quality Assurance Engineer</option>
+                            <option value="Procurement & Materials Manager">Procurement & Materials Manager</option>
+                            <option value="Marketing & Business Development">Marketing & Business Development</option>
+                            <option value="Safety & Compliance Officer">Safety & Compliance Officer</option>
                           </select>
                         </div>
                       </div>
@@ -490,7 +532,7 @@ export default function DesignerRegisterPage() {
                       <label className={styles.formLabel}>Portfolio / Experience Summary</label>
                       <textarea
                         rows={2}
-                        placeholder="Brief summary of architectural experience, landmark projects, and credentials..."
+                        placeholder="Brief summary of professional experience, landmark projects, and credentials..."
                         value={applicantData.bio}
                         onChange={(e) => setApplicantData({ ...applicantData, bio: e.target.value })}
                         className={styles.textarea}

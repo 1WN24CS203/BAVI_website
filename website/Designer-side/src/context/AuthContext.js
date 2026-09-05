@@ -15,46 +15,54 @@ const DesignerAuthContext = createContext({
   rejectRequest: async () => {},
   login: async () => {},
   logout: () => {},
+  getApprovedDesignersList: () => [],
+  getAllActivityLog: () => [],
+  logActivity: () => {},
 });
 
 // Session duration: 24 hours
 const SESSION_EXPIRY_MS = 24 * 60 * 60 * 1000;
+
+// Departments
+const DEPARTMENTS = {
+  architecture: { name: 'architecture', display: 'Architecture & Design' },
+  construction: { name: 'construction', display: 'Construction & Management' },
+  marketing: { name: 'marketing', display: 'Marketing & Sales' },
+  admin: { name: 'admin', display: 'Owner / Administration' },
+};
 
 export function DesignerAuthProvider({ children }) {
   const [designer, setDesigner] = useState(null);
   const [hasOwner, setHasOwner] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // Helper to get owner
+  // --- LocalStorage helpers ---
   const getOwner = () => {
     if (typeof window === 'undefined') return null;
     try {
       const stored = localStorage.getItem('bavi_site_owner');
       return stored ? JSON.parse(stored) : null;
-    } catch {
-      return null;
-    }
+    } catch { return null; }
   };
 
   const saveOwner = (ownerData) => {
     if (typeof window === 'undefined') return;
     try {
       localStorage.setItem('bavi_site_owner', JSON.stringify(ownerData));
+      // Once owner registers, set keyless-disabled flag
+      localStorage.setItem('bavi_owner_keyless_disabled', 'true');
       setHasOwner(true);
     } catch (err) {
       console.warn('Failed to save owner:', err);
     }
   };
 
-  // Helper for requests
   const getStoredRequests = () => {
     if (typeof window === 'undefined') return [];
     try {
       const stored = localStorage.getItem('bavi_designer_access_requests');
       return stored ? JSON.parse(stored) : [];
-    } catch {
-      return [];
-    }
+    } catch { return []; }
   };
 
   const saveRequests = (requests) => {
@@ -66,15 +74,12 @@ export function DesignerAuthProvider({ children }) {
     }
   };
 
-  // Helper for approved designers
   const getApprovedDesigners = () => {
     if (typeof window === 'undefined') return [];
     try {
       const stored = localStorage.getItem('bavi_approved_designers');
       return stored ? JSON.parse(stored) : [];
-    } catch {
-      return [];
-    }
+    } catch { return []; }
   };
 
   const saveApprovedDesigners = (designers) => {
@@ -86,12 +91,50 @@ export function DesignerAuthProvider({ children }) {
     }
   };
 
+  // --- Activity Log ---
+  const getActivityLog = () => {
+    if (typeof window === 'undefined') return [];
+    try {
+      const stored = localStorage.getItem('bavi_activity_log');
+      return stored ? JSON.parse(stored) : [];
+    } catch { return []; }
+  };
+
+  const saveActivityLog = (logs) => {
+    if (typeof window === 'undefined') return;
+    try {
+      // Keep last 500 entries
+      const trimmed = logs.slice(0, 500);
+      localStorage.setItem('bavi_activity_log', JSON.stringify(trimmed));
+    } catch (err) {
+      console.warn('Failed to save activity log:', err);
+    }
+  };
+
+  const logActivity = (action, resourceType, resourceName, details = {}) => {
+    const log = getActivityLog();
+    const entry = {
+      id: 'log-' + Date.now(),
+      actor_id: designer?.id || 'unknown',
+      actor_name: designer?.full_name || 'Unknown',
+      actor_type: designer?.isOwner ? 'owner' : 'designer',
+      department: designer?.department || 'admin',
+      action,
+      resource_type: resourceType,
+      resource_name: resourceName,
+      details,
+      created_at: new Date().toISOString(),
+    };
+    saveActivityLog([entry, ...log]);
+  };
+
+  const getAllActivityLog = () => getActivityLog();
+
+  // --- Init ---
   useEffect(() => {
-    // 1. Check if owner exists
     const owner = getOwner();
     setHasOwner(!!owner);
 
-    // 2. Check active session
     const saved = localStorage.getItem('bavi_designer_session');
     if (saved) {
       try {
@@ -119,7 +162,9 @@ export function DesignerAuthProvider({ children }) {
     setLoading(false);
   }, []);
 
-  // 1. FIRST REGISTRATION: Register as Site Owner / Admin
+  // ================================================================
+  // 1. REGISTER OWNER (First-time only)
+  // ================================================================
   const registerOwner = async (ownerData) => {
     const { fullName, email, password, phone, specialization, bio } = ownerData;
 
@@ -128,6 +173,12 @@ export function DesignerAuthProvider({ children }) {
     }
     if (password.length < 6) {
       throw new Error('Password must be at least 6 characters.');
+    }
+
+    // Check if owner already exists
+    const existingOwner = getOwner();
+    if (existingOwner) {
+      throw new Error('A site owner has already been registered. New owners must be approved by the existing owner.');
     }
 
     const normalizedEmail = email.trim().toLowerCase();
@@ -142,13 +193,38 @@ export function DesignerAuthProvider({ children }) {
       bio: bio?.trim() || '',
       isOwner: true,
       role: 'owner',
+      department: 'admin',
+      permissions: {
+        view_all_projects: true,
+        manage_all_departments: true,
+        approve_keys: true,
+        view_callbacks: true,
+        manage_employees: true,
+        manage_permissions: true,
+        view_activity_log: true,
+      },
       registeredAt: new Date().toISOString(),
-      sessionCreatedAt: Date.now()
+      sessionCreatedAt: Date.now(),
     };
 
     saveOwner(ownerSession);
     setDesigner(ownerSession);
     localStorage.setItem('bavi_designer_session', JSON.stringify(ownerSession));
+
+    // Log activity
+    const log = getActivityLog();
+    saveActivityLog([{
+      id: 'log-' + Date.now(),
+      actor_id: ownerSession.id,
+      actor_name: ownerSession.full_name,
+      actor_type: 'owner',
+      department: 'admin',
+      action: 'owner_registered',
+      resource_type: 'system',
+      resource_name: 'Site Owner Registration',
+      details: { email: normalizedEmail },
+      created_at: new Date().toISOString(),
+    }, ...log]);
 
     // Optional Supabase registration
     if (isSupabaseConfigured()) {
@@ -156,12 +232,7 @@ export function DesignerAuthProvider({ children }) {
         await supabase.auth.signUp({
           email: normalizedEmail,
           password: password,
-          options: {
-            data: {
-              full_name: ownerSession.full_name,
-              role: 'owner'
-            }
-          }
+          options: { data: { full_name: ownerSession.full_name, role: 'owner' } },
         });
       } catch (err) {
         console.warn('Supabase owner registration notice:', err);
@@ -171,9 +242,11 @@ export function DesignerAuthProvider({ children }) {
     return ownerSession;
   };
 
-  // 2. SUBSEQUENT REGISTRATIONS: Submit Access Request to Owner
+  // ================================================================
+  // 2. SUBMIT ACCESS REQUEST (Employees & subsequent "owners")
+  // ================================================================
   const submitAccessRequest = async (applicantData) => {
-    const { fullName, email, phone, password, specialization, councilRegNo, bio } = applicantData;
+    const { fullName, email, phone, password, specialization, councilRegNo, bio, department, requestedRole } = applicantData;
 
     if (!fullName || !email || !password) {
       throw new Error('Please provide your full name, email, and password.');
@@ -195,6 +268,10 @@ export function DesignerAuthProvider({ children }) {
     }
 
     const owner = getOwner();
+    const isKeylessDisabled = localStorage.getItem('bavi_owner_keyless_disabled') === 'true';
+
+    // Determine if this is an owner request or employee request
+    const isOwnerRequest = requestedRole === 'owner';
 
     const newRequest = {
       id: 'req-' + Date.now(),
@@ -205,12 +282,17 @@ export function DesignerAuthProvider({ children }) {
       specialization: specialization || 'Interior Architect',
       councilRegNo: councilRegNo?.trim() || '',
       bio: bio?.trim() || '',
+      department: department || 'architecture',
+      requestedRole: requestedRole || 'designer',
+      isOwnerRequest: isOwnerRequest,
+      // If keyless is disabled for owners, they only get approval (no key)
+      keylessDisabled: isOwnerRequest && isKeylessDisabled,
       status: 'PENDING',
       submittedTo: owner ? owner.full_name : 'BAVI Owner',
       requestedAt: new Date().toISOString(),
       approvedAt: null,
       generatedCode: null,
-      rejectionReason: null
+      rejectionReason: null,
     };
 
     const updated = [newRequest, ...allRequests.filter(r => r.email !== normalizedEmail)];
@@ -219,7 +301,9 @@ export function DesignerAuthProvider({ children }) {
     return newRequest;
   };
 
-  // 3. Check Status
+  // ================================================================
+  // 3. CHECK REQUEST STATUS
+  // ================================================================
   const checkRequestStatus = (email) => {
     if (!email) return null;
     const normalizedEmail = email.trim().toLowerCase();
@@ -227,18 +311,29 @@ export function DesignerAuthProvider({ children }) {
     return allRequests.find(r => r.email === normalizedEmail) || null;
   };
 
-  // 4. Get all requests
-  const getRequests = () => {
-    return getStoredRequests();
-  };
+  // ================================================================
+  // 4. GET ALL REQUESTS
+  // ================================================================
+  const getRequests = () => getStoredRequests();
 
-  // 5. Owner approves request & generates security key
+  // ================================================================
+  // 5. APPROVE REQUEST
+  // ================================================================
   const approveRequest = async (requestId, customCode) => {
     const allRequests = getStoredRequests();
     const targetReq = allRequests.find(r => r.id === requestId);
     if (!targetReq) throw new Error('Request not found.');
 
-    const token = customCode || `BAVI-DES-${Math.floor(1000 + Math.random() * 9000)}`;
+    const isOwnerRequest = targetReq.isOwnerRequest;
+    const isKeylessDisabled = localStorage.getItem('bavi_owner_keyless_disabled') === 'true';
+
+    // For owner requests when keyless is disabled: approval only, no security key
+    let token;
+    if (isOwnerRequest && isKeylessDisabled) {
+      token = 'APPROVAL-ONLY';
+    } else {
+      token = customCode || `BAVI-DES-${Math.floor(1000 + Math.random() * 9000)}`;
+    }
 
     const updatedRequests = allRequests.map(r => {
       if (r.id === requestId) {
@@ -247,7 +342,7 @@ export function DesignerAuthProvider({ children }) {
           status: 'APPROVED',
           generatedCode: token,
           approvedAt: new Date().toISOString(),
-          approvedBy: designer?.full_name || 'Site Owner'
+          approvedBy: designer?.full_name || 'Site Owner',
         };
       }
       return r;
@@ -255,7 +350,43 @@ export function DesignerAuthProvider({ children }) {
 
     saveRequests(updatedRequests);
 
-    // Save to approved designers
+    // Determine permissions based on department and role
+    const departmentPermissions = {
+      architecture: {
+        view_own_projects: true,
+        manage_own_projects: true,
+        upload_documents: true,
+        approve_stages: true,
+        view_client_requirements: true,
+        create_srs: true,
+      },
+      construction: {
+        view_assigned_projects: true,
+        manage_materials: true,
+        manage_inspections: true,
+        manage_contractors: true,
+        manage_safety: true,
+        manage_equipment: true,
+        approve_stages: true,
+      },
+      marketing: {
+        view_callbacks: true,
+        manage_callbacks: true,
+        manage_leads: true,
+        view_consultations: true,
+        view_client_feedback: true,
+      },
+      admin: {
+        view_all_projects: true,
+        manage_all_departments: true,
+        approve_keys: true,
+        view_callbacks: true,
+        manage_employees: true,
+        manage_permissions: true,
+        view_activity_log: true,
+      },
+    };
+
     const approvedDesigner = {
       id: 'des-' + Date.now(),
       company_code: token,
@@ -266,37 +397,56 @@ export function DesignerAuthProvider({ children }) {
       specialization: targetReq.specialization,
       councilRegNo: targetReq.councilRegNo,
       bio: targetReq.bio,
-      isOwner: false,
+      department: targetReq.department || 'architecture',
+      role: targetReq.requestedRole || 'designer',
+      isOwner: isOwnerRequest && !isKeylessDisabled,
+      permissions: departmentPermissions[targetReq.department] || departmentPermissions.architecture,
       approvedAt: new Date().toISOString(),
-      approvedBy: designer?.full_name || 'Site Owner'
+      approvedBy: designer?.full_name || 'Site Owner',
     };
 
     const approvedList = getApprovedDesigners();
     const updatedApproved = [approvedDesigner, ...approvedList.filter(d => d.email !== targetReq.email)];
     saveApprovedDesigners(updatedApproved);
 
+    // Log activity
+    logActivity('approved_access_request', 'employee', targetReq.fullName, {
+      department: targetReq.department,
+      role: targetReq.requestedRole,
+      securityKey: token,
+    });
+
     return { request: targetReq, token, designer: approvedDesigner };
   };
 
-  // 6. Owner rejects request
+  // ================================================================
+  // 6. REJECT REQUEST
+  // ================================================================
   const rejectRequest = async (requestId, reason = 'Credentials could not be verified by owner') => {
     const allRequests = getStoredRequests();
+    const targetReq = allRequests.find(r => r.id === requestId);
     const updatedRequests = allRequests.map(r => {
       if (r.id === requestId) {
         return {
           ...r,
           status: 'REJECTED',
           rejectionReason: reason,
-          rejectedAt: new Date().toISOString()
+          rejectedAt: new Date().toISOString(),
         };
       }
       return r;
     });
     saveRequests(updatedRequests);
+
+    // Log activity
+    logActivity('rejected_access_request', 'employee', targetReq?.fullName || 'Unknown', { reason });
+
     return true;
   };
 
-  // 7. Login
+  // ================================================================
+  // 7. LOGIN
+  // ================================================================
   const login = async (email, password, companyCode) => {
     if (!email || !email.trim()) {
       throw new Error('Email is required.');
@@ -317,16 +467,47 @@ export function DesignerAuthProvider({ children }) {
       const sessionData = { ...owner, sessionCreatedAt: Date.now() };
       setDesigner(sessionData);
       localStorage.setItem('bavi_designer_session', JSON.stringify(sessionData));
+
+      // Log activity
+      const log = getActivityLog();
+      saveActivityLog([{
+        id: 'log-' + Date.now(),
+        actor_id: owner.id,
+        actor_name: owner.full_name,
+        actor_type: 'owner',
+        department: 'admin',
+        action: 'owner_login',
+        resource_type: 'session',
+        resource_name: 'Owner Login',
+        details: {},
+        created_at: new Date().toISOString(),
+      }, ...log]);
+
+      return sessionData;
+    }
+
+    // Check for approval-only owners (no security key needed)
+    const approvedList = getApprovedDesigners();
+    const approvalOnlyMatch = approvedList.find(
+      d => d.email.toLowerCase() === normalizedEmail && d.company_code === 'APPROVAL-ONLY'
+    );
+
+    if (approvalOnlyMatch) {
+      if (approvalOnlyMatch.password && approvalOnlyMatch.password !== password) {
+        throw new Error('Incorrect password.');
+      }
+      const sessionData = { ...approvalOnlyMatch, sessionCreatedAt: Date.now() };
+      setDesigner(sessionData);
+      localStorage.setItem('bavi_designer_session', JSON.stringify(sessionData));
       return sessionData;
     }
 
     // If not owner, must provide security key
     if (!formattedCode) {
-      throw new Error('Security Key code is required for designer access. (If you are the owner, sign in with your registered owner email).');
+      throw new Error('Security Key code is required for employee access. (If you are the owner, sign in with your registered owner email).');
     }
 
-    // Check approved designers
-    const approvedList = getApprovedDesigners();
+    // Check approved designers with security key
     const approvedMatch = approvedList.find(
       d => d.company_code === formattedCode && d.email.toLowerCase() === normalizedEmail
     );
@@ -338,6 +519,22 @@ export function DesignerAuthProvider({ children }) {
       const sessionData = { ...approvedMatch, sessionCreatedAt: Date.now() };
       setDesigner(sessionData);
       localStorage.setItem('bavi_designer_session', JSON.stringify(sessionData));
+
+      // Log activity
+      const log = getActivityLog();
+      saveActivityLog([{
+        id: 'log-' + Date.now(),
+        actor_id: approvedMatch.id,
+        actor_name: approvedMatch.full_name,
+        actor_type: 'designer',
+        department: approvedMatch.department || 'architecture',
+        action: 'employee_login',
+        resource_type: 'session',
+        resource_name: 'Employee Login',
+        details: { department: approvedMatch.department },
+        created_at: new Date().toISOString(),
+      }, ...log]);
+
       return sessionData;
     }
 
@@ -345,7 +542,7 @@ export function DesignerAuthProvider({ children }) {
     const pendingReq = getStoredRequests().find(r => r.email === normalizedEmail);
     if (pendingReq) {
       if (pendingReq.status === 'PENDING') {
-        throw new Error('Your designer application is pending approval by the Site Owner.');
+        throw new Error('Your access application is pending approval by the Site Owner.');
       } else if (pendingReq.status === 'REJECTED') {
         throw new Error(`Your application was not approved: ${pendingReq.rejectionReason || 'Please contact owner.'}`);
       }
@@ -357,7 +554,27 @@ export function DesignerAuthProvider({ children }) {
     );
   };
 
+  // ================================================================
+  // 8. LOGOUT
+  // ================================================================
   const logout = () => {
+    // Log activity before clearing session
+    if (designer) {
+      const log = getActivityLog();
+      saveActivityLog([{
+        id: 'log-' + Date.now(),
+        actor_id: designer.id,
+        actor_name: designer.full_name,
+        actor_type: designer.isOwner ? 'owner' : 'designer',
+        department: designer.department || 'admin',
+        action: 'logout',
+        resource_type: 'session',
+        resource_name: 'Session Logout',
+        details: {},
+        created_at: new Date().toISOString(),
+      }, ...log]);
+    }
+
     localStorage.removeItem('bavi_designer_session');
     if (isSupabaseConfigured()) {
       supabase.auth.signOut().catch(() => {});
@@ -365,12 +582,18 @@ export function DesignerAuthProvider({ children }) {
     setDesigner(null);
   };
 
+  // ================================================================
+  // 9. UTILITY: Get approved designers list (for owner)
+  // ================================================================
+  const getApprovedDesignersList = () => getApprovedDesigners();
+
   return (
     <DesignerAuthContext.Provider
       value={{
         designer,
         loading,
         hasOwner,
+        departments: DEPARTMENTS,
         registerOwner,
         submitAccessRequest,
         checkRequestStatus,
@@ -379,6 +602,9 @@ export function DesignerAuthProvider({ children }) {
         rejectRequest,
         login,
         logout,
+        getApprovedDesignersList,
+        getAllActivityLog,
+        logActivity,
       }}
     >
       {children}

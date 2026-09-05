@@ -34,10 +34,32 @@ export default function ContactPage() {
   const handleSubmit = (e) => {
     e.preventDefault();
     setLoading(true);
+
+    const publicCallback = {
+      id: 'cb-pub-' + Date.now(),
+      clientName: formData.name.trim(),
+      phone: formData.phone.trim(),
+      email: formData.email.trim(),
+      isClient: false,
+      requestedAt: new Date().toISOString().replace('T', ' ').slice(0, 16),
+      status: 'PENDING',
+      priority: 'MEDIUM',
+      subject: formData.projectType,
+      message: `${formData.message ? formData.message + ' | ' : ''}Location: ${formData.location || 'Not specified'}`,
+    };
+
+    try {
+      const stored = localStorage.getItem('bavi_callback_requests');
+      const existing = stored ? JSON.parse(stored) : [];
+      localStorage.setItem('bavi_callback_requests', JSON.stringify([publicCallback, ...existing]));
+    } catch (err) {
+      console.warn('Failed to save public callback:', err);
+    }
+
     setTimeout(() => {
       setLoading(false);
       setSubmitted(true);
-    }, 800);
+    }, 600);
   };
 
   return (

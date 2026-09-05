@@ -19,7 +19,9 @@ import {
   ChevronRight,
   ShieldCheck,
   Sparkles,
-  Bell
+  Bell,
+  FileText,
+  PhoneCall
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import styles from './DashboardLayout.module.css';
@@ -27,6 +29,7 @@ import styles from './DashboardLayout.module.css';
 const navItems = [
   { href: '/dashboard', label: 'Command Center', icon: LayoutDashboard },
   { href: '/dashboard/project', label: 'My Project & Blueprints', icon: FolderKanban },
+  { href: '/dashboard/requirements', label: 'My Requirements & SRS', icon: FileText },
   { href: '/dashboard/site', label: 'Live Site Tracking', icon: MapPin },
   { href: '/dashboard/consultations', label: 'Consultations', icon: CalendarDays },
   { href: '/dashboard/payments', label: 'Escrow & Billing', icon: CreditCard },
@@ -39,6 +42,8 @@ export default function DashboardLayout({ children }) {
   const router = useRouter();
   const { profile, loading, logout } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [callbackRequested, setCallbackRequested] = useState(false);
+  const [callbackLoading, setCallbackLoading] = useState(false);
 
   useEffect(() => {
     setMobileOpen(false);
@@ -46,6 +51,36 @@ export default function DashboardLayout({ children }) {
       router.push('/login');
     }
   }, [pathname, profile, loading, router]);
+
+  const handleRequestCallback = () => {
+    setCallbackLoading(true);
+    const newCallback = {
+      id: 'cb-' + Date.now(),
+      clientName: profile?.full_name || 'Valued Client',
+      phone: profile?.phone || '+91 99800 11223',
+      email: profile?.email || 'client@bavi.in',
+      isClient: true,
+      requestedAt: new Date().toISOString().replace('T', ' ').slice(0, 16),
+      status: 'PENDING',
+      priority: 'HIGH',
+      subject: 'Priority Client Assistance',
+      message: `Direct callback requested from Client Dashboard by ${profile?.full_name || 'Client'}.`,
+    };
+
+    try {
+      const stored = localStorage.getItem('bavi_callback_requests');
+      const existing = stored ? JSON.parse(stored) : [];
+      localStorage.setItem('bavi_callback_requests', JSON.stringify([newCallback, ...existing]));
+    } catch (err) {
+      console.warn(err);
+    }
+
+    setTimeout(() => {
+      setCallbackLoading(false);
+      setCallbackRequested(true);
+      setTimeout(() => setCallbackRequested(false), 5000);
+    }, 400);
+  };
 
   const handleLogout = async () => {
     await logout();
@@ -173,13 +208,53 @@ export default function DashboardLayout({ children }) {
               BAVI Interiors client management portal
             </p>
           </div>
-          <div className={styles.headerRight}>
+          <div className={styles.headerRight} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <button
+              onClick={handleRequestCallback}
+              disabled={callbackLoading || callbackRequested}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '8px 16px',
+                borderRadius: '8px',
+                border: '1px solid var(--astryx-gold, #c9a84c)',
+                background: callbackRequested ? 'rgba(74, 222, 128, 0.2)' : 'rgba(201, 168, 76, 0.15)',
+                color: callbackRequested ? '#4ade80' : 'var(--astryx-gold-light, #e0c57b)',
+                fontSize: '0.82rem',
+                fontWeight: 600,
+                cursor: callbackLoading ? 'wait' : 'pointer',
+                transition: 'all 0.2s',
+              }}
+            >
+              <PhoneCall size={14} />
+              <span>{callbackRequested ? 'Callback Requested!' : 'Request Call Back'}</span>
+            </button>
+
             <Link href="/" className={styles.publicSiteLink} target="_blank">
               <span>View Public Studio</span>
               <ExternalLink size={13} />
             </Link>
           </div>
         </header>
+
+        {callbackRequested && (
+          <div style={{
+            background: 'rgba(74, 222, 128, 0.12)',
+            border: '1px solid #4ade80',
+            color: '#4ade80',
+            padding: '10px 18px',
+            borderRadius: '8px',
+            margin: '0 32px 16px',
+            fontSize: '0.85rem',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between'
+          }}>
+            <span>Callback request registered! Our marketing & concierge team has been alerted with top priority.</span>
+            <button onClick={() => setCallbackRequested(false)} style={{ background: 'none', border: 'none', color: '#4ade80', cursor: 'pointer' }}>×</button>
+          </div>
+        )}
 
         {/* Page View Container */}
         <div className={styles.pageContainer}>
