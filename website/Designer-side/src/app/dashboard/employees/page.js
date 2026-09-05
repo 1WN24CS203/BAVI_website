@@ -22,6 +22,7 @@ export default function EmployeeDirectoryPage() {
   const [manageModalOpen, setManageModalOpen] = useState(false);
   const [auditModalOpen, setAuditModalOpen] = useState(false);
   const [selectedEmp, setSelectedEmp] = useState(null);
+  const [empLogs, setEmpLogs] = useState([]);
 
   // Edit form state
   const [editForm, setEditForm] = useState({
@@ -42,9 +43,10 @@ export default function EmployeeDirectoryPage() {
   };
 
   const handleOpenManageAccess = (emp) => {
+    if (!emp) return;
     setSelectedEmp(emp);
     setEditForm({
-      full_name: emp.full_name,
+      full_name: emp.full_name || '',
       role: emp.role || '',
       department: emp.department || 'architecture',
       company_code: emp.company_code || '',
@@ -55,9 +57,10 @@ export default function EmployeeDirectoryPage() {
   };
 
   const handleRegenerateKey = () => {
-    const deptCode = editForm.department === 'admin' ? 'OWNER' :
-                     editForm.department === 'construction' ? 'CONST' :
-                     editForm.department === 'marketing' ? 'MKTG' : 'ARCH';
+    const dept = editForm.department || 'architecture';
+    const deptCode = dept === 'admin' ? 'OWNER' :
+                     dept === 'construction' ? 'CONST' :
+                     dept === 'marketing' ? 'MKTG' : 'ARCH';
     const random = Math.random().toString(36).substring(2, 6).toUpperCase();
     setEditForm(prev => ({ ...prev, company_code: `BAVI-${deptCode}-${random}` }));
   };
@@ -67,7 +70,7 @@ export default function EmployeeDirectoryPage() {
     if (!selectedEmp) return;
 
     const updatedEmployees = employees.map(emp => {
-      if (emp.id === selectedEmp.id || emp.email === selectedEmp.email) {
+      if (emp.id === selectedEmp.id || (emp.email && emp.email === selectedEmp.email)) {
         return {
           ...emp,
           role: editForm.role,
@@ -104,7 +107,7 @@ export default function EmployeeDirectoryPage() {
         const stored = localStorage.getItem('bavi_approved_designers');
         let list = stored ? JSON.parse(stored) : [];
         list = list.map(item => {
-          if (item.email === selectedEmp.email || item.id === selectedEmp.id) {
+          if ((item.email && item.email === selectedEmp.email) || item.id === selectedEmp.id) {
             return {
               ...item,
               role: editForm.role,
@@ -122,19 +125,39 @@ export default function EmployeeDirectoryPage() {
       }
     }
 
-    logActivity?.('updated_employee_access', 'employee', selectedEmp.full_name, {
-      newDepartment: editForm.department,
-      newStatus: editForm.status,
-      newRole: editForm.role,
-      reissuedCode: editForm.company_code,
-    });
+    try {
+      if (typeof logActivity === 'function') {
+        logActivity('updated_employee_access', 'employee', selectedEmp.full_name || 'Staff', {
+          newDepartment: editForm.department,
+          newStatus: editForm.status,
+          newRole: editForm.role,
+          reissuedCode: editForm.company_code,
+        });
+      }
+    } catch (err) {
+      console.warn(err);
+    }
 
     setManageModalOpen(false);
-    showToast(`Security permissions updated for ${selectedEmp.full_name}`);
+    showToast(`Security permissions updated for ${selectedEmp.full_name || 'employee'}`);
   };
 
   const handleOpenAuditLog = (emp) => {
+    if (!emp) return;
     setSelectedEmp(emp);
+    try {
+      const allLogs = typeof getAllActivityLog === 'function' ? getAllActivityLog() : [];
+      const empTarget = (emp.full_name || '').toLowerCase();
+      const filteredLogs = (allLogs || []).filter(l => {
+        if (!l) return false;
+        const actor = (l.actor_name || '').toLowerCase();
+        const res = (l.resource_name || '').toLowerCase();
+        return (empTarget && (actor === empTarget || res === empTarget)) || (emp.id && l.actor_id === emp.id);
+      });
+      setEmpLogs(filteredLogs);
+    } catch {
+      setEmpLogs([]);
+    }
     setAuditModalOpen(true);
   };
 
@@ -151,31 +174,31 @@ export default function EmployeeDirectoryPage() {
         const owner = JSON.parse(ownerStored);
         realEmployees.push({
           id: owner.id || 'owner-1',
-          full_name: owner.full_name,
-          email: owner.email,
+          full_name: owner.full_name || 'Principal Architect',
+          email: owner.email || '',
           department: 'admin',
-          role: 'Principal Architect & Site Owner',
+          role: owner.role || 'Principal Architect & Site Owner',
           company_code: owner.company_code || 'BAVI-OWNER-ADMIN',
           isOwner: true,
           phone: owner.phone || 'N/A',
           status: 'ACTIVE',
-          joinedDate: owner.registeredAt ? owner.registeredAt.split('T')[0] : 'Today',
+          joinedDate: owner.registeredAt ? String(owner.registeredAt).split('T')[0] : 'Today',
         });
       }
 
       list.forEach(item => {
-        if (!realEmployees.some(m => m.email === item.email)) {
+        if (!realEmployees.some(m => item.email && m.email === item.email)) {
           realEmployees.push({
             id: item.id || 'emp-' + Date.now(),
-            full_name: item.full_name,
-            email: item.email,
+            full_name: item.full_name || 'Staff Member',
+            email: item.email || '',
             department: item.department || 'architecture',
             role: item.role || 'designer',
             company_code: item.company_code || 'BAVI-TOKEN',
             isOwner: !!item.isOwner,
             phone: item.phone || 'N/A',
-            status: 'ACTIVE',
-            joinedDate: item.approvedAt ? item.approvedAt.split('T')[0] : 'New',
+            status: item.status || 'ACTIVE',
+            joinedDate: item.approvedAt ? String(item.approvedAt).split('T')[0] : 'New',
           });
         }
       });
@@ -196,15 +219,21 @@ export default function EmployeeDirectoryPage() {
   };
 
   const filtered = employees.filter(emp => {
+    if (!emp) return false;
+    const name = emp.full_name || '';
+    const email = emp.email || '';
+    const code = emp.company_code || '';
+    const q = (searchQuery || '').toLowerCase();
     const matchesDept = deptFilter === 'ALL' || emp.department === deptFilter;
-    const matchesSearch = emp.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          emp.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          (emp.company_code && emp.company_code.toLowerCase().includes(searchQuery.toLowerCase()));
+    const matchesSearch = !q ||
+      name.toLowerCase().includes(q) ||
+      email.toLowerCase().includes(q) ||
+      code.toLowerCase().includes(q);
     return matchesDept && matchesSearch;
   });
 
   return (
-    <div style={{ padding: '24px 32px', minHeight: '100vh', background: 'var(--astryx-bg-primary)' }}>
+    <div style={{ padding: '24px 32px', minHeight: '100vh', background: 'var(--astryx-bg-primary, #0a0a0a)' }}>
       <DesignerHeader
         title="Employee & Staff Directory"
         subtitle="Owner administration — view employee departments, issued security tokens, and roles"
@@ -234,9 +263,9 @@ export default function EmployeeDirectoryPage() {
                   borderRadius: '20px',
                   fontSize: '0.8rem',
                   cursor: 'pointer',
-                  border: deptFilter === d.id ? '1px solid var(--astryx-gold)' : '1px solid rgba(255,255,255,0.1)',
+                  border: deptFilter === d.id ? '1px solid var(--astryx-gold, #c9a84c)' : '1px solid rgba(255,255,255,0.1)',
                   background: deptFilter === d.id ? 'rgba(201,168,76,0.15)' : 'rgba(255,255,255,0.03)',
-                  color: deptFilter === d.id ? 'var(--astryx-gold-light)' : '#888',
+                  color: deptFilter === d.id ? 'var(--astryx-gold-light, #e0c57b)' : '#888',
                 }}
               >
                 {d.label}
@@ -255,7 +284,7 @@ export default function EmployeeDirectoryPage() {
           border: '1px dashed rgba(255,255,255,0.1)',
           color: '#888'
         }}>
-          <Users size={36} style={{ color: 'var(--astryx-gold)', marginBottom: '12px' }} />
+          <Users size={36} style={{ color: 'var(--astryx-gold, #c9a84c)', marginBottom: '12px' }} />
           <h3 style={{ color: '#fff', margin: '0 0 6px', fontSize: '1.1rem' }}>No Employees Enrolled Yet</h3>
           <p style={{ margin: 0, fontSize: '0.85rem' }}>
             When staff members apply and you approve their security tokens, they will appear in this directory.
@@ -267,260 +296,250 @@ export default function EmployeeDirectoryPage() {
             const DeptIcon = getDeptIcon(emp.department);
             return (
               <Card key={emp.id} style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '14px' }}>
+                    <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                      <div style={{
+                        width: '44px',
+                        height: '44px',
+                        borderRadius: '50%',
+                        background: emp.isOwner ? 'rgba(201,168,76,0.2)' : 'rgba(255,255,255,0.06)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: emp.isOwner ? '#c9a84c' : '#ccc',
+                        fontWeight: 600
+                      }}>
+                        <DeptIcon size={20} />
+                      </div>
+                      <div>
+                        <h4 style={{ margin: 0, fontSize: '1rem', color: '#fff' }}>{emp.full_name}</h4>
+                        <span style={{ fontSize: '0.78rem', color: '#888' }}>{emp.role}</span>
+                      </div>
+                    </div>
+                    <Badge variant={emp.isOwner ? 'gold' : 'success'}>
+                      {emp.isOwner ? 'OWNER' : (emp.department || 'STAFF').toUpperCase()}
+                    </Badge>
+                  </div>
+
+                  <div style={{ background: 'rgba(0,0,0,0.25)', padding: '12px', borderRadius: '8px', marginBottom: '14px', fontSize: '0.82rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                      <span style={{ color: '#777' }}>Security Key:</span>
+                      <span style={{ fontFamily: 'monospace', color: 'var(--astryx-gold-light, #e0c57b)', fontWeight: 600 }}>
+                        {emp.company_code}
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                      <span style={{ color: '#777' }}>Status:</span>
+                      <span style={{ color: emp.status === 'SUSPENDED' ? '#ef4444' : '#4ade80', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <CheckCircle2 size={12} /> {emp.status || 'ACTIVE'}
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ color: '#777' }}>Onboarded:</span>
+                      <span style={{ color: '#aaa' }}>{emp.joinedDate}</span>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '0.8rem', color: '#aaa' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <Mail size={12} style={{ color: '#666' }} /> {emp.email || 'No email specified'}
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <Phone size={12} style={{ color: '#666' }} /> {emp.phone || 'No phone specified'}
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: '8px', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '12px', marginTop: '14px' }}>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    style={{ flex: 1 }}
+                    onClick={() => handleOpenManageAccess(emp)}
+                  >
+                    Manage Access
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    style={{ flex: 1 }}
+                    onClick={() => handleOpenAuditLog(emp)}
+                  >
+                    Audit Log
+                  </Button>
+                </div>
+              </Card>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Manage Access Modal */}
+      <Modal
+        isOpen={manageModalOpen}
+        onClose={() => setManageModalOpen(false)}
+        title={`Manage Security & Access: ${selectedEmp?.full_name || ''}`}
+      >
+        {selectedEmp && (
+          <form onSubmit={handleSaveAccess} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div style={{
+              background: 'rgba(255,255,255,0.03)',
+              border: '1px solid rgba(255,255,255,0.08)',
+              borderRadius: '8px',
+              padding: '12px 16px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '12px'
+            }}>
               <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '14px' }}>
-                  <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                    <div style={{
-                      width: '44px',
-                      height: '44px',
-                      borderRadius: '50%',
-                      background: emp.isOwner ? 'rgba(201,168,76,0.2)' : 'rgba(255,255,255,0.06)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: emp.isOwner ? '#c9a84c' : '#ccc',
-                      fontWeight: 600
-                    }}>
-                      <DeptIcon size={20} />
-                    </div>
-                    <div>
-                      <h4 style={{ margin: 0, fontSize: '1rem', color: '#fff' }}>{emp.full_name}</h4>
-                      <span style={{ fontSize: '0.78rem', color: '#888' }}>{emp.role}</span>
-                    </div>
-                  </div>
-                  <Badge variant={emp.isOwner ? 'gold' : 'success'}>
-                    {emp.isOwner ? 'OWNER' : emp.department.toUpperCase()}
-                  </Badge>
-                </div>
-
-                <div style={{ background: 'rgba(0,0,0,0.25)', padding: '12px', borderRadius: '8px', marginBottom: '14px', fontSize: '0.82rem' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-                    <span style={{ color: '#777' }}>Security Key:</span>
-                    <span style={{ fontFamily: 'monospace', color: 'var(--astryx-gold-light)', fontWeight: 600 }}>
-                      {emp.company_code}
-                    </span>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-                    <span style={{ color: '#777' }}>Status:</span>
-                    <span style={{ color: '#4ade80', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      <CheckCircle2 size={12} /> {emp.status}
-                    </span>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span style={{ color: '#777' }}>Onboarded:</span>
-                    <span style={{ color: '#aaa' }}>{emp.joinedDate}</span>
-                  </div>
-                </div>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '0.8rem', color: '#aaa' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <Mail size={12} style={{ color: '#666' }} /> {emp.email}
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <Phone size={12} style={{ color: '#666' }} /> {emp.phone}
-                  </div>
-                </div>
+                <div style={{ fontSize: '0.95rem', fontWeight: 600, color: '#fff' }}>{selectedEmp.full_name}</div>
+                <div style={{ fontSize: '0.78rem', color: '#888' }}>{selectedEmp.email} • {selectedEmp.isOwner ? 'Site Owner' : 'Employee Staff'}</div>
               </div>
-
-              <div style={{ display: 'flex', gap: '8px', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '12px', marginTop: '14px' }}>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  style={{ flex: 1 }}
-                  onClick={() => handleOpenManageAccess(emp)}
-                >
-                  Manage Access
-                </Button>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  style={{ flex: 1 }}
-                  onClick={() => handleOpenAuditLog(emp)}
-                >
-                  Audit Log
-                </Button>
-              </div>
-            </Card>
-          );
-        })}
-      </div>
-    )}
-
-    {/* Manage Access Modal */}
-    <Modal
-      isOpen={manageModalOpen}
-      onClose={() => setManageModalOpen(false)}
-      title={`Manage Security & Access: ${selectedEmp?.full_name || ''}`}
-    >
-      {selectedEmp && (
-        <form onSubmit={handleSaveAccess} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          <div style={{
-            background: 'rgba(255,255,255,0.03)',
-            border: '1px solid rgba(255,255,255,0.08)',
-            borderRadius: '8px',
-            padding: '12px 16px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: '12px'
-          }}>
-            <div>
-              <div style={{ fontSize: '0.95rem', fontWeight: 600, color: '#fff' }}>{selectedEmp.full_name}</div>
-              <div style={{ fontSize: '0.78rem', color: '#888' }}>{selectedEmp.email} • {selectedEmp.isOwner ? 'Site Owner' : 'Employee Staff'}</div>
-            </div>
-            <Badge variant={selectedEmp.isOwner ? 'gold' : 'info'}>
-              {selectedEmp.isOwner ? 'OWNER ACCOUNT' : 'STAFF'}
-            </Badge>
-          </div>
-
-          <div>
-            <label style={{ fontSize: '0.82rem', color: '#bbb', marginBottom: '6px', display: 'block' }}>
-              Role / Designation Title *
-            </label>
-            <TextInput
-              required
-              value={editForm.role}
-              onChange={(e) => setEditForm({ ...editForm, role: e.target.value })}
-              placeholder="e.g. Senior Project Architect"
-            />
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-            <div>
-              <label style={{ fontSize: '0.82rem', color: '#bbb', marginBottom: '6px', display: 'block' }}>
-                Operational Department *
-              </label>
-              <Select
-                value={editForm.department}
-                onChange={(e) => setEditForm({ ...editForm, department: e.target.value })}
-                options={[
-                  { value: 'architecture', label: 'Architecture & Design' },
-                  { value: 'construction', label: 'Construction & Management' },
-                  { value: 'marketing', label: 'Marketing & Sales' },
-                  { value: 'admin', label: 'Owner Administration' },
-                ]}
-              />
+              <Badge variant={selectedEmp.isOwner ? 'gold' : 'info'}>
+                {selectedEmp.isOwner ? 'OWNER ACCOUNT' : 'STAFF'}
+              </Badge>
             </div>
 
             <div>
               <label style={{ fontSize: '0.82rem', color: '#bbb', marginBottom: '6px', display: 'block' }}>
-                Authorization Status *
+                Role / Designation Title *
               </label>
-              <Select
-                value={editForm.status}
-                onChange={(e) => setEditForm({ ...editForm, status: e.target.value })}
-                options={[
-                  { value: 'ACTIVE', label: 'ACTIVE - Full Authorized Access' },
-                  { value: 'SUSPENDED', label: 'SUSPENDED - Revoke Dashboard Entry' },
-                ]}
+              <TextInput
+                required
+                value={editForm.role}
+                onChange={(e) => setEditForm({ ...editForm, role: e.target.value })}
+                placeholder="e.g. Senior Project Architect"
               />
             </div>
-          </div>
 
-          <div>
-            <label style={{ fontSize: '0.82rem', color: '#bbb', marginBottom: '6px', display: 'block' }}>
-              Registered Phone Number
-            </label>
-            <TextInput
-              value={editForm.phone}
-              onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
-              placeholder="+91 99999 00000"
-            />
-          </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <div>
+                <label style={{ fontSize: '0.82rem', color: '#bbb', marginBottom: '6px', display: 'block' }}>
+                  Operational Department *
+                </label>
+                <Select
+                  value={editForm.department}
+                  onChange={(e) => setEditForm({ ...editForm, department: e.target.value })}
+                  options={[
+                    { value: 'architecture', label: 'Architecture & Design' },
+                    { value: 'construction', label: 'Construction & Management' },
+                    { value: 'marketing', label: 'Marketing & Sales' },
+                    { value: 'admin', label: 'Owner Administration' },
+                  ]}
+                />
+              </div>
 
-          {/* Security Key Section */}
-          <div style={{
-            background: 'rgba(201,168,76,0.06)',
-            border: '1px solid rgba(201,168,76,0.2)',
-            borderRadius: '8px',
-            padding: '14px',
-            marginTop: '4px'
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', color: 'var(--astryx-gold-light)', fontWeight: 600 }}>
-                <KeyRound size={14} /> Issued Security Token
+              <div>
+                <label style={{ fontSize: '0.82rem', color: '#bbb', marginBottom: '6px', display: 'block' }}>
+                  Authorization Status *
+                </label>
+                <Select
+                  value={editForm.status}
+                  onChange={(e) => setEditForm({ ...editForm, status: e.target.value })}
+                  options={[
+                    { value: 'ACTIVE', label: 'ACTIVE - Full Authorized Access' },
+                    { value: 'SUSPENDED', label: 'SUSPENDED - Revoke Dashboard Entry' },
+                  ]}
+                />
+              </div>
+            </div>
+
+            <div>
+              <label style={{ fontSize: '0.82rem', color: '#bbb', marginBottom: '6px', display: 'block' }}>
+                Registered Phone Number
+              </label>
+              <TextInput
+                value={editForm.phone}
+                onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
+                placeholder="+91 99999 00000"
+              />
+            </div>
+
+            {/* Security Key Section */}
+            <div style={{
+              background: 'rgba(201,168,76,0.06)',
+              border: '1px solid rgba(201,168,76,0.2)',
+              borderRadius: '8px',
+              padding: '14px',
+              marginTop: '4px'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', color: 'var(--astryx-gold-light, #e0c57b)', fontWeight: 600 }}>
+                  <KeyRound size={14} /> Issued Security Token
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="xs"
+                  onClick={handleRegenerateKey}
+                >
+                  <RefreshCw size={12} style={{ marginRight: '4px' }} /> Reissue Token
+                </Button>
+              </div>
+              <div style={{
+                fontFamily: 'monospace',
+                fontSize: '0.95rem',
+                color: '#fff',
+                letterSpacing: '1px',
+                background: 'rgba(0,0,0,0.3)',
+                padding: '8px 12px',
+                borderRadius: '6px'
+              }}>
+                {editForm.company_code || 'NO-TOKEN-ASSIGNED'}
+              </div>
+              <p style={{ margin: '8px 0 0', fontSize: '0.75rem', color: '#888' }}>
+                This cryptographic key is required during staff sign-in to unlock department credentials.
+              </p>
+            </div>
+
+            {/* Cross-Access Matrix Shortcut */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '12px',
+              background: 'rgba(255,255,255,0.02)',
+              borderRadius: '8px',
+              border: '1px solid rgba(255,255,255,0.06)'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.82rem', color: '#ccc' }}>
+                <Shield size={16} style={{ color: 'var(--astryx-gold, #c9a84c)' }} />
+                <span>Cross-Department Policy & Lockout Matrix</span>
               </div>
               <Button
                 type="button"
-                variant="ghost"
+                variant="secondary"
                 size="xs"
-                icon={<RefreshCw size={12} />}
-                onClick={handleRegenerateKey}
+                onClick={() => {
+                  setManageModalOpen(false);
+                  router.push('/dashboard/permissions');
+                }}
               >
-                Reissue Token
+                <ExternalLink size={12} style={{ marginRight: '4px' }} /> View Matrix
               </Button>
             </div>
-            <div style={{
-              fontFamily: 'monospace',
-              fontSize: '0.95rem',
-              color: '#fff',
-              letterSpacing: '1px',
-              background: 'rgba(0,0,0,0.3)',
-              padding: '8px 12px',
-              borderRadius: '6px'
-            }}>
-              {editForm.company_code || 'NO-TOKEN-ASSIGNED'}
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '8px' }}>
+              <Button variant="ghost" type="button" onClick={() => setManageModalOpen(false)}>
+                Cancel
+              </Button>
+              <Button variant="primary" type="submit">
+                <CheckCircle2 size={15} style={{ marginRight: '6px' }} /> Save Security Settings
+              </Button>
             </div>
-            <p style={{ margin: '8px 0 0', fontSize: '0.75rem', color: '#888' }}>
-              This cryptographic key is required during staff sign-in to unlock department credentials.
-            </p>
-          </div>
+          </form>
+        )}
+      </Modal>
 
-          {/* Cross-Access Matrix Shortcut */}
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '12px',
-            background: 'rgba(255,255,255,0.02)',
-            borderRadius: '8px',
-            border: '1px solid rgba(255,255,255,0.06)'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.82rem', color: '#ccc' }}>
-              <Shield size={16} style={{ color: 'var(--astryx-gold)' }} />
-              <span>Cross-Department Policy & Lockout Matrix</span>
-            </div>
-            <Button
-              type="button"
-              variant="secondary"
-              size="xs"
-              icon={<ExternalLink size={12} />}
-              onClick={() => {
-                setManageModalOpen(false);
-                router.push('/dashboard/permissions');
-              }}
-            >
-              View Matrix
-            </Button>
-          </div>
-
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '8px' }}>
-            <Button variant="ghost" type="button" onClick={() => setManageModalOpen(false)}>
-              Cancel
-            </Button>
-            <Button variant="primary" type="submit" icon={<CheckCircle2 size={15} />}>
-              Save Security Settings
-            </Button>
-          </div>
-        </form>
-      )}
-    </Modal>
-
-    {/* Audit Log Modal */}
-    <Modal
-      isOpen={auditModalOpen}
-      onClose={() => setAuditModalOpen(false)}
-      title={`Activity Audit Log: ${selectedEmp?.full_name || ''}`}
-    >
-      {selectedEmp && (() => {
-        const allLogs = getAllActivityLog?.() || [];
-        const empLogs = allLogs.filter(l => 
-          l.actor_name?.toLowerCase() === selectedEmp.full_name?.toLowerCase() ||
-          l.actor_id === selectedEmp.id ||
-          l.resource_name?.toLowerCase() === selectedEmp.full_name?.toLowerCase()
-        );
-
-        return (
+      {/* Audit Log Modal */}
+      <Modal
+        isOpen={auditModalOpen}
+        onClose={() => setAuditModalOpen(false)}
+        title={`Activity Audit Log: ${selectedEmp?.full_name || ''}`}
+      >
+        {selectedEmp && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <div style={{
               display: 'flex',
@@ -533,7 +552,7 @@ export default function EmployeeDirectoryPage() {
             }}>
               <div>
                 <div style={{ fontSize: '0.88rem', fontWeight: 600, color: '#fff' }}>{selectedEmp.full_name}</div>
-                <div style={{ fontSize: '0.75rem', color: '#888' }}>Role: {selectedEmp.role} • Dept: {selectedEmp.department?.toUpperCase()}</div>
+                <div style={{ fontSize: '0.75rem', color: '#888' }}>Role: {selectedEmp.role} • Dept: {(selectedEmp.department || 'staff').toUpperCase()}</div>
               </div>
               <Badge variant={selectedEmp.isOwner ? 'gold' : 'neutral'}>
                 {empLogs.length} Events Recorded
@@ -572,17 +591,17 @@ export default function EmployeeDirectoryPage() {
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        color: 'var(--astryx-gold)',
+                        color: 'var(--astryx-gold, #c9a84c)',
                         flexShrink: 0
                       }}>
                         <Activity size={14} />
                       </div>
                       <div>
                         <div style={{ fontSize: '0.84rem', color: '#eee', fontWeight: 600 }}>
-                          {log.action?.replace(/_/g, ' ')?.toUpperCase()}
+                          {(log.action || '').replace(/_/g, ' ')?.toUpperCase()}
                         </div>
                         {log.resource_name && (
-                          <div style={{ fontSize: '0.78rem', color: 'var(--astryx-gold-light)', marginTop: '2px' }}>
+                          <div style={{ fontSize: '0.78rem', color: 'var(--astryx-gold-light, #e0c57b)', marginTop: '2px' }}>
                             Target: {log.resource_name}
                           </div>
                         )}
@@ -595,7 +614,7 @@ export default function EmployeeDirectoryPage() {
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.72rem', color: '#666', whiteSpace: 'nowrap' }}>
                       <Clock size={11} />
-                      <span>{new Date(log.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
+                      <span>{log.created_at ? new Date(log.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : 'Recent'}</span>
                     </div>
                   </div>
                 ))}
@@ -609,7 +628,7 @@ export default function EmployeeDirectoryPage() {
                 border: '1px dashed rgba(255,255,255,0.08)',
                 color: '#888'
               }}>
-                <Activity size={28} style={{ color: 'var(--astryx-gold)', marginBottom: '8px' }} />
+                <Activity size={28} style={{ color: 'var(--astryx-gold, #c9a84c)', marginBottom: '8px' }} />
                 <h5 style={{ margin: '0 0 4px', color: '#eee', fontSize: '0.92rem' }}>No Activity Logged Yet</h5>
                 <p style={{ margin: 0, fontSize: '0.78rem' }}>
                   Action events (milestone approvals, uploads, logins) performed by {selectedEmp.full_name} will appear here.
@@ -621,25 +640,23 @@ export default function EmployeeDirectoryPage() {
               <Button
                 variant="secondary"
                 size="sm"
-                icon={<ExternalLink size={13} />}
                 onClick={() => {
                   setAuditModalOpen(false);
                   router.push('/dashboard/monitor');
                 }}
               >
-                Open Full Activity Monitor
+                <ExternalLink size={13} style={{ marginRight: '4px' }} /> Open Full Activity Monitor
               </Button>
               <Button variant="ghost" size="sm" onClick={() => setAuditModalOpen(false)}>
                 Close
               </Button>
             </div>
           </div>
-        );
-      })()}
-    </Modal>
+        )}
+      </Modal>
 
-    {/* Toast Notification */}
-    <Toast message={toastMsg} isVisible={toastVisible} onClose={() => setToastVisible(false)} />
-  </div>
-);
+      {/* Toast Notification */}
+      <Toast message={toastMsg} isVisible={toastVisible} onClose={() => setToastVisible(false)} />
+    </div>
+  );
 }

@@ -139,10 +139,10 @@ export function Button({
       {loading ? (
         <span style={{ display: 'inline-flex', animation: 'ax-spin 1s linear infinite' }}>⟳</span>
       ) : Icon ? (
-        <Icon size={iconSize} />
+        typeof Icon === 'function' ? <Icon size={iconSize} /> : Icon
       ) : null}
       {children}
-      {IconRight && !loading && <IconRight size={iconSize} />}
+      {IconRight && !loading && (typeof IconRight === 'function' ? <IconRight size={iconSize} /> : IconRight)}
     </button>
   );
 }
