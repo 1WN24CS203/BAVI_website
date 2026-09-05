@@ -50,6 +50,16 @@ export default function Footer() {
               <li><Link href="/about" className={styles.linkItem}>Our Architects & Legacy</Link></li>
               <li><Link href="/contact" className={styles.linkItem}>Schedule Consultation</Link></li>
               <li><Link href="/login" className={styles.linkItem}>Client Command Portal</Link></li>
+              <li>
+                <a 
+                  href={process.env.NEXT_PUBLIC_DESIGNER_PORTAL_URL || 'https://bavi-website-designer.vercel.app'} 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className={styles.linkItem}
+                >
+                  Architect & Designer Portal ↗
+                </a>
+              </li>
             </ul>
           </div>
 

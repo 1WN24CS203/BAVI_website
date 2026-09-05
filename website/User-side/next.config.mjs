@@ -4,6 +4,10 @@ const nextConfig = {
     // Lint separately via `npm run lint` — prevents Jest worker spawn issues on Windows
     ignoreDuringBuilds: true,
   },
+  experimental: {
+    cpus: 1,
+    workerThreads: false,
+  },
   webpack: (config, { dev }) => {
     if (dev) {
       // Use memory caching to prevent ArrayBuffer allocation failure on Windows

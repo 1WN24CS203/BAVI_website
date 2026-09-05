@@ -81,6 +81,8 @@ export default function MyProjectPage() {
     saveProject(updatedProject);
     setApprovalNotification(`You have successfully authorized Stage ${stageId}. Dual permission verification recorded.`);
     setTimeout(() => setApprovalNotification(null), 5000);
+  };
+
   if (!project) {
     return (
       <div className={styles.container}>

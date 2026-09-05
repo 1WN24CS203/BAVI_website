@@ -6,13 +6,14 @@ export async function POST(request) {
     const body = await request.json();
     const { milestoneId, amount, milestoneTitle, customerEmail } = body;
 
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
-    if (!siteUrl) {
+    const rawSiteUrl = process.env.NEXT_PUBLIC_SITE_URL;
+    if (!rawSiteUrl) {
       return NextResponse.json(
         { error: 'Server configuration error: NEXT_PUBLIC_SITE_URL is not set.' },
         { status: 500 }
       );
     }
+    const siteUrl = rawSiteUrl.replace(/\/+$/, '');
 
     if (isStripeConfigured()) {
       // Create actual Stripe Checkout Session in Test Mode
