@@ -1,4 +1,4 @@
-﻿-- ================================================================
+-- ================================================================
 -- BAVI: Bahubali Builders & Visionary Interiors
 -- Production Database Schema v2.0 for Supabase (PostgreSQL)
 -- Multi-Department Architecture with Access Control
@@ -574,7 +574,7 @@ ON CONFLICT (name) DO NOTHING;
 
 -- Function to automatically create or update a profile when a new user signs up in auth.users
 CREATE OR REPLACE FUNCTION public.handle_new_user()
-RETURNS TRIGGER AS $
+RETURNS TRIGGER AS $$
 BEGIN
     INSERT INTO public.profiles (id, user_id, email, full_name, phone, role)
     VALUES (
@@ -593,7 +593,7 @@ BEGIN
         updated_at = timezone('utc'::text, now());
     RETURN NEW;
 END;
-$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Trigger to execute whenever a user signs up
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
