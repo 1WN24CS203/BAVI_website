@@ -18,6 +18,39 @@ import DesignerHeader from '@/components/Header';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import styles from './customers.module.css';
 
+const DEFAULT_CLIENTS = [
+  {
+    id: 'cli-demo-1',
+    full_name: 'Rajesh Sharma',
+    email: 'rajesh.sharma@example.com',
+    phone: '+91 98450 12345',
+    address: 'BM Road, Channarayapatna',
+    role: 'customer',
+    project: 'Channarayapatna 4BHK Heritage Villa',
+    status: 'Active Client'
+  },
+  {
+    id: 'cli-demo-2',
+    full_name: 'Pooja Reddy',
+    email: 'pooja.reddy@example.com',
+    phone: '+91 98450 67890',
+    address: 'Hassan Road, Channarayapatna',
+    role: 'customer',
+    project: 'Modernist Penthouse Interior',
+    status: 'Active Client'
+  },
+  {
+    id: 'cli-demo-3',
+    full_name: 'Kavitha Swamy',
+    email: 'kavitha.swamy@gmail.com',
+    phone: '+91 94480 34567',
+    address: 'Mysuru Highway, Channarayapatna',
+    role: 'customer',
+    project: 'Eco-Luxury Farmhouse Architecture',
+    status: 'Active Client'
+  }
+];
+
 export default function DesignerCustomersPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [clients, setClients] = useState([]);
@@ -40,6 +73,7 @@ export default function DesignerCustomersPage() {
   }, []);
 
   const fetchClients = async () => {
+    let loadedClients = [];
     if (isSupabaseConfigured()) {
       try {
         const { data, error } = await supabase
@@ -48,14 +82,35 @@ export default function DesignerCustomersPage() {
           .eq('role', 'customer');
 
         if (data && data.length > 0) {
-          setClients(data);
-        } else {
-          setClients([]);
+          loadedClients = data;
         }
       } catch (err) {
         console.warn('Supabase fetch error:', err);
       }
     }
+
+    try {
+      const local = localStorage.getItem('bavi_registered_clients');
+      if (local) {
+        const parsed = JSON.parse(local);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const emailMap = new Map();
+          [...loadedClients, ...parsed].forEach(c => {
+            if (c.email) emailMap.set(c.email.toLowerCase(), c);
+          });
+          loadedClients = Array.from(emailMap.values());
+        }
+      }
+    } catch {}
+
+    if (loadedClients.length === 0) {
+      loadedClients = DEFAULT_CLIENTS;
+    }
+
+    setClients(loadedClients);
+    try {
+      localStorage.setItem('bavi_registered_clients', JSON.stringify(loadedClients));
+    } catch {}
     setLoading(false);
   };
 
@@ -72,7 +127,7 @@ export default function DesignerCustomersPage() {
       role: 'customer',
       project: newClient.project_title || 'New Architectural Commission',
       progress: 0,
-      status: 'Onboarded'
+      status: 'Active Client'
     };
 
     if (isSupabaseConfigured()) {
@@ -91,7 +146,11 @@ export default function DesignerCustomersPage() {
       }
     }
 
-    setClients([created, ...clients]);
+    const updated = [created, ...clients];
+    setClients(updated);
+    try {
+      localStorage.setItem('bavi_registered_clients', JSON.stringify(updated));
+    } catch {}
     setShowAddModal(false);
     setNewClient({ full_name: '', email: '', phone: '', address: '', project_title: '', budget: '' });
     setToast(`Client ${newClient.full_name} onboarded successfully!`);

@@ -56,13 +56,16 @@ export default function DashboardLayout({ children }) {
     setCallbackLoading(true);
     const newCallback = {
       id: 'cb-' + Date.now(),
+      name: profile?.full_name || 'Valued Client',
       clientName: profile?.full_name || 'Valued Client',
       phone: profile?.phone || '+91 99800 11223',
       email: profile?.email || 'client@bavi.in',
+      is_client: true,
       isClient: true,
       requestedAt: new Date().toISOString().replace('T', ' ').slice(0, 16),
-      status: 'PENDING',
-      priority: 'HIGH',
+      created_at: new Date().toISOString(),
+      status: 'pending',
+      priority: 'urgent',
       subject: 'Priority Client Assistance',
       message: `Direct callback requested from Client Dashboard by ${profile?.full_name || 'Client'}.`,
     };

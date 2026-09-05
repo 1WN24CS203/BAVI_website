@@ -37,13 +37,16 @@ export default function ContactPage() {
 
     const publicCallback = {
       id: 'cb-pub-' + Date.now(),
+      name: formData.name.trim(),
       clientName: formData.name.trim(),
       phone: formData.phone.trim(),
       email: formData.email.trim(),
+      is_client: false,
       isClient: false,
       requestedAt: new Date().toISOString().replace('T', ' ').slice(0, 16),
-      status: 'PENDING',
-      priority: 'MEDIUM',
+      created_at: new Date().toISOString(),
+      status: 'pending',
+      priority: 'normal',
       subject: formData.projectType,
       message: `${formData.message ? formData.message + ' | ' : ''}Location: ${formData.location || 'Not specified'}`,
     };

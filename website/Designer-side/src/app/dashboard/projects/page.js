@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import {
   FolderKanban, CheckCircle2, Clock, AlertCircle, Plus, Layers, FileUp, Sparkles,
   Check, Building, User, Phone, Mail, FileText, Upload, ChevronDown, ChevronUp,
-  Eye, Download
+  Eye, Download, ShieldCheck, UserCheck
 } from 'lucide-react';
 import DesignerHeader from '@/components/Header';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
@@ -15,9 +15,38 @@ import {
 import { useDesignerAuth } from '@/context/AuthContext';
 import styles from './projects.module.css';
 
+const DEFAULT_CLIENTS = [
+  {
+    id: 'cli-demo-1',
+    full_name: 'Rajesh Sharma',
+    email: 'rajesh.sharma@example.com',
+    phone: '+91 98450 12345',
+    address: 'BM Road, Channarayapatna',
+    role: 'customer',
+  },
+  {
+    id: 'cli-demo-2',
+    full_name: 'Pooja Reddy',
+    email: 'pooja.reddy@example.com',
+    phone: '+91 98450 67890',
+    address: 'Hassan Road, Channarayapatna',
+    role: 'customer',
+  },
+  {
+    id: 'cli-demo-3',
+    full_name: 'Kavitha Swamy',
+    email: 'kavitha.swamy@gmail.com',
+    phone: '+91 94480 34567',
+    address: 'Mysuru Highway, Channarayapatna',
+    role: 'customer',
+  }
+];
+
 export default function DesignerProjectsPage() {
   const { designer, logActivity } = useDesignerAuth();
   const [projects, setProjects] = useState([]);
+  const [registeredClients, setRegisteredClients] = useState([]);
+  const [selectedClientId, setSelectedClientId] = useState('');
   const [loading, setLoading] = useState(true);
   const [toastMsg, setToastMsg] = useState('');
   const [toastVisible, setToastVisible] = useState(false);
@@ -28,7 +57,7 @@ export default function DesignerProjectsPage() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [newProject, setNewProject] = useState({
     title: '', category: 'residential', location: '', budget: '', description: '',
-    client_name: '', client_phone: '', client_email: '', client_requirements: '',
+    client_id: '', client_name: '', client_phone: '', client_email: '', client_requirements: '',
   });
   const [uploadedFiles, setUploadedFiles] = useState([]);
 
@@ -39,12 +68,69 @@ export default function DesignerProjectsPage() {
 
   useEffect(() => {
     fetchProjects();
+    fetchRegisteredClients();
   }, []);
 
   const showToast = (msg, variant = 'success') => {
     setToastMsg(msg);
     setToastVariant(variant);
     setToastVisible(true);
+  };
+
+  const fetchRegisteredClients = async () => {
+    let list = [];
+    if (isSupabaseConfigured()) {
+      try {
+        const { data } = await supabase.from('profiles').select('*').eq('role', 'customer');
+        if (data && data.length > 0) list = data;
+      } catch (err) {
+        console.warn('Failed to fetch clients from Supabase:', err);
+      }
+    }
+    try {
+      const local = localStorage.getItem('bavi_registered_clients');
+      if (local) {
+        const parsed = JSON.parse(local);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const map = new Map();
+          [...list, ...parsed].forEach(c => {
+            if (c.email) map.set(c.email.toLowerCase(), c);
+          });
+          list = Array.from(map.values());
+        }
+      }
+    } catch {}
+
+    if (list.length === 0) {
+      list = DEFAULT_CLIENTS;
+      try {
+        localStorage.setItem('bavi_registered_clients', JSON.stringify(DEFAULT_CLIENTS));
+      } catch {}
+    }
+    setRegisteredClients(list);
+  };
+
+  const handleClientSelect = (clientId) => {
+    setSelectedClientId(clientId);
+    const client = registeredClients.find(c => c.id === clientId || c.email === clientId);
+    if (client) {
+      setNewProject(prev => ({
+        ...prev,
+        client_id: client.id || '',
+        client_name: client.full_name || '',
+        client_phone: client.phone || '',
+        client_email: client.email || '',
+        location: prev.location || client.address || '',
+      }));
+    } else {
+      setNewProject(prev => ({
+        ...prev,
+        client_id: '',
+        client_name: '',
+        client_phone: '',
+        client_email: '',
+      }));
+    }
   };
 
   const fetchProjects = async () => {
@@ -76,8 +162,13 @@ export default function DesignerProjectsPage() {
 
   const handleCreateProject = async (e) => {
     e.preventDefault();
-    if (!newProject.title || !newProject.location || !newProject.client_name) {
-      showToast('Please fill in project title, location, and client name', 'error');
+    if (!selectedClientId || !newProject.client_name) {
+      showToast('Client must be selected! Please choose a verified registered client to avoid unregistered entries.', 'error');
+      return;
+    }
+
+    if (!newProject.title || !newProject.location) {
+      showToast('Please fill in project title and location', 'error');
       return;
     }
 
@@ -106,6 +197,7 @@ export default function DesignerProjectsPage() {
           location: newProject.location,
           budget: parseFloat(newProject.budget) || 0,
           description: newProject.description,
+          client_id: newProject.client_id,
           client_name: newProject.client_name,
           client_phone: newProject.client_phone,
           client_email: newProject.client_email,
@@ -119,9 +211,14 @@ export default function DesignerProjectsPage() {
     const updated = [created, ...projects];
     setProjects(updated);
     saveProjectsLocal(updated);
+    try {
+      localStorage.setItem('bavi_client_active_project', JSON.stringify(created));
+    } catch {}
+
     setShowAddModal(false);
-    setNewProject({ title: '', category: 'residential', location: '', budget: '', description: '', client_name: '', client_phone: '', client_email: '', client_requirements: '' });
-    showToast(`Project "${created.title}" for client "${created.client_name}" created successfully!`);
+    setSelectedClientId('');
+    setNewProject({ title: '', category: 'residential', location: '', budget: '', description: '', client_id: '', client_name: '', client_phone: '', client_email: '', client_requirements: '' });
+    showToast(`Project "${created.title}" successfully assigned to registered client "${created.client_name}"!`);
     logActivity('created_project', 'project', created.title, { client: created.client_name });
   };
 
@@ -375,24 +472,97 @@ export default function DesignerProjectsPage() {
         {/* Create Project Modal */}
         <Modal isOpen={showAddModal} onClose={() => setShowAddModal(false)} title="Create New Client Project" size="lg">
           <form onSubmit={handleCreateProject} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <Divider label="Client Information" />
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px' }}>
-              <TextInput
-                label="Client Name" required placeholder="e.g. Rajesh Kumar"
-                value={newProject.client_name} onChange={(e) => setNewProject({ ...newProject, client_name: e.target.value })}
-                icon={User}
-              />
-              <TextInput
-                label="Client Phone" placeholder="+91 98450 XXXXX"
-                value={newProject.client_phone} onChange={(e) => setNewProject({ ...newProject, client_phone: e.target.value })}
-                icon={Phone}
-              />
-              <TextInput
-                label="Client Email" type="email" placeholder="client@email.com"
-                value={newProject.client_email} onChange={(e) => setNewProject({ ...newProject, client_email: e.target.value })}
-                icon={Mail}
-              />
+            <Divider label="Client Assignment (Registered Client Only)" />
+            <div style={{ marginBottom: '8px' }}>
+              <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, marginBottom: '6px', color: '#e0e0e0' }}>
+                Select Registered Client <span style={{ color: '#ef4444' }}>*</span>
+              </label>
+              <select
+                value={selectedClientId}
+                onChange={(e) => handleClientSelect(e.target.value)}
+                required
+                style={{
+                  width: '100%',
+                  padding: '11px 14px',
+                  background: '#181818',
+                  border: selectedClientId ? '1px solid #c9a84c' : '1px solid #383838',
+                  borderRadius: '8px',
+                  color: '#f8f8f8',
+                  fontSize: '0.88rem',
+                  outline: 'none',
+                  fontFamily: 'inherit',
+                  cursor: 'pointer'
+                }}
+              >
+                <option value="">-- Choose a Registered Client to Avoid Unregistered Entries --</option>
+                {registeredClients.map((c) => (
+                  <option key={c.id || c.email} value={c.id || c.email}>
+                    {c.full_name} ({c.email}) {c.phone ? `• ${c.phone}` : ''}
+                  </option>
+                ))}
+              </select>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '6px', flexWrap: 'wrap', gap: '6px' }}>
+                <span style={{ fontSize: '0.74rem', color: '#888' }}>
+                  Enforced client selection prevents unregistered/orphaned project entries.
+                </span>
+                <a
+                  href="/dashboard/customers"
+                  style={{ fontSize: '0.75rem', color: '#c9a84c', textDecoration: 'none', fontWeight: 600 }}
+                >
+                  + Onboard New Client in Portfolio →
+                </a>
+              </div>
             </div>
+
+            {/* Selected Client Verified Preview */}
+            {selectedClientId && newProject.client_name ? (
+              <div style={{
+                background: 'rgba(201, 168, 76, 0.08)',
+                border: '1px solid rgba(201, 168, 76, 0.35)',
+                borderRadius: '8px',
+                padding: '12px 16px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '6px'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '6px' }}>
+                  <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#c9a84c', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <CheckCircle2 size={16} color="#c9a84c" /> Registered Account Verified
+                  </span>
+                  <Tag variant="success">Active Registered Client</Tag>
+                </div>
+                <div style={{ fontSize: '0.95rem', fontWeight: 700, color: '#f8f8f8' }}>
+                  {newProject.client_name}
+                </div>
+                <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', fontSize: '0.78rem', color: '#a0a0a0' }}>
+                  {newProject.client_email && (
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                      <Mail size={13} color="#c9a84c" /> {newProject.client_email}
+                    </span>
+                  )}
+                  {newProject.client_phone && (
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                      <Phone size={13} color="#c9a84c" /> {newProject.client_phone}
+                    </span>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div style={{
+                background: 'rgba(239, 68, 68, 0.06)',
+                border: '1px dashed rgba(239, 68, 68, 0.3)',
+                borderRadius: '8px',
+                padding: '12px 16px',
+                fontSize: '0.8rem',
+                color: '#f87171',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}>
+                <AlertCircle size={16} />
+                <span>Please select a registered client above. Unregistered entries cannot be created.</span>
+              </div>
+            )}
 
             <Divider label="Project Details" />
             <TextInput

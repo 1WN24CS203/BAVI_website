@@ -3,14 +3,67 @@
 import { useState, useEffect } from 'react';
 import {
   PhoneCall, Clock, CheckCircle2, User, Mail, Phone, MessageSquare,
-  AlertCircle, Filter, Plus, Calendar, ArrowUpRight
+  AlertCircle, Filter, Calendar, ArrowUpRight, Sparkles, CheckCircle, RefreshCw, ShieldCheck
 } from 'lucide-react';
 import DesignerHeader from '@/components/Header';
 import {
-  Button, Badge, Card, TextInput, TextArea, Select, Modal, Toast, Tabs,
-  EmptyState, Divider, Tag, StatusDot, SearchInput, Table, Avatar
+  Button, Badge, Card, Toast, Tabs,
+  EmptyState, Divider, Tag, StatusDot, SearchInput, Avatar
 } from '@/components/astryx';
 import { useDesignerAuth } from '@/context/AuthContext';
+
+const DEFAULT_CALLBACKS = [
+  {
+    id: 'cb-init-1',
+    name: 'Vikramaditya Rao',
+    clientName: 'Vikramaditya Rao',
+    phone: '+91 99801 44552',
+    email: 'vikram.rao@gmail.com',
+    is_client: false,
+    isClient: false,
+    subject: 'Luxury Villa Architecture',
+    message: 'Looking for turnkey architectural design for a 40x60 plot on BM Road, Channarayapatna.',
+    status: 'pending',
+    priority: 'high',
+    created_at: new Date(Date.now() - 3600000 * 2).toISOString(),
+    requestedAt: new Date(Date.now() - 3600000 * 2).toISOString().replace('T', ' ').slice(0, 16),
+  },
+  {
+    id: 'cb-init-2',
+    name: 'Rajesh Sharma',
+    clientName: 'Rajesh Sharma',
+    phone: '+91 98450 12345',
+    email: 'rajesh.sharma@example.com',
+    is_client: true,
+    isClient: true,
+    subject: 'Priority Client Assistance',
+    message: 'Direct callback requested from Client Dashboard regarding Stage 2 electrical conduit alignment.',
+    status: 'attended',
+    attended_by: 'Lead Architect',
+    attended_at: new Date(Date.now() - 3600000 * 5).toISOString(),
+    priority: 'urgent',
+    created_at: new Date(Date.now() - 3600000 * 6).toISOString(),
+    requestedAt: new Date(Date.now() - 3600000 * 6).toISOString().replace('T', ' ').slice(0, 16),
+  },
+  {
+    id: 'cb-init-3',
+    name: 'Ananya Hegde',
+    clientName: 'Ananya Hegde',
+    phone: '+91 87622 99881',
+    email: 'ananya.hegde@outlook.com',
+    is_client: false,
+    isClient: false,
+    subject: 'Bespoke Interior Design',
+    message: 'Inquiry for modern Scandinavian interior styling for 3BHK flat in Channarayapatna.',
+    status: 'resolved',
+    attended_by: 'Design Director',
+    attended_at: new Date(Date.now() - 86400000).toISOString(),
+    resolved_at: new Date(Date.now() - 86400000 + 3600000).toISOString(),
+    priority: 'normal',
+    created_at: new Date(Date.now() - 86400000 * 2).toISOString(),
+    requestedAt: new Date(Date.now() - 86400000 * 2).toISOString().replace('T', ' ').slice(0, 16),
+  }
+];
 
 export default function CallbackRequestsPage() {
   const { designer, logActivity } = useDesignerAuth();
@@ -19,20 +72,43 @@ export default function CallbackRequestsPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [toastMsg, setToastMsg] = useState('');
   const [toastVisible, setToastVisible] = useState(false);
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [newCallback, setNewCallback] = useState({
-    name: '', phone: '', email: '', is_client: false, subject: '', message: '',
-    preferred_time: '', priority: 'normal',
-  });
 
   useEffect(() => {
     loadCallbacks();
   }, []);
 
+  const normalizeStatus = (rawStatus) => {
+    if (!rawStatus) return 'pending';
+    const s = String(rawStatus).toLowerCase();
+    if (s === 'attended' || s === 'contacted') return 'attended';
+    if (s === 'resolved' || s === 'completed') return 'resolved';
+    return 'pending'; // Covers 'pending', 'new', 'unattended', etc.
+  };
+
   const loadCallbacks = () => {
     try {
       const stored = localStorage.getItem('bavi_callback_requests');
-      if (stored) setCallbacks(JSON.parse(stored));
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const normalized = parsed.map(c => ({
+            ...c,
+            name: c.name || c.clientName || 'Inquiry Contact',
+            phone: c.phone || 'Not provided',
+            is_client: Boolean(c.is_client ?? c.isClient ?? false),
+            status: normalizeStatus(c.status),
+            created_at: c.created_at || c.requestedAt || new Date().toISOString(),
+          }));
+          setCallbacks(normalized);
+          return;
+        }
+      }
+    } catch {}
+
+    // Initial fallback if nothing stored yet
+    setCallbacks(DEFAULT_CALLBACKS);
+    try {
+      localStorage.setItem('bavi_callback_requests', JSON.stringify(DEFAULT_CALLBACKS));
     } catch {}
   };
 
@@ -43,171 +119,356 @@ export default function CallbackRequestsPage() {
 
   const showToast = (msg) => { setToastMsg(msg); setToastVisible(true); };
 
-  const handleAddCallback = (e) => {
-    e.preventDefault();
-    if (!newCallback.name || !newCallback.phone) {
-      return;
-    }
-    const cb = {
-      ...newCallback,
-      id: `cb-${Date.now()}`,
-      status: 'new',
-      created_at: new Date().toISOString(),
-      assigned_to_name: designer?.full_name || '',
-    };
-    const updated = [cb, ...callbacks];
+  // Status Workflow Handlers
+  const handleMarkAttended = (id) => {
+    const updated = callbacks.map(c => {
+      if (c.id === id) {
+        return {
+          ...c,
+          status: 'attended',
+          attended_at: new Date().toISOString(),
+          attended_by: designer?.full_name || 'Design Team Architect',
+        };
+      }
+      return c;
+    });
     saveCallbacks(updated);
-    setShowAddModal(false);
-    setNewCallback({ name: '', phone: '', email: '', is_client: false, subject: '', message: '', preferred_time: '', priority: 'normal' });
-    showToast(`Callback from "${cb.name}" recorded successfully!`);
-    logActivity('added_callback', 'callback', cb.name, { phone: cb.phone, is_client: cb.is_client });
+    showToast('Callback request marked as Attended!');
+    const target = callbacks.find(c => c.id === id);
+    logActivity('attended_callback', 'callback', target?.name || 'Inquiry', { status: 'attended' });
   };
 
-  const handleStatusChange = (id, newStatus) => {
-    const updated = callbacks.map(c => c.id === id ? { ...c, status: newStatus, contacted_at: newStatus === 'contacted' ? new Date().toISOString() : c.contacted_at } : c);
+  const handleMarkResolved = (id) => {
+    const updated = callbacks.map(c => {
+      if (c.id === id) {
+        return {
+          ...c,
+          status: 'resolved',
+          resolved_at: new Date().toISOString(),
+          attended_at: c.attended_at || new Date().toISOString(),
+          attended_by: c.attended_by || designer?.full_name || 'Design Team Architect',
+        };
+      }
+      return c;
+    });
     saveCallbacks(updated);
-    showToast(`Callback status updated to "${newStatus}"`);
+    showToast('Callback request marked as Resolved!');
+    const target = callbacks.find(c => c.id === id);
+    logActivity('resolved_callback', 'callback', target?.name || 'Inquiry', { status: 'resolved' });
   };
 
+  const handleRevertPending = (id) => {
+    const updated = callbacks.map(c => {
+      if (c.id === id) {
+        return {
+          ...c,
+          status: 'pending',
+        };
+      }
+      return c;
+    });
+    saveCallbacks(updated);
+    showToast('Callback request moved back to Pending (Unattended)');
+  };
+
+  // Filter Categories
+  const pendingCallbacks = callbacks.filter(c => c.status === 'pending');
+  const attendedCallbacks = callbacks.filter(c => c.status === 'attended');
+  const resolvedCallbacks = callbacks.filter(c => c.status === 'resolved');
   const clientCallbacks = callbacks.filter(c => c.is_client);
   const nonClientCallbacks = callbacks.filter(c => !c.is_client);
 
   const getFilteredCallbacks = () => {
-    let filtered = callbacks;
-    if (activeTab === 'client') filtered = clientCallbacks;
-    else if (activeTab === 'non-client') filtered = nonClientCallbacks;
-    else if (activeTab === 'new') filtered = callbacks.filter(c => c.status === 'new');
-    else if (activeTab === 'contacted') filtered = callbacks.filter(c => c.status === 'contacted');
+    let list = callbacks;
+    if (activeTab === 'pending') list = pendingCallbacks;
+    else if (activeTab === 'attended') list = attendedCallbacks;
+    else if (activeTab === 'resolved') list = resolvedCallbacks;
+    else if (activeTab === 'client') list = clientCallbacks;
+    else if (activeTab === 'non-client') list = nonClientCallbacks;
 
     if (searchTerm) {
-      filtered = filtered.filter(c =>
-        c.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      const q = searchTerm.toLowerCase();
+      list = list.filter(c =>
+        c.name?.toLowerCase().includes(q) ||
         c.phone?.includes(searchTerm) ||
-        c.email?.toLowerCase().includes(searchTerm.toLowerCase())
+        c.email?.toLowerCase().includes(q) ||
+        c.subject?.toLowerCase().includes(q)
       );
     }
-    return filtered;
+    return list;
   };
 
   const filtered = getFilteredCallbacks();
 
   const tabs = [
     { value: 'all', label: 'All Requests', count: callbacks.length },
-    { value: 'client', label: 'From Clients', count: clientCallbacks.length },
-    { value: 'non-client', label: 'From Non-Clients', count: nonClientCallbacks.length },
-    { value: 'new', label: 'New / Uncontacted', count: callbacks.filter(c => c.status === 'new').length },
-    { value: 'contacted', label: 'Contacted', count: callbacks.filter(c => c.status === 'contacted' || c.status === 'completed').length },
+    { value: 'pending', label: 'Pending (Unattended)', count: pendingCallbacks.length },
+    { value: 'attended', label: 'Attended', count: attendedCallbacks.length },
+    { value: 'resolved', label: 'Resolved', count: resolvedCallbacks.length },
+    { value: 'client', label: 'From Registered Clients', count: clientCallbacks.length },
+    { value: 'non-client', label: 'Website Inquiries', count: nonClientCallbacks.length },
   ];
-
-  const priorityColors = { low: 'neutral', normal: 'info', high: 'warning', urgent: 'danger' };
-  const statusColors = { new: 'warning', contacted: 'info', scheduled: 'gold', completed: 'success', cancelled: 'danger' };
 
   return (
     <>
       <DesignerHeader
-        title="Callback Request Manager"
-        subtitle="Track and manage callback requests from clients and prospective leads — sorted and separated"
+        title="Callback & Inquiry Concierge"
+        subtitle="Live feed of user-side consultation requests and client inquiries — track attended and resolved status"
       />
 
       <div style={{ padding: '0 4px' }}>
-        {/* Metrics */}
+        {/* Notice Banner */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          background: 'rgba(201, 168, 76, 0.08)',
+          border: '1px solid rgba(201, 168, 76, 0.28)',
+          borderRadius: '10px',
+          padding: '12px 18px',
+          marginBottom: '20px',
+          flexWrap: 'wrap',
+          gap: '10px'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <Sparkles size={18} color="#c9a84c" />
+            <span style={{ fontSize: '0.86rem', color: '#e8e8e8' }}>
+              <strong>Inbound Inquiries Live Feed:</strong> Entries originate exclusively from the client-side website inquiry form and client dashboard consultation requests.
+            </span>
+          </div>
+          <Tag variant="gold">User-Side Automated Feed</Tag>
+        </div>
+
+        {/* Metrics Overview */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '14px', marginBottom: '20px' }}>
           <Card variant="elevated" padding="md">
-            <div style={{ fontSize: '0.7rem', color: '#6e6e6e', textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.5px' }}>Total Callbacks</div>
+            <div style={{ fontSize: '0.7rem', color: '#6e6e6e', textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.5px' }}>Total Inbound</div>
             <div style={{ fontSize: '1.6rem', fontWeight: 700, color: '#f8f8f8', fontFamily: "'Playfair Display', Georgia, serif" }}>{callbacks.length}</div>
           </Card>
           <Card variant="elevated" padding="md">
-            <div style={{ fontSize: '0.7rem', color: '#6e6e6e', textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.5px' }}>From Clients</div>
-            <div style={{ fontSize: '1.6rem', fontWeight: 700, color: '#c9a84c', fontFamily: "'Playfair Display', Georgia, serif" }}>{clientCallbacks.length}</div>
+            <div style={{ fontSize: '0.7rem', color: '#fbbf24', textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.5px' }}>Pending (Unattended)</div>
+            <div style={{ fontSize: '1.6rem', fontWeight: 700, color: '#fbbf24', fontFamily: "'Playfair Display', Georgia, serif" }}>{pendingCallbacks.length}</div>
           </Card>
           <Card variant="elevated" padding="md">
-            <div style={{ fontSize: '0.7rem', color: '#6e6e6e', textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.5px' }}>From Non-Clients</div>
-            <div style={{ fontSize: '1.6rem', fontWeight: 700, color: '#60a5fa', fontFamily: "'Playfair Display', Georgia, serif" }}>{nonClientCallbacks.length}</div>
+            <div style={{ fontSize: '0.7rem', color: '#60a5fa', textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.5px' }}>Attended (In Progress)</div>
+            <div style={{ fontSize: '1.6rem', fontWeight: 700, color: '#60a5fa', fontFamily: "'Playfair Display', Georgia, serif" }}>{attendedCallbacks.length}</div>
           </Card>
           <Card variant="elevated" padding="md">
-            <div style={{ fontSize: '0.7rem', color: '#6e6e6e', textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.5px' }}>Pending Response</div>
-            <div style={{ fontSize: '1.6rem', fontWeight: 700, color: '#fbbf24', fontFamily: "'Playfair Display', Georgia, serif" }}>{callbacks.filter(c => c.status === 'new').length}</div>
+            <div style={{ fontSize: '0.7rem', color: '#4ade80', textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.5px' }}>Resolved</div>
+            <div style={{ fontSize: '1.6rem', fontWeight: 700, color: '#4ade80', fontFamily: "'Playfair Display', Georgia, serif" }}>{resolvedCallbacks.length}</div>
           </Card>
         </div>
 
-        {/* Controls */}
+        {/* Controls Bar (No Manual Add Button) */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', flexWrap: 'wrap', marginBottom: '16px' }}>
           <Tabs tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab} variant="pills" />
           <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-            <SearchInput value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Search by name, phone, email..." onClear={() => setSearchTerm('')} />
-            <Button icon={Plus} onClick={() => setShowAddModal(true)} size="sm">Add Callback</Button>
+            <SearchInput
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search by name, phone, email, subject..."
+              onClear={() => setSearchTerm('')}
+            />
+            <Button size="sm" variant="outline" icon={RefreshCw} onClick={loadCallbacks}>
+              Sync Live Feed
+            </Button>
           </div>
         </div>
 
         {/* Callback List */}
         {filtered.length > 0 ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            {filtered.map((cb) => (
-              <Card key={cb.id} variant={cb.status === 'new' ? 'gold' : 'default'} padding="md" hoverable>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '10px' }}>
-                  <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start', flex: 1 }}>
-                    <Avatar name={cb.name} size="md" />
-                    <div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '4px' }}>
-                        <span style={{ fontSize: '0.95rem', fontWeight: 700, color: '#f8f8f8' }}>{cb.name}</span>
-                        <Badge variant={cb.is_client ? 'gold' : 'info'} size="sm">{cb.is_client ? 'Client' : 'Non-Client'}</Badge>
-                        <Badge variant={priorityColors[cb.priority]} size="sm">{cb.priority}</Badge>
-                        <Badge variant={statusColors[cb.status]} size="sm" dot>{cb.status}</Badge>
-                      </div>
-                      <div style={{ display: 'flex', gap: '14px', flexWrap: 'wrap', fontSize: '0.78rem', color: '#a0a0a0' }}>
-                        <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Phone size={12} /> {cb.phone}</span>
-                        {cb.email && <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Mail size={12} /> {cb.email}</span>}
-                        {cb.preferred_time && <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Clock size={12} /> Preferred: {cb.preferred_time}</span>}
-                      </div>
-                      {cb.subject && <div style={{ fontSize: '0.82rem', color: '#f8f8f8', marginTop: '6px', fontWeight: 600 }}>{cb.subject}</div>}
-                      {cb.message && <div style={{ fontSize: '0.78rem', color: '#a0a0a0', marginTop: '3px', lineHeight: 1.5 }}>{cb.message}</div>}
-                      <div style={{ fontSize: '0.7rem', color: '#4a4a4a', marginTop: '6px' }}>
-                        Received: {new Date(cb.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {filtered.map((cb) => {
+              const isPending = cb.status === 'pending';
+              const isAttended = cb.status === 'attended';
+              const isResolved = cb.status === 'resolved';
+
+              return (
+                <Card
+                  key={cb.id}
+                  variant={isPending ? 'gold' : isAttended ? 'elevated' : 'default'}
+                  padding="md"
+                  hoverable
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '14px' }}>
+                    <div style={{ display: 'flex', gap: '14px', alignItems: 'flex-start', flex: 1, minWidth: '280px' }}>
+                      <Avatar name={cb.name} size="md" />
+                      <div style={{ flex: 1 }}>
+                        {/* Header Tags */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '6px' }}>
+                          <span style={{ fontSize: '1rem', fontWeight: 700, color: '#f8f8f8' }}>{cb.name}</span>
+
+                          {/* Status Tag */}
+                          {isPending && (
+                            <Tag variant="warning">
+                              🟡 Pending (Unattended)
+                            </Tag>
+                          )}
+                          {isAttended && (
+                            <Tag variant="info">
+                              🔵 Attended
+                            </Tag>
+                          )}
+                          {isResolved && (
+                            <Tag variant="success">
+                              🟢 Resolved
+                            </Tag>
+                          )}
+
+                          {/* Origin Tag */}
+                          {cb.is_client ? (
+                            <Tag variant="gold">
+                              👑 Registered Client
+                            </Tag>
+                          ) : (
+                            <Tag variant="neutral">
+                              🌐 Website Inquiry
+                            </Tag>
+                          )}
+
+                          {cb.priority && cb.priority !== 'normal' && (
+                            <Badge variant={cb.priority === 'urgent' ? 'danger' : 'warning'} size="sm">
+                              {cb.priority.toUpperCase()}
+                            </Badge>
+                          )}
+                        </div>
+
+                        {/* Contact Information */}
+                        <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', fontSize: '0.8rem', color: '#a0a0a0', marginBottom: '8px' }}>
+                          <a href={`tel:${cb.phone}`} style={{ display: 'flex', alignItems: 'center', gap: '5px', color: '#c9a84c', textDecoration: 'none' }}>
+                            <Phone size={13} /> {cb.phone}
+                          </a>
+                          {cb.email && (
+                            <a href={`mailto:${cb.email}`} style={{ display: 'flex', alignItems: 'center', gap: '5px', color: '#e0e0e0', textDecoration: 'none' }}>
+                              <Mail size={13} /> {cb.email}
+                            </a>
+                          )}
+                          {cb.preferred_time && (
+                            <span style={{ display: 'flex', alignItems: 'center', gap: '5px', color: '#888' }}>
+                              <Clock size={13} /> Preferred: {cb.preferred_time}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Subject & Message */}
+                        {cb.subject && (
+                          <div style={{ fontSize: '0.85rem', color: '#f8f8f8', fontWeight: 600, marginBottom: '4px' }}>
+                            {cb.subject}
+                          </div>
+                        )}
+                        {cb.message && (
+                          <div style={{
+                            fontSize: '0.82rem',
+                            color: '#b0b0b0',
+                            lineHeight: 1.5,
+                            background: '#161616',
+                            padding: '8px 12px',
+                            borderRadius: '6px',
+                            marginBottom: '8px',
+                            borderLeft: '3px solid #c9a84c'
+                          }}>
+                            {cb.message}
+                          </div>
+                        )}
+
+                        {/* Timestamps & Attended/Resolved Details */}
+                        <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', fontSize: '0.73rem', color: '#666' }}>
+                          <span>
+                            Received: {new Date(cb.created_at).toLocaleDateString('en-IN', {
+                              day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
+                            })}
+                          </span>
+
+                          {cb.attended_at && (
+                            <span style={{ color: '#60a5fa', fontWeight: 500 }}>
+                              • Attended by {cb.attended_by || 'Architect'} on {new Date(cb.attended_at).toLocaleDateString('en-IN', {
+                                day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'
+                              })}
+                            </span>
+                          )}
+
+                          {cb.resolved_at && (
+                            <span style={{ color: '#4ade80', fontWeight: 500 }}>
+                              • Resolved on {new Date(cb.resolved_at).toLocaleDateString('en-IN', {
+                                day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'
+                              })}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
+
+                    {/* Status Action Buttons */}
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+                      {isPending && (
+                        <>
+                          <Button
+                            size="sm"
+                            variant="info"
+                            icon={PhoneCall}
+                            onClick={() => handleMarkAttended(cb.id)}
+                          >
+                            Mark as Attended
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="success"
+                            icon={CheckCircle2}
+                            onClick={() => handleMarkResolved(cb.id)}
+                          >
+                            Direct Resolve
+                          </Button>
+                        </>
+                      )}
+
+                      {isAttended && (
+                        <>
+                          <Button
+                            size="sm"
+                            variant="success"
+                            icon={CheckCircle2}
+                            onClick={() => handleMarkResolved(cb.id)}
+                          >
+                            Mark as Resolved
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handleRevertPending(cb.id)}
+                          >
+                            Revert to Pending
+                          </Button>
+                        </>
+                      )}
+
+                      {isResolved && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          icon={RefreshCw}
+                          onClick={() => handleMarkAttended(cb.id)}
+                        >
+                          Re-open (Mark Attended)
+                        </Button>
+                      )}
+                    </div>
                   </div>
-                  <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                    {cb.status === 'new' && (
-                      <Button size="xs" variant="success" onClick={() => handleStatusChange(cb.id, 'contacted')}>Mark Contacted</Button>
-                    )}
-                    {cb.status === 'contacted' && (
-                      <Button size="xs" variant="primary" onClick={() => handleStatusChange(cb.id, 'completed')}>Mark Completed</Button>
-                    )}
-                    {cb.status !== 'cancelled' && cb.status !== 'completed' && (
-                      <Button size="xs" variant="ghost" onClick={() => handleStatusChange(cb.id, 'cancelled')}>Cancel</Button>
-                    )}
-                  </div>
-                </div>
-              </Card>
-            ))}
+                </Card>
+              );
+            })}
           </div>
         ) : (
           <EmptyState
             icon={PhoneCall}
-            title="No Callback Requests"
-            description="Callback requests from clients and leads will appear here. Add one manually or they'll come from the client portal."
-            action={<Button icon={Plus} onClick={() => setShowAddModal(true)}>Add First Callback</Button>}
+            title="No Inbound Callback Requests Found"
+            description="Callback requests are automatically populated when clients and prospective leads submit inquiry forms or request phone consultations from the client-side portal."
+            action={
+              <Button variant="outline" icon={RefreshCw} onClick={loadCallbacks}>
+                Check for New Inbound Inquiries
+              </Button>
+            }
           />
         )}
-
-        {/* Add Callback Modal */}
-        <Modal isOpen={showAddModal} onClose={() => setShowAddModal(false)} title="Record New Callback Request" size="md">
-          <form onSubmit={handleAddCallback} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
-              <TextInput label="Name" required placeholder="Full name" value={newCallback.name} onChange={(e) => setNewCallback({ ...newCallback, name: e.target.value })} icon={User} />
-              <TextInput label="Phone" required placeholder="+91 XXXXX XXXXX" value={newCallback.phone} onChange={(e) => setNewCallback({ ...newCallback, phone: e.target.value })} icon={Phone} />
-            </div>
-            <TextInput label="Email" placeholder="email@domain.com" value={newCallback.email} onChange={(e) => setNewCallback({ ...newCallback, email: e.target.value })} icon={Mail} />
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '14px' }}>
-              <Select label="Type" value={newCallback.is_client ? 'client' : 'non-client'} onChange={(e) => setNewCallback({ ...newCallback, is_client: e.target.value === 'client' })} options={[{ value: 'client', label: 'Existing Client' }, { value: 'non-client', label: 'Non-Client / Lead' }]} />
-              <Select label="Priority" value={newCallback.priority} onChange={(e) => setNewCallback({ ...newCallback, priority: e.target.value })} options={[{ value: 'low', label: 'Low' }, { value: 'normal', label: 'Normal' }, { value: 'high', label: 'High' }, { value: 'urgent', label: 'Urgent' }]} />
-              <TextInput label="Preferred Time" placeholder="e.g. 2-4 PM" value={newCallback.preferred_time} onChange={(e) => setNewCallback({ ...newCallback, preferred_time: e.target.value })} icon={Clock} />
-            </div>
-            <TextInput label="Subject" placeholder="Regarding..." value={newCallback.subject} onChange={(e) => setNewCallback({ ...newCallback, subject: e.target.value })} />
-            <TextArea label="Message / Notes" rows={3} placeholder="Details about the callback request..." value={newCallback.message} onChange={(e) => setNewCallback({ ...newCallback, message: e.target.value })} />
-            <Button type="submit" fullWidth icon={PhoneCall}>Record Callback Request</Button>
-          </form>
-        </Modal>
 
         <Toast message={toastMsg} isVisible={toastVisible} onClose={() => setToastVisible(false)} />
       </div>

@@ -25,6 +25,7 @@ export default function DesignerPaymentsPage() {
   const upiPhone = process.env.NEXT_PUBLIC_UPI_PHONE || '8277762487';
 
   const [payments, setPayments] = useState([]);
+  const [registeredClients, setRegisteredClients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState('');
 
@@ -61,6 +62,20 @@ export default function DesignerPaymentsPage() {
         console.warn('Supabase fetch payments error:', err);
       }
     }
+
+    try {
+      const localClients = localStorage.getItem('bavi_registered_clients');
+      if (localClients) {
+        setRegisteredClients(JSON.parse(localClients));
+      } else {
+        setRegisteredClients([
+          { id: 'cli-demo-1', full_name: 'Rajesh Sharma', email: 'rajesh.sharma@example.com', project: 'Channarayapatna 4BHK Heritage Villa' },
+          { id: 'cli-demo-2', full_name: 'Pooja Reddy', email: 'pooja.reddy@example.com', project: 'Modernist Penthouse Interior' },
+          { id: 'cli-demo-3', full_name: 'Kavitha Swamy', email: 'kavitha.swamy@gmail.com', project: 'Eco-Luxury Farmhouse Architecture' },
+        ]);
+      }
+    } catch {}
+
     setLoading(false);
   };
 
@@ -318,26 +333,49 @@ export default function DesignerPaymentsPage() {
 
               <form onSubmit={handleInitiateBill} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, marginBottom: '4px', color: '#aaa' }}>Client Full Name *</label>
-                  <input 
-                    type="text"
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, marginBottom: '4px', color: '#aaa' }}>
+                    Select Registered Client *
+                  </label>
+                  <select
                     required
-                    placeholder="e.g. Ramesh Kumar"
-                    value={newBill.client_name}
-                    onChange={(e) => setNewBill({ ...newBill, client_name: e.target.value })}
+                    value={newBill.client_email}
+                    onChange={(e) => {
+                      const selected = registeredClients.find(c => c.email === e.target.value || c.id === e.target.value);
+                      if (selected) {
+                        setNewBill({
+                          ...newBill,
+                          client_name: selected.full_name,
+                          client_email: selected.email,
+                          project_title: selected.project || newBill.project_title || 'Architectural Commission',
+                        });
+                      } else {
+                        setNewBill({
+                          ...newBill,
+                          client_name: '',
+                          client_email: '',
+                        });
+                      }
+                    }}
                     style={{ width: '100%', padding: '10px', background: '#1c1c1c', border: '1px solid #333', borderRadius: '4px', color: '#fff' }}
-                  />
+                  >
+                    <option value="">-- Choose a Registered Client --</option>
+                    {registeredClients.map((c) => (
+                      <option key={c.id || c.email} value={c.email || c.id}>
+                        {c.full_name} ({c.email})
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                   <div>
-                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, marginBottom: '4px', color: '#aaa' }}>Client Email</label>
+                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, marginBottom: '4px', color: '#aaa' }}>Verified Client Email</label>
                     <input 
                       type="email"
-                      placeholder="client@email.com"
+                      readOnly
+                      placeholder="Auto-populated from account"
                       value={newBill.client_email}
-                      onChange={(e) => setNewBill({ ...newBill, client_email: e.target.value })}
-                      style={{ width: '100%', padding: '10px', background: '#1c1c1c', border: '1px solid #333', borderRadius: '4px', color: '#fff' }}
+                      style={{ width: '100%', padding: '10px', background: '#222', border: '1px solid #444', borderRadius: '4px', color: '#aaa' }}
                     />
                   </div>
 
