@@ -73,13 +73,6 @@ export default function DesignerPaymentsPage() {
       }
     } catch {}
 
-    if (loadedClients.length === 0) {
-      loadedClients = [
-        { id: 'cli-demo-1', full_name: 'Rajesh Sharma', email: 'rajesh.sharma@example.com', phone: '+91 98450 12345', project: 'Channarayapatna 4BHK Heritage Villa' },
-        { id: 'cli-demo-2', full_name: 'Pooja Reddy', email: 'pooja.reddy@example.com', phone: '+91 98450 67890', project: 'Modernist Penthouse Interior' },
-        { id: 'cli-demo-3', full_name: 'Kavitha Swamy', email: 'kavitha.swamy@gmail.com', phone: '+91 94480 34567', project: 'Eco-Luxury Farmhouse Architecture' },
-      ];
-    }
     setRegisteredClients(loadedClients);
 
     // 2. Fetch Registered Projects
@@ -106,13 +99,6 @@ export default function DesignerPaymentsPage() {
       }
     } catch {}
 
-    if (loadedProjects.length === 0) {
-      loadedProjects = [
-        { id: 'proj-demo-1', title: 'Channarayapatna 4BHK Heritage Villa', client_name: 'Rajesh Sharma', client_email: 'rajesh.sharma@example.com' },
-        { id: 'proj-demo-2', title: 'Modernist Penthouse Interior', client_name: 'Pooja Reddy', client_email: 'pooja.reddy@example.com' },
-        { id: 'proj-demo-3', title: 'Eco-Luxury Farmhouse Architecture', client_name: 'Kavitha Swamy', client_email: 'kavitha.swamy@gmail.com' },
-      ];
-    }
     setRegisteredProjects(loadedProjects);
   };
 
@@ -140,41 +126,6 @@ export default function DesignerPaymentsPage() {
         }
       }
     } catch {}
-
-    if (list.length === 0) {
-      list = [
-        {
-          id: 'pay-init-1',
-          client: 'Rajesh Sharma',
-          email: 'rajesh.sharma@example.com',
-          project: 'Channarayapatna 4BHK Heritage Villa',
-          milestone: 'Stage 1: Requirement Analysis & SRS Preparation',
-          amount: '₹1,50,000',
-          rawAmount: 150000,
-          status: 'cleared',
-          method: 'Phone / UPI QR (Verified)',
-          utrNo: '428819203912',
-          date: 'Completed',
-          receiptNo: 'BAVI-REC-892',
-          created_at: new Date(Date.now() - 86400000 * 3).toISOString()
-        },
-        {
-          id: 'pay-init-2',
-          client: 'Rajesh Sharma',
-          email: 'rajesh.sharma@example.com',
-          project: 'Channarayapatna 4BHK Heritage Villa',
-          milestone: 'Stage 2: Architectural Blueprint & Sanction',
-          amount: '₹2,50,000',
-          rawAmount: 250000,
-          status: 'due',
-          method: 'Awaiting Client Phone/UPI Transfer',
-          utrNo: '-',
-          date: 'Due in 3 days',
-          receiptNo: 'BAVI-BILL-704',
-          created_at: new Date(Date.now() - 3600000 * 8).toISOString()
-        }
-      ];
-    }
 
     setPayments(list);
     setLoading(false);

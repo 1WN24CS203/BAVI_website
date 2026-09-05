@@ -42,30 +42,18 @@ export default function DesignerConsultationsPage() {
         console.warn('Supabase fetch consultations error:', err);
       }
     }
-
-    if (list.length === 0) {
-      list = [
-        {
-          id: 'cons-1',
-          customer_name: 'Rajesh Sharma',
-          consultation_type: 'Structural Milestone Review',
-          preferred_date: 'Tomorrow, 10:30 AM',
-          preferred_time: '10:30 AM – 11:30 AM',
-          location: 'Studio / Site Visit (BM Road)',
-          status: 'confirmed',
-          notes: 'Reviewing foundation blueprint sanctions and dual authorization sign-off.'
-        },
-        {
-          id: 'cons-2',
-          customer_name: 'Pooja Reddy',
-          consultation_type: 'Luxury Villa Architectural Walkthrough',
-          preferred_date: 'Saturday, 03:00 PM',
-          preferred_time: '03:00 PM – 04:30 PM',
-          location: 'Private Studio Gallery',
-          status: 'pending',
-          notes: 'First consultation to review 3BHK contemporary floor plan and materials selection.'
+    if (list.length === 0 && typeof window !== 'undefined') {
+      const stored = localStorage.getItem('bavi_client_consultations');
+      if (stored) {
+        try {
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            list = parsed;
+          }
+        } catch (e) {
+          console.warn('Could not parse bavi_client_consultations', e);
         }
-      ];
+      }
     }
 
     setConsultations(list);

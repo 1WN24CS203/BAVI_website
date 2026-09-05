@@ -15,33 +15,6 @@ import {
 import { useDesignerAuth } from '@/context/AuthContext';
 import styles from './projects.module.css';
 
-const DEFAULT_CLIENTS = [
-  {
-    id: 'cli-demo-1',
-    full_name: 'Rajesh Sharma',
-    email: 'rajesh.sharma@example.com',
-    phone: '+91 98450 12345',
-    address: 'BM Road, Channarayapatna',
-    role: 'customer',
-  },
-  {
-    id: 'cli-demo-2',
-    full_name: 'Pooja Reddy',
-    email: 'pooja.reddy@example.com',
-    phone: '+91 98450 67890',
-    address: 'Hassan Road, Channarayapatna',
-    role: 'customer',
-  },
-  {
-    id: 'cli-demo-3',
-    full_name: 'Kavitha Swamy',
-    email: 'kavitha.swamy@gmail.com',
-    phone: '+91 94480 34567',
-    address: 'Mysuru Highway, Channarayapatna',
-    role: 'customer',
-  }
-];
-
 export default function DesignerProjectsPage() {
   const { designer, logActivity } = useDesignerAuth();
   const [projects, setProjects] = useState([]);
@@ -101,12 +74,6 @@ export default function DesignerProjectsPage() {
       }
     } catch {}
 
-    if (list.length === 0) {
-      list = DEFAULT_CLIENTS;
-      try {
-        localStorage.setItem('bavi_registered_clients', JSON.stringify(DEFAULT_CLIENTS));
-      } catch {}
-    }
     setRegisteredClients(list);
   };
 

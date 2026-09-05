@@ -12,39 +12,6 @@ import {
   EmptyState, Divider, Tag, SearchInput, Avatar
 } from '@/components/astryx';
 
-const DEFAULT_CLIENTS = [
-  {
-    id: 'cli-demo-1',
-    full_name: 'Rajesh Sharma',
-    email: 'rajesh.sharma@example.com',
-    phone: '+91 98450 12345',
-    address: 'BM Road, Channarayapatna',
-    role: 'customer',
-    project: 'Channarayapatna 4BHK Heritage Villa',
-    status: 'Active Client'
-  },
-  {
-    id: 'cli-demo-2',
-    full_name: 'Pooja Reddy',
-    email: 'pooja.reddy@example.com',
-    phone: '+91 98450 67890',
-    address: 'Hassan Road, Channarayapatna',
-    role: 'customer',
-    project: 'Modernist Penthouse Interior',
-    status: 'Active Client'
-  },
-  {
-    id: 'cli-demo-3',
-    full_name: 'Kavitha Swamy',
-    email: 'kavitha.swamy@gmail.com',
-    phone: '+91 94480 34567',
-    address: 'Mysuru Highway, Channarayapatna',
-    role: 'customer',
-    project: 'Eco-Luxury Farmhouse Architecture',
-    status: 'Active Client'
-  }
-];
-
 export default function DesignerCustomersPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [clients, setClients] = useState([]);
@@ -105,14 +72,7 @@ export default function DesignerCustomersPage() {
       }
     } catch {}
 
-    if (loadedClients.length === 0) {
-      loadedClients = DEFAULT_CLIENTS;
-    }
-
     setClients(loadedClients);
-    try {
-      localStorage.setItem('bavi_registered_clients', JSON.stringify(loadedClients));
-    } catch {}
     setLoading(false);
   };
 

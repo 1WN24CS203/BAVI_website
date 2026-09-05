@@ -6,10 +6,12 @@ import {
   CheckCircle2, Clock, AlertCircle, File, FolderKanban, Trash2, ExternalLink
 } from 'lucide-react';
 import DesignerHeader from '@/components/Header';
-import { Button, Badge, Card, TextInput, Select, Modal, SearchInput } from '@/components/astryx';
+import { Button, Badge, Card, TextInput, Select, Modal, SearchInput, EmptyState } from '@/components/astryx';
 
 export default function DocumentUploadCenterPage() {
   const [documents, setDocuments] = useState([]);
+  const [clients, setClients] = useState([]);
+  const [projects, setProjects] = useState([]);
   const [filterCategory, setFilterCategory] = useState('ALL');
   const [searchQuery, setSearchQuery] = useState('');
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
@@ -33,6 +35,19 @@ export default function DocumentUploadCenterPage() {
     } catch {
       setDocuments([]);
     }
+
+    try {
+      const storedClients = localStorage.getItem('bavi_registered_clients');
+      if (storedClients) {
+        setClients(JSON.parse(storedClients));
+      }
+      const storedProjects = localStorage.getItem('bavi_projects_registry');
+      if (storedProjects) {
+        setProjects(JSON.parse(storedProjects));
+      }
+    } catch (e) {
+      console.warn('Failed to load registered clients or projects:', e);
+    }
   }, []);
 
   const saveDocs = (updated) => {
@@ -53,8 +68,8 @@ export default function DocumentUploadCenterPage() {
       name: newDoc.name.trim(),
       category: newDoc.category,
       stage: newDoc.stage,
-      projectName: newDoc.projectName,
-      clientName: newDoc.clientName,
+      projectName: newDoc.projectName || 'General Architecture',
+      clientName: newDoc.clientName || 'Registered Client',
       fileSize: newDoc.fileSize || '5.0 MB',
       uploadedBy: 'Architect Team',
       uploadedAt: new Date().toISOString().split('T')[0],
@@ -68,9 +83,9 @@ export default function DocumentUploadCenterPage() {
       name: '',
       category: 'Architectural Drawings',
       stage: 'Concept Design',
-      projectName: 'Villa Serenity Penthouse',
-      clientName: 'Vikramaditya Roy',
-      fileSize: '12.5 MB',
+      projectName: '',
+      clientName: '',
+      fileSize: '5.0 MB',
     });
   };
 
@@ -134,66 +149,81 @@ export default function DocumentUploadCenterPage() {
       </div>
 
       {/* Grid of Documents */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '20px' }}>
-        {filtered.map(doc => (
-          <Card key={doc.id} style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '14px' }}>
-                <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                  <div style={{
-                    width: '42px',
-                    height: '42px',
-                    borderRadius: '8px',
-                    background: 'rgba(201,168,76,0.12)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: 'var(--astryx-gold)'
-                  }}>
-                    <FileText size={22} />
+      {filtered.length === 0 ? (
+        <EmptyState
+          icon={FolderKanban}
+          title="No Stage Documents Found"
+          description={searchQuery || filterCategory !== 'ALL'
+            ? "No documents match the active filter criteria."
+            : "No architectural or stage verification documents have been uploaded yet. Upload blueprints or permits to verify milestones."}
+          action={
+            <Button variant="primary" icon={<Upload size={16} />} onClick={() => setUploadModalOpen(true)}>
+              Upload First Document
+            </Button>
+          }
+        />
+      ) : (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '20px' }}>
+          {filtered.map(doc => (
+            <Card key={doc.id} style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '14px' }}>
+                  <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                    <div style={{
+                      width: '42px',
+                      height: '42px',
+                      borderRadius: '8px',
+                      background: 'rgba(201,168,76,0.12)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: 'var(--astryx-gold)'
+                    }}>
+                      <FileText size={22} />
+                    </div>
+                    <div>
+                      <h4 style={{ margin: 0, fontSize: '0.95rem', color: '#fff', wordBreak: 'break-all' }}>{doc.name}</h4>
+                      <span style={{ fontSize: '0.75rem', color: '#888' }}>{doc.fileSize} • {doc.uploadedAt}</span>
+                    </div>
                   </div>
-                  <div>
-                    <h4 style={{ margin: 0, fontSize: '0.95rem', color: '#fff', wordBreak: 'break-all' }}>{doc.name}</h4>
-                    <span style={{ fontSize: '0.75rem', color: '#888' }}>{doc.fileSize} • {doc.uploadedAt}</span>
+                  <Badge variant={doc.status === 'Client Approved' ? 'success' : (doc.status === 'Verified' ? 'gold' : 'warning')}>
+                    {doc.status}
+                  </Badge>
+                </div>
+
+                <div style={{ background: 'rgba(0,0,0,0.2)', padding: '12px', borderRadius: '8px', marginBottom: '16px', fontSize: '0.8rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                    <span style={{ color: '#777' }}>Project:</span>
+                    <span style={{ color: '#eee', fontWeight: 500 }}>{doc.projectName}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                    <span style={{ color: '#777' }}>Client:</span>
+                    <span style={{ color: 'var(--astryx-gold-light)' }}>{doc.clientName}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                    <span style={{ color: '#777' }}>Stage:</span>
+                    <span style={{ color: '#aaa' }}>{doc.stage}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ color: '#777' }}>Category:</span>
+                    <span style={{ color: '#bbb' }}>{doc.category}</span>
                   </div>
                 </div>
-                <Badge variant={doc.status === 'Client Approved' ? 'success' : (doc.status === 'Verified' ? 'gold' : 'warning')}>
-                  {doc.status}
-                </Badge>
               </div>
 
-              <div style={{ background: 'rgba(0,0,0,0.2)', padding: '12px', borderRadius: '8px', marginBottom: '16px', fontSize: '0.8rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-                  <span style={{ color: '#777' }}>Project:</span>
-                  <span style={{ color: '#eee', fontWeight: 500 }}>{doc.projectName}</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-                  <span style={{ color: '#777' }}>Client:</span>
-                  <span style={{ color: 'var(--astryx-gold-light)' }}>{doc.clientName}</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-                  <span style={{ color: '#777' }}>Stage:</span>
-                  <span style={{ color: '#aaa' }}>{doc.stage}</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ color: '#777' }}>Category:</span>
-                  <span style={{ color: '#bbb' }}>{doc.category}</span>
-                </div>
+              <div style={{ display: 'flex', gap: '8px', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '12px' }}>
+                <Button variant="secondary" size="sm" icon={<Eye size={14} />} style={{ flex: 1 }}>
+                  Preview
+                </Button>
+                <Button variant="secondary" size="sm" icon={<Download size={14} />} style={{ flex: 1 }}>
+                  Download
+                </Button>
+                <Button variant="ghost" size="sm" icon={<Trash2 size={14} style={{ color: '#ff5c5c' }} />} onClick={() => handleDelete(doc.id)} />
               </div>
-            </div>
-
-            <div style={{ display: 'flex', gap: '8px', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '12px' }}>
-              <Button variant="secondary" size="sm" icon={<Eye size={14} />} style={{ flex: 1 }}>
-                Preview
-              </Button>
-              <Button variant="secondary" size="sm" icon={<Download size={14} />} style={{ flex: 1 }}>
-                Download
-              </Button>
-              <Button variant="ghost" size="sm" icon={<Trash2 size={14} style={{ color: '#ff5c5c' }} />} onClick={() => handleDelete(doc.id)} />
-            </div>
-          </Card>
-        ))}
-      </div>
+            </Card>
+          ))}
+        </div>
+      )}
 
       {/* Upload Modal */}
       <Modal
@@ -248,17 +278,41 @@ export default function DocumentUploadCenterPage() {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
             <div>
               <label style={{ fontSize: '0.85rem', color: '#bbb', marginBottom: '6px', display: 'block' }}>Project *</label>
-              <TextInput
-                value={newDoc.projectName}
-                onChange={(e) => setNewDoc({ ...newDoc, projectName: e.target.value })}
-              />
+              {projects.length > 0 ? (
+                <Select
+                  value={newDoc.projectName}
+                  onChange={(e) => setNewDoc({ ...newDoc, projectName: e.target.value })}
+                  options={[
+                    { value: '', label: '-- Select Registered Project --' },
+                    ...projects.map(p => ({ value: p.title || p.name, label: p.title || p.name }))
+                  ]}
+                />
+              ) : (
+                <TextInput
+                  placeholder="e.g. Master Residence"
+                  value={newDoc.projectName}
+                  onChange={(e) => setNewDoc({ ...newDoc, projectName: e.target.value })}
+                />
+              )}
             </div>
             <div>
               <label style={{ fontSize: '0.85rem', color: '#bbb', marginBottom: '6px', display: 'block' }}>Client Name *</label>
-              <TextInput
-                value={newDoc.clientName}
-                onChange={(e) => setNewDoc({ ...newDoc, clientName: e.target.value })}
-              />
+              {clients.length > 0 ? (
+                <Select
+                  value={newDoc.clientName}
+                  onChange={(e) => setNewDoc({ ...newDoc, clientName: e.target.value })}
+                  options={[
+                    { value: '', label: '-- Select Registered Client --' },
+                    ...clients.map(c => ({ value: c.name || c.full_name, label: `${c.name || c.full_name}` }))
+                  ]}
+                />
+              ) : (
+                <TextInput
+                  placeholder="e.g. Client Name"
+                  value={newDoc.clientName}
+                  onChange={(e) => setNewDoc({ ...newDoc, clientName: e.target.value })}
+                />
+              )}
             </div>
           </div>
 

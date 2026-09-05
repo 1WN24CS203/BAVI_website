@@ -12,59 +12,6 @@ import {
 } from '@/components/astryx';
 import { useDesignerAuth } from '@/context/AuthContext';
 
-const DEFAULT_CALLBACKS = [
-  {
-    id: 'cb-init-1',
-    name: 'Vikramaditya Rao',
-    clientName: 'Vikramaditya Rao',
-    phone: '+91 99801 44552',
-    email: 'vikram.rao@gmail.com',
-    is_client: false,
-    isClient: false,
-    subject: 'Luxury Villa Architecture',
-    message: 'Looking for turnkey architectural design for a 40x60 plot on BM Road, Channarayapatna.',
-    status: 'pending',
-    priority: 'high',
-    created_at: new Date(Date.now() - 3600000 * 2).toISOString(),
-    requestedAt: new Date(Date.now() - 3600000 * 2).toISOString().replace('T', ' ').slice(0, 16),
-  },
-  {
-    id: 'cb-init-2',
-    name: 'Rajesh Sharma',
-    clientName: 'Rajesh Sharma',
-    phone: '+91 98450 12345',
-    email: 'rajesh.sharma@example.com',
-    is_client: true,
-    isClient: true,
-    subject: 'Priority Client Assistance',
-    message: 'Direct callback requested from Client Dashboard regarding Stage 2 electrical conduit alignment.',
-    status: 'attended',
-    attended_by: 'Lead Architect',
-    attended_at: new Date(Date.now() - 3600000 * 5).toISOString(),
-    priority: 'urgent',
-    created_at: new Date(Date.now() - 3600000 * 6).toISOString(),
-    requestedAt: new Date(Date.now() - 3600000 * 6).toISOString().replace('T', ' ').slice(0, 16),
-  },
-  {
-    id: 'cb-init-3',
-    name: 'Ananya Hegde',
-    clientName: 'Ananya Hegde',
-    phone: '+91 87622 99881',
-    email: 'ananya.hegde@outlook.com',
-    is_client: false,
-    isClient: false,
-    subject: 'Bespoke Interior Design',
-    message: 'Inquiry for modern Scandinavian interior styling for 3BHK flat in Channarayapatna.',
-    status: 'resolved',
-    attended_by: 'Design Director',
-    attended_at: new Date(Date.now() - 86400000).toISOString(),
-    resolved_at: new Date(Date.now() - 86400000 + 3600000).toISOString(),
-    priority: 'normal',
-    created_at: new Date(Date.now() - 86400000 * 2).toISOString(),
-    requestedAt: new Date(Date.now() - 86400000 * 2).toISOString().replace('T', ' ').slice(0, 16),
-  }
-];
-
 export default function CallbackRequestsPage() {
   const { designer, logActivity } = useDesignerAuth();
   const [callbacks, setCallbacks] = useState([]);
@@ -105,11 +52,7 @@ export default function CallbackRequestsPage() {
       }
     } catch {}
 
-    // Initial fallback if nothing stored yet
-    setCallbacks(DEFAULT_CALLBACKS);
-    try {
-      localStorage.setItem('bavi_callback_requests', JSON.stringify(DEFAULT_CALLBACKS));
-    } catch {}
+    setCallbacks([]);
   };
 
   const saveCallbacks = (data) => {
