@@ -2,32 +2,28 @@
 
 import { useState, useEffect } from 'react';
 import { 
-  CreditCard, 
-  CheckCircle2, 
-  Clock, 
-  Download, 
-  Receipt, 
-  Plus, 
-  Sparkles,
-  ArrowUpRight,
-  ShieldCheck,
-  QrCode,
-  Smartphone,
-  Send,
-  FileCheck,
-  X
+  CreditCard, CheckCircle2, Clock, Download, Receipt, Plus, Sparkles,
+  ArrowUpRight, ShieldCheck, QrCode, Smartphone, Send, FileCheck, Building,
+  User, Mail, Phone, Calendar, AlertCircle
 } from 'lucide-react';
 import DesignerHeader from '@/components/Header';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
-import styles from './payments.module.css';
+import {
+  Button, Badge, Card, TextInput, TextArea, Select, Modal, Toast,
+  EmptyState, Divider, Tag, StatusDot, SearchInput
+} from '@/components/astryx';
 
 export default function DesignerPaymentsPage() {
   const upiPhone = process.env.NEXT_PUBLIC_UPI_PHONE || '8277762487';
 
   const [payments, setPayments] = useState([]);
   const [registeredClients, setRegisteredClients] = useState([]);
+  const [registeredProjects, setRegisteredProjects] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [toast, setToast] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [toastMsg, setToastMsg] = useState('');
+  const [toastVisible, setToastVisible] = useState(false);
+  const [toastVariant, setToastVariant] = useState('success');
 
   // Modal for Initiating Payment Request / Bill
   const [showBillModal, setShowBillModal] = useState(false);
@@ -41,49 +37,216 @@ export default function DesignerPaymentsPage() {
     description: ''
   });
 
+  const showToast = (msg, variant = 'success') => {
+    setToastMsg(msg);
+    setToastVariant(variant);
+    setToastVisible(true);
+  };
+
   useEffect(() => {
     fetchPayments();
+    loadRegisteredData();
   }, []);
 
-  const fetchPayments = async () => {
+  const loadRegisteredData = async () => {
+    // 1. Fetch Registered Clients
+    let loadedClients = [];
     if (isSupabaseConfigured()) {
       try {
-        const { data, error } = await supabase
+        const { data } = await supabase.from('profiles').select('*').eq('role', 'customer');
+        if (data && data.length > 0) loadedClients = data;
+      } catch (err) {
+        console.warn('Supabase clients fetch error:', err);
+      }
+    }
+    try {
+      const local = localStorage.getItem('bavi_registered_clients');
+      if (local) {
+        const parsed = JSON.parse(local);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const map = new Map();
+          [...loadedClients, ...parsed].forEach(c => {
+            if (c.email) map.set(c.email.toLowerCase(), c);
+          });
+          loadedClients = Array.from(map.values());
+        }
+      }
+    } catch {}
+
+    if (loadedClients.length === 0) {
+      loadedClients = [
+        { id: 'cli-demo-1', full_name: 'Rajesh Sharma', email: 'rajesh.sharma@example.com', phone: '+91 98450 12345', project: 'Channarayapatna 4BHK Heritage Villa' },
+        { id: 'cli-demo-2', full_name: 'Pooja Reddy', email: 'pooja.reddy@example.com', phone: '+91 98450 67890', project: 'Modernist Penthouse Interior' },
+        { id: 'cli-demo-3', full_name: 'Kavitha Swamy', email: 'kavitha.swamy@gmail.com', phone: '+91 94480 34567', project: 'Eco-Luxury Farmhouse Architecture' },
+      ];
+    }
+    setRegisteredClients(loadedClients);
+
+    // 2. Fetch Registered Projects
+    let loadedProjects = [];
+    if (isSupabaseConfigured()) {
+      try {
+        const { data } = await supabase.from('projects').select('*').order('created_at', { ascending: false });
+        if (data && data.length > 0) loadedProjects = data;
+      } catch (err) {
+        console.warn('Supabase projects fetch error:', err);
+      }
+    }
+    try {
+      const localP = localStorage.getItem('bavi_projects');
+      if (localP) {
+        const parsedP = JSON.parse(localP);
+        if (Array.isArray(parsedP) && parsedP.length > 0) {
+          const pMap = new Map();
+          [...loadedProjects, ...parsedP].forEach(p => {
+            if (p.title) pMap.set(p.title.toLowerCase(), p);
+          });
+          loadedProjects = Array.from(pMap.values());
+        }
+      }
+    } catch {}
+
+    if (loadedProjects.length === 0) {
+      loadedProjects = [
+        { id: 'proj-demo-1', title: 'Channarayapatna 4BHK Heritage Villa', client_name: 'Rajesh Sharma', client_email: 'rajesh.sharma@example.com' },
+        { id: 'proj-demo-2', title: 'Modernist Penthouse Interior', client_name: 'Pooja Reddy', client_email: 'pooja.reddy@example.com' },
+        { id: 'proj-demo-3', title: 'Eco-Luxury Farmhouse Architecture', client_name: 'Kavitha Swamy', client_email: 'kavitha.swamy@gmail.com' },
+      ];
+    }
+    setRegisteredProjects(loadedProjects);
+  };
+
+  const fetchPayments = async () => {
+    let list = [];
+    if (isSupabaseConfigured()) {
+      try {
+        const { data } = await supabase
           .from('payments')
           .select('*')
           .order('created_at', { ascending: false });
 
-        if (data && data.length > 0) {
-          setPayments(data);
-        } else {
-          setPayments([]);
-        }
+        if (data && data.length > 0) list = data;
       } catch (err) {
         console.warn('Supabase fetch payments error:', err);
       }
     }
 
     try {
-      const localClients = localStorage.getItem('bavi_registered_clients');
-      if (localClients) {
-        setRegisteredClients(JSON.parse(localClients));
-      } else {
-        setRegisteredClients([
-          { id: 'cli-demo-1', full_name: 'Rajesh Sharma', email: 'rajesh.sharma@example.com', project: 'Channarayapatna 4BHK Heritage Villa' },
-          { id: 'cli-demo-2', full_name: 'Pooja Reddy', email: 'pooja.reddy@example.com', project: 'Modernist Penthouse Interior' },
-          { id: 'cli-demo-3', full_name: 'Kavitha Swamy', email: 'kavitha.swamy@gmail.com', project: 'Eco-Luxury Farmhouse Architecture' },
-        ]);
+      const localBills = localStorage.getItem('bavi_payments_ledger');
+      if (localBills) {
+        const parsed = JSON.parse(localBills);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          list = [...parsed, ...list];
+        }
       }
     } catch {}
 
+    if (list.length === 0) {
+      list = [
+        {
+          id: 'pay-init-1',
+          client: 'Rajesh Sharma',
+          email: 'rajesh.sharma@example.com',
+          project: 'Channarayapatna 4BHK Heritage Villa',
+          milestone: 'Stage 1: Requirement Analysis & SRS Preparation',
+          amount: '₹1,50,000',
+          rawAmount: 150000,
+          status: 'cleared',
+          method: 'Phone / UPI QR (Verified)',
+          utrNo: '428819203912',
+          date: 'Completed',
+          receiptNo: 'BAVI-REC-892',
+          created_at: new Date(Date.now() - 86400000 * 3).toISOString()
+        },
+        {
+          id: 'pay-init-2',
+          client: 'Rajesh Sharma',
+          email: 'rajesh.sharma@example.com',
+          project: 'Channarayapatna 4BHK Heritage Villa',
+          milestone: 'Stage 2: Architectural Blueprint & Sanction',
+          amount: '₹2,50,000',
+          rawAmount: 250000,
+          status: 'due',
+          method: 'Awaiting Client Phone/UPI Transfer',
+          utrNo: '-',
+          date: 'Due in 3 days',
+          receiptNo: 'BAVI-BILL-704',
+          created_at: new Date(Date.now() - 3600000 * 8).toISOString()
+        }
+      ];
+    }
+
+    setPayments(list);
     setLoading(false);
+  };
+
+  const savePaymentsLocal = (updated) => {
+    setPayments(updated);
+    try {
+      localStorage.setItem('bavi_payments_ledger', JSON.stringify(updated));
+    } catch {}
+  };
+
+  // When designer selects a client in the billing modal
+  const handleSelectClient = (email) => {
+    const client = registeredClients.find(c => c.email === email || c.id === email);
+    if (client) {
+      // Find projects for this client
+      const clientProjects = registeredProjects.filter(p =>
+        (p.client_email && p.client_email.toLowerCase() === client.email.toLowerCase()) ||
+        (p.client_name && p.client_name.toLowerCase() === client.full_name.toLowerCase())
+      );
+
+      const defaultProject = clientProjects.length > 0 ? clientProjects[0].title : (client.project || '');
+
+      setNewBill(prev => ({
+        ...prev,
+        client_name: client.full_name,
+        client_email: client.email,
+        project_title: defaultProject,
+      }));
+    } else {
+      setNewBill(prev => ({
+        ...prev,
+        client_name: '',
+        client_email: '',
+        project_title: '',
+      }));
+    }
+  };
+
+  // Get project options for current selected client
+  const getProjectOptions = () => {
+    if (!newBill.client_email && !newBill.client_name) {
+      return registeredProjects.map(p => ({ value: p.title, label: `${p.title} (${p.client_name || 'Project'})` }));
+    }
+
+    const clientSpecific = registeredProjects.filter(p =>
+      (p.client_email && p.client_email.toLowerCase() === newBill.client_email.toLowerCase()) ||
+      (p.client_name && p.client_name.toLowerCase() === newBill.client_name.toLowerCase())
+    );
+
+    if (clientSpecific.length > 0) {
+      return clientSpecific.map(p => ({ value: p.title, label: p.title }));
+    }
+
+    // Fallback to all registered projects
+    return registeredProjects.map(p => ({ value: p.title, label: `${p.title} (${p.client_name || 'Registered'})` }));
   };
 
   // Designer initiates bill payment request to client
   const handleInitiateBill = async (e) => {
     e.preventDefault();
-    if (!newBill.client_name || !newBill.amount || !newBill.milestone_title) {
-      alert('Please fill in client name, milestone title, and amount');
+    if (!newBill.client_email || !newBill.client_name) {
+      showToast('Client must be selected from registered accounts!', 'error');
+      return;
+    }
+    if (!newBill.project_title) {
+      showToast('Project title must be selected from registered projects!', 'error');
+      return;
+    }
+    if (!newBill.amount || !newBill.milestone_title) {
+      showToast('Please specify milestone stage title and amount', 'error');
       return;
     }
 
@@ -91,7 +254,7 @@ export default function DesignerPaymentsPage() {
       id: `pay-${Date.now()}`,
       client: newBill.client_name,
       email: newBill.client_email,
-      project: newBill.project_title || 'Architectural Build',
+      project: newBill.project_title,
       milestone: newBill.milestone_title,
       amount: '₹' + parseFloat(newBill.amount).toLocaleString('en-IN'),
       rawAmount: parseFloat(newBill.amount),
@@ -113,7 +276,7 @@ export default function DesignerPaymentsPage() {
             payment_method: 'phone_upi',
             receipt_number: createdPayment.receiptNo,
             description: `${newBill.project_title}: ${newBill.milestone_title}`,
-            notes: newBill.description || 'Bill initiated by Architect'
+            notes: newBill.description || 'Milestone bill generated by Architect'
           }
         ]);
       } catch (err) {
@@ -121,7 +284,8 @@ export default function DesignerPaymentsPage() {
       }
     }
 
-    setPayments([createdPayment, ...payments]);
+    const updated = [createdPayment, ...payments];
+    savePaymentsLocal(updated);
     setShowBillModal(false);
     setNewBill({
       client_name: '',
@@ -132,8 +296,7 @@ export default function DesignerPaymentsPage() {
       due_date: new Date().toISOString().split('T')[0],
       description: ''
     });
-    setToast(`Bill payment request sent to ${newBill.client_name}! Client can now pay via Mobile/QR.`);
-    setTimeout(() => setToast(''), 4000);
+    showToast(`Milestone bill created for registered client "${createdPayment.client}" on project "${createdPayment.project}"!`);
   };
 
   // Designer verifies and settles client payment
@@ -144,16 +307,16 @@ export default function DesignerPaymentsPage() {
         return {
           ...p,
           status: 'cleared',
-          method: 'Phone / UPI QR (Verified by Designer)',
+          method: 'Phone / UPI QR (Verified)',
           utrNo: generatedUTR,
-          date: 'Today',
+          date: 'Completed Today',
           receiptNo: p.receiptNo !== '-' ? p.receiptNo : `BAVI-UPI-2026-${Math.floor(200 + Math.random() * 800)}`
         };
       }
       return p;
     });
 
-    setPayments(updated);
+    savePaymentsLocal(updated);
 
     if (isSupabaseConfigured() && item.id) {
       try {
@@ -166,302 +329,288 @@ export default function DesignerPaymentsPage() {
       }
     }
 
-    setToast(`Payment for ${item.client || item.description} verified & cleared!`);
-    setTimeout(() => setToast(''), 3500);
+    showToast(`Payment of ${item.amount} for ${item.client} verified & settled!`);
   };
+
+  const filtered = payments.filter(p => {
+    if (!searchTerm) return true;
+    const q = searchTerm.toLowerCase();
+    return (
+      p.client?.toLowerCase().includes(q) ||
+      p.project?.toLowerCase().includes(q) ||
+      p.milestone?.toLowerCase().includes(q) ||
+      p.receiptNo?.toLowerCase().includes(q) ||
+      p.utrNo?.toLowerCase().includes(q)
+    );
+  });
+
+  const totalBilled = payments.reduce((acc, p) => acc + (p.rawAmount || 0), 0);
+  const totalCleared = payments.filter(p => p.status === 'cleared' || p.status === 'completed').reduce((acc, p) => acc + (p.rawAmount || 0), 0);
+  const totalPending = payments.filter(p => p.status === 'due' || p.status === 'pending').reduce((acc, p) => acc + (p.rawAmount || 0), 0);
 
   return (
     <>
       <DesignerHeader 
         title="Escrow & Project Financial Ledger" 
-        subtitle="Initiate milestone bills to clients, track incoming Phone/UPI payments, and verify 12-digit UTR numbers" 
+        subtitle="Initiate milestone bills to verified clients, select registered projects, and verify Phone/UPI payments" 
       />
 
-      <div className={styles.container}>
+      <div style={{ padding: '0 4px' }}>
         {/* Header Action Bar */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '14px', marginBottom: '20px' }}>
           <div>
-            <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: '1.25rem', fontWeight: 700 }}>
-              Payment & Bill Ledger ({payments.length})
+            <h3 style={{ fontFamily: "var(--font-heading, 'Playfair Display', Georgia, serif)", fontSize: '1.25rem', fontWeight: 700, color: '#f8f8f8', margin: 0 }}>
+              Milestone Payment Ledger ({payments.length})
             </h3>
-            <p style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)' }}>
-              Receiving Mobile Number: <strong style={{ color: 'var(--color-gold)' }}>+91 {upiPhone}</strong>
+            <p style={{ fontSize: '0.82rem', color: '#a0a0a0', margin: '4px 0 0' }}>
+              Studio Receiving Mobile / UPI: <strong style={{ color: '#c9a84c' }}>+91 {upiPhone}</strong>
             </p>
           </div>
 
-          <button 
+          <Button 
+            icon={Send} 
             onClick={() => setShowBillModal(true)}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '8px',
-              padding: '10px 18px',
-              background: 'linear-gradient(135deg, var(--color-gold), var(--color-gold-dark))',
-              color: 'var(--color-black)',
-              fontWeight: 700,
-              fontSize: '0.85rem',
-              borderRadius: '6px',
-              border: 'none',
-              cursor: 'pointer'
-            }}
+            size="md"
           >
-            <Send size={16} />
-            <span>Initiate Bill Payment Request</span>
-          </button>
+            Initiate Bill Payment Request
+          </Button>
         </div>
 
-        {toast && (
-          <div className={styles.toast}>
-            <CheckCircle2 size={18} color="var(--color-success)" />
-            <span>{toast}</span>
-          </div>
-        )}
-
-        {/* Ledger Table Card */}
-        {payments.length > 0 ? (
-          <div className={styles.tableCard}>
-            <div className={styles.tableHeader}>
-              <h3 className={styles.tableTitle}>Milestone Bills & Transactions</h3>
-              <span className={styles.badgeGold}>Verified Bank Escrow</span>
+        {/* Metrics Cards using Astryx Card */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px', marginBottom: '20px' }}>
+          <Card variant="elevated" padding="md">
+            <div style={{ fontSize: '0.7rem', color: '#6e6e6e', textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.5px' }}>Total Invoiced</div>
+            <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#f8f8f8', fontFamily: "'Playfair Display', Georgia, serif", marginTop: '4px' }}>
+              ₹{totalBilled.toLocaleString('en-IN')}
             </div>
+          </Card>
 
-            <div className={styles.tableWrap}>
-              <table className={styles.table}>
-                <thead>
-                  <tr>
-                    <th>Client & Project</th>
-                    <th>Milestone Description</th>
-                    <th>Amount</th>
-                    <th>Channel / Status</th>
-                    <th>12-Digit UTR #</th>
-                    <th>Date</th>
-                    <th>Receipt #</th>
-                    <th>Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {payments.map((p) => (
-                    <tr key={p.id}>
-                      <td>
-                        <strong>{p.client || p.customer_name || 'Client'}</strong>
-                        <span className={styles.subText}>{p.project || p.description}</span>
-                      </td>
-                      <td>{p.milestone || p.description}</td>
-                      <td className={styles.amountBold}>
-                        {p.amount ? (typeof p.amount === 'number' ? '₹' + p.amount.toLocaleString('en-IN') : p.amount) : '₹0'}
-                      </td>
-                      <td><span className={styles.gatewayBadge}>{p.method || p.payment_method}</span></td>
-                      <td>
-                        {p.utr_number || p.utrNo !== '-' ? (
-                          <code className={styles.utrCode}>{p.utr_number || p.utrNo}</code>
-                        ) : (
-                          <span className={styles.subText}>Awaiting UTR</span>
-                        )}
-                      </td>
-                      <td>{p.date || p.paid_at || 'Pending'}</td>
-                      <td><code className={styles.receiptCode}>{p.receipt_number || p.receiptNo}</code></td>
-                      <td>
-                        {p.status === 'due' || p.status === 'pending' ? (
-                          <button 
-                            onClick={() => handleVerifyPayment(p)}
-                            className={styles.recordBtn}
-                          >
-                            Verify & Settle
-                          </button>
-                        ) : (
-                          <span className={styles.verifiedText}>✓ Bill Cleared</span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+          <Card variant="elevated" padding="md">
+            <div style={{ fontSize: '0.7rem', color: '#fbbf24', textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.5px' }}>Awaiting Escrow Settlement</div>
+            <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#fbbf24', fontFamily: "'Playfair Display', Georgia, serif", marginTop: '4px' }}>
+              ₹{totalPending.toLocaleString('en-IN')}
             </div>
+          </Card>
+
+          <Card variant="elevated" padding="md">
+            <div style={{ fontSize: '0.7rem', color: '#4ade80', textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.5px' }}>Verified & Cleared</div>
+            <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#4ade80', fontFamily: "'Playfair Display', Georgia, serif", marginTop: '4px' }}>
+              ₹{totalCleared.toLocaleString('en-IN')}
+            </div>
+          </Card>
+        </div>
+
+        {/* Search Bar */}
+        <div style={{ marginBottom: '16px', maxWidth: '400px' }}>
+          <SearchInput
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Search by client, project, milestone, receipt..."
+            onClear={() => setSearchTerm('')}
+          />
+        </div>
+
+        {/* Payment Ledger Cards using Astryx */}
+        {filtered.length > 0 ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {filtered.map((p) => {
+              const isDue = p.status === 'due' || p.status === 'pending';
+
+              return (
+                <Card 
+                  key={p.id} 
+                  variant={isDue ? 'gold' : 'default'} 
+                  padding="md"
+                  hoverable
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px' }}>
+                    <div style={{ flex: 1, minWidth: '260px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '6px' }}>
+                        <Tag variant="gold">
+                          {p.project || 'Project'}
+                        </Tag>
+                        {isDue ? (
+                          <Badge variant="warning" dot>Escrow Pending</Badge>
+                        ) : (
+                          <Badge variant="success" dot>Payment Cleared</Badge>
+                        )}
+                        <span style={{ fontSize: '0.75rem', color: '#666' }}>Receipt: {p.receiptNo || p.receipt_number}</span>
+                      </div>
+
+                      <h4 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#f8f8f8', margin: '0 0 4px' }}>
+                        {p.milestone || p.description}
+                      </h4>
+
+                      <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', fontSize: '0.8rem', color: '#a0a0a0', marginTop: '6px' }}>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '5px', color: '#f8f8f8', fontWeight: 600 }}>
+                          <User size={13} color="#c9a84c" /> {p.client || p.customer_name || 'Registered Client'}
+                        </span>
+                        {p.email && (
+                          <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                            <Mail size={13} color="#666" /> {p.email}
+                          </span>
+                        )}
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                          <Calendar size={13} color="#666" /> {p.date || 'Pending'}
+                        </span>
+                        {p.utrNo && p.utrNo !== '-' && (
+                          <span style={{ display: 'flex', alignItems: 'center', gap: '5px', color: '#4ade80' }}>
+                            <ShieldCheck size={13} /> UTR: {p.utrNo}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '10px' }}>
+                      <div>
+                        <div style={{ fontSize: '1.4rem', fontWeight: 700, color: '#c9a84c', fontFamily: "'Playfair Display', Georgia, serif" }}>
+                          {p.amount}
+                        </div>
+                        <div style={{ fontSize: '0.72rem', color: '#6e6e6e' }}>
+                          {p.method || 'Phone / UPI Transfer'}
+                        </div>
+                      </div>
+
+                      {isDue ? (
+                        <Button 
+                          size="sm" 
+                          variant="success" 
+                          icon={CheckCircle2}
+                          onClick={() => handleVerifyPayment(p)}
+                        >
+                          Verify & Settle
+                        </Button>
+                      ) : (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', color: '#4ade80', fontWeight: 600 }}>
+                          <CheckCircle2 size={16} /> Verified in Escrow
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </Card>
+              );
+            })}
           </div>
         ) : (
-          <div style={{
-            background: 'var(--color-dark)',
-            border: '1px dashed rgba(201, 168, 76, 0.3)',
-            borderRadius: 'var(--radius-lg)',
-            padding: '60px 24px',
-            textAlign: 'center',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: '14px'
-          }}>
-            <CreditCard size={36} color="var(--color-gold)" />
-            <div>
-              <h4 style={{ fontFamily: 'var(--font-heading)', fontSize: '1.2rem', color: '#f8f8f8', marginBottom: '6px' }}>
-                No Payment Bills Initiated Yet
-              </h4>
-              <p style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)', maxWidth: '420px', margin: '0 auto', lineHeight: '1.5' }}>
-                Click <strong>"Initiate Bill Payment Request"</strong> above to send a milestone invoice request to your client. They can scan the QR code or pay directly to mobile <strong style={{ color: 'var(--color-gold)' }}>+91 {upiPhone}</strong>.
-              </p>
-            </div>
-          </div>
+          <EmptyState
+            icon={CreditCard}
+            title="No Milestone Bills Found"
+            description="Initiate a bill payment request for a registered client and project. Clients can pay directly via mobile or UPI QR."
+            action={
+              <Button icon={Send} onClick={() => setShowBillModal(true)}>
+                Initiate First Bill
+              </Button>
+            }
+          />
         )}
 
-        {/* Modal for Initiating Payment Request */}
-        {showBillModal && (
-          <div style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(0,0,0,0.85)',
-            backdropFilter: 'blur(8px)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000,
-            padding: '16px'
-          }} onClick={() => setShowBillModal(false)}>
-            <div style={{
-              background: '#141414',
-              border: '1px solid rgba(201, 168, 76, 0.35)',
-              borderRadius: '12px',
-              padding: '24px',
-              maxWidth: '520px',
-              width: '100%',
-              boxShadow: '0 25px 50px rgba(0,0,0,0.8)'
-            }} onClick={(e) => e.stopPropagation()}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: '1.2rem', fontWeight: 700, margin: 0 }}>
-                  Initiate Milestone Bill Payment Request
-                </h3>
-                <button onClick={() => setShowBillModal(false)} style={{ background: 'none', border: 'none', color: '#888', cursor: 'pointer' }}>✕</button>
-              </div>
+        {/* Modal for Initiating Payment Request using Astryx Modal */}
+        <Modal 
+          isOpen={showBillModal} 
+          onClose={() => setShowBillModal(false)} 
+          title="Initiate Milestone Bill Payment Request" 
+          size="lg"
+        >
+          <form onSubmit={handleInitiateBill} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <Divider label="Client & Project Assignment (Registered Only)" />
 
-              <form onSubmit={handleInitiateBill} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, marginBottom: '4px', color: '#aaa' }}>
-                    Select Registered Client *
-                  </label>
-                  <select
-                    required
-                    value={newBill.client_email}
-                    onChange={(e) => {
-                      const selected = registeredClients.find(c => c.email === e.target.value || c.id === e.target.value);
-                      if (selected) {
-                        setNewBill({
-                          ...newBill,
-                          client_name: selected.full_name,
-                          client_email: selected.email,
-                          project_title: selected.project || newBill.project_title || 'Architectural Commission',
-                        });
-                      } else {
-                        setNewBill({
-                          ...newBill,
-                          client_name: '',
-                          client_email: '',
-                        });
-                      }
-                    }}
-                    style={{ width: '100%', padding: '10px', background: '#1c1c1c', border: '1px solid #333', borderRadius: '4px', color: '#fff' }}
-                  >
-                    <option value="">-- Choose a Registered Client --</option>
-                    {registeredClients.map((c) => (
-                      <option key={c.id || c.email} value={c.email || c.id}>
-                        {c.full_name} ({c.email})
-                      </option>
-                    ))}
-                  </select>
-                </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              {/* Select Registered Client */}
+              <Select
+                label="Select Registered Client"
+                required
+                value={newBill.client_email}
+                onChange={(e) => handleSelectClient(e.target.value)}
+                options={[
+                  { value: '', label: '-- Choose a Registered Client --' },
+                  ...registeredClients.map(c => ({
+                    value: c.email,
+                    label: `${c.full_name} (${c.email})`
+                  }))
+                ]}
+                hint="Only registered accounts are available to prevent unregistered billing entries"
+              />
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, marginBottom: '4px', color: '#aaa' }}>Verified Client Email</label>
-                    <input 
-                      type="email"
-                      readOnly
-                      placeholder="Auto-populated from account"
-                      value={newBill.client_email}
-                      style={{ width: '100%', padding: '10px', background: '#222', border: '1px solid #444', borderRadius: '4px', color: '#aaa' }}
-                    />
-                  </div>
-
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, marginBottom: '4px', color: '#aaa' }}>Project Title</label>
-                    <input 
-                      type="text"
-                      placeholder="e.g. Channarayapatna Villa"
-                      value={newBill.project_title}
-                      onChange={(e) => setNewBill({ ...newBill, project_title: e.target.value })}
-                      style={{ width: '100%', padding: '10px', background: '#1c1c1c', border: '1px solid #333', borderRadius: '4px', color: '#fff' }}
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, marginBottom: '4px', color: '#aaa' }}>Milestone / Stage Title *</label>
-                  <input 
-                    type="text"
-                    required
-                    placeholder="e.g. Stage 1: Architectural Blueprint & Foundation"
-                    value={newBill.milestone_title}
-                    onChange={(e) => setNewBill({ ...newBill, milestone_title: e.target.value })}
-                    style={{ width: '100%', padding: '10px', background: '#1c1c1c', border: '1px solid #333', borderRadius: '4px', color: '#fff' }}
-                  />
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, marginBottom: '4px', color: '#aaa' }}>Amount (INR) *</label>
-                    <input 
-                      type="number"
-                      required
-                      placeholder="e.g. 50000"
-                      value={newBill.amount}
-                      onChange={(e) => setNewBill({ ...newBill, amount: e.target.value })}
-                      style={{ width: '100%', padding: '10px', background: '#1c1c1c', border: '1px solid #333', borderRadius: '4px', color: '#fff' }}
-                    />
-                  </div>
-
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, marginBottom: '4px', color: '#aaa' }}>Payment Due Date</label>
-                    <input 
-                      type="date"
-                      value={newBill.due_date}
-                      onChange={(e) => setNewBill({ ...newBill, due_date: e.target.value })}
-                      style={{ width: '100%', padding: '10px', background: '#1c1c1c', border: '1px solid #333', borderRadius: '4px', color: '#fff' }}
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, marginBottom: '4px', color: '#aaa' }}>Bill Notes / Specifications</label>
-                  <textarea 
-                    rows={2}
-                    placeholder="e.g. Includes municipal sanction fee and soil testing report"
-                    value={newBill.description}
-                    onChange={(e) => setNewBill({ ...newBill, description: e.target.value })}
-                    style={{ width: '100%', padding: '10px', background: '#1c1c1c', border: '1px solid #333', borderRadius: '4px', color: '#fff', resize: 'vertical' }}
-                  />
-                </div>
-
-                <button 
-                  type="submit"
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '8px',
-                    padding: '12px',
-                    background: 'linear-gradient(135deg, var(--color-gold), var(--color-gold-dark))',
-                    color: '#000',
-                    fontWeight: 700,
-                    borderRadius: '6px',
-                    border: 'none',
-                    cursor: 'pointer',
-                    marginTop: '6px'
-                  }}
-                >
-                  <Send size={16} />
-                  <span>Send Bill Payment Request to Client</span>
-                </button>
-              </form>
+              {/* Select Registered Project Title */}
+              <Select
+                label="Select Registered Project Title"
+                required
+                value={newBill.project_title}
+                onChange={(e) => setNewBill({ ...newBill, project_title: e.target.value })}
+                options={[
+                  { value: '', label: '-- Choose from Registered Projects --' },
+                  ...getProjectOptions()
+                ]}
+                hint="Project title must be selected from the registered project roster"
+              />
             </div>
-          </div>
-        )}
+
+            {/* Verified Preview Card */}
+            {newBill.client_email && newBill.project_title && (
+              <Card variant="gold" padding="sm">
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '6px' }}>
+                  <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#c9a84c', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <CheckCircle2 size={15} color="#c9a84c" /> Verified Client & Project Binding
+                  </span>
+                  <Tag variant="success">Validated</Tag>
+                </div>
+                <div style={{ fontSize: '0.86rem', color: '#f8f8f8', marginTop: '4px' }}>
+                  <strong>Client:</strong> {newBill.client_name} ({newBill.client_email})
+                </div>
+                <div style={{ fontSize: '0.82rem', color: '#a0a0a0', marginTop: '2px' }}>
+                  <strong>Project:</strong> {newBill.project_title}
+                </div>
+              </Card>
+            )}
+
+            <Divider label="Milestone & Financial Terms" />
+
+            <TextInput
+              label="Milestone / Stage Title"
+              required
+              placeholder="e.g. Stage 1: Architectural Blueprint & Foundation Structure"
+              value={newBill.milestone_title}
+              onChange={(e) => setNewBill({ ...newBill, milestone_title: e.target.value })}
+              icon={Building}
+            />
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px' }}>
+              <TextInput
+                label="Amount (INR)"
+                type="number"
+                required
+                placeholder="e.g. 150000"
+                value={newBill.amount}
+                onChange={(e) => setNewBill({ ...newBill, amount: e.target.value })}
+                icon={CreditCard}
+              />
+              <TextInput
+                label="Payment Due Date"
+                type="date"
+                required
+                value={newBill.due_date}
+                onChange={(e) => setNewBill({ ...newBill, due_date: e.target.value })}
+                icon={Calendar}
+              />
+            </div>
+
+            <TextArea
+              label="Scope of Work / Deliverables Summary"
+              rows={3}
+              placeholder="List the completed or upcoming milestones authorized under this bill..."
+              value={newBill.description}
+              onChange={(e) => setNewBill({ ...newBill, description: e.target.value })}
+              hint="This note will be visible to the client on their Escrow & Billing dashboard"
+            />
+
+            <Button type="submit" fullWidth size="lg" icon={Send}>
+              Issue Milestone Bill to Registered Client
+            </Button>
+          </form>
+        </Modal>
+
+        {/* Toast */}
+        <Toast message={toastMsg} variant={toastVariant} isVisible={toastVisible} onClose={() => setToastVisible(false)} />
       </div>
     </>
   );

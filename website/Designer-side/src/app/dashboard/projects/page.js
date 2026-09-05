@@ -473,38 +473,23 @@ export default function DesignerProjectsPage() {
         <Modal isOpen={showAddModal} onClose={() => setShowAddModal(false)} title="Create New Client Project" size="lg">
           <form onSubmit={handleCreateProject} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <Divider label="Client Assignment (Registered Client Only)" />
-            <div style={{ marginBottom: '8px' }}>
-              <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, marginBottom: '6px', color: '#e0e0e0' }}>
-                Select Registered Client <span style={{ color: '#ef4444' }}>*</span>
-              </label>
-              <select
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <Select
+                label="Select Registered Client"
+                required
                 value={selectedClientId}
                 onChange={(e) => handleClientSelect(e.target.value)}
-                required
-                style={{
-                  width: '100%',
-                  padding: '11px 14px',
-                  background: '#181818',
-                  border: selectedClientId ? '1px solid #c9a84c' : '1px solid #383838',
-                  borderRadius: '8px',
-                  color: '#f8f8f8',
-                  fontSize: '0.88rem',
-                  outline: 'none',
-                  fontFamily: 'inherit',
-                  cursor: 'pointer'
-                }}
-              >
-                <option value="">-- Choose a Registered Client to Avoid Unregistered Entries --</option>
-                {registeredClients.map((c) => (
-                  <option key={c.id || c.email} value={c.id || c.email}>
-                    {c.full_name} ({c.email}) {c.phone ? `• ${c.phone}` : ''}
-                  </option>
-                ))}
-              </select>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '6px', flexWrap: 'wrap', gap: '6px' }}>
-                <span style={{ fontSize: '0.74rem', color: '#888' }}>
-                  Enforced client selection prevents unregistered/orphaned project entries.
-                </span>
+                options={[
+                  { value: '', label: '-- Choose a Registered Client to Avoid Unregistered Entries --' },
+                  ...registeredClients.map((c) => ({
+                    value: c.id || c.email,
+                    label: `${c.full_name} (${c.email})${c.phone ? ` • ${c.phone}` : ''}`
+                  }))
+                ]}
+                hint="Enforced client selection ensures project records link strictly to registered customer accounts."
+              />
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginTop: '-4px' }}>
                 <a
                   href="/dashboard/customers"
                   style={{ fontSize: '0.75rem', color: '#c9a84c', textDecoration: 'none', fontWeight: 600 }}
@@ -514,27 +499,19 @@ export default function DesignerProjectsPage() {
               </div>
             </div>
 
-            {/* Selected Client Verified Preview */}
+            {/* Selected Client Verified Preview using Astryx Card */}
             {selectedClientId && newProject.client_name ? (
-              <div style={{
-                background: 'rgba(201, 168, 76, 0.08)',
-                border: '1px solid rgba(201, 168, 76, 0.35)',
-                borderRadius: '8px',
-                padding: '12px 16px',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '6px'
-              }}>
+              <Card variant="gold" padding="sm">
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '6px' }}>
                   <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#c9a84c', display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <CheckCircle2 size={16} color="#c9a84c" /> Registered Account Verified
                   </span>
                   <Tag variant="success">Active Registered Client</Tag>
                 </div>
-                <div style={{ fontSize: '0.95rem', fontWeight: 700, color: '#f8f8f8' }}>
+                <div style={{ fontSize: '0.95rem', fontWeight: 700, color: '#f8f8f8', marginTop: '4px' }}>
                   {newProject.client_name}
                 </div>
-                <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', fontSize: '0.78rem', color: '#a0a0a0' }}>
+                <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', fontSize: '0.78rem', color: '#a0a0a0', marginTop: '4px' }}>
                   {newProject.client_email && (
                     <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
                       <Mail size={13} color="#c9a84c" /> {newProject.client_email}
@@ -546,22 +523,14 @@ export default function DesignerProjectsPage() {
                     </span>
                   )}
                 </div>
-              </div>
+              </Card>
             ) : (
-              <div style={{
-                background: 'rgba(239, 68, 68, 0.06)',
-                border: '1px dashed rgba(239, 68, 68, 0.3)',
-                borderRadius: '8px',
-                padding: '12px 16px',
-                fontSize: '0.8rem',
-                color: '#f87171',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px'
-              }}>
-                <AlertCircle size={16} />
-                <span>Please select a registered client above. Unregistered entries cannot be created.</span>
-              </div>
+              <Card variant="outlined" padding="sm">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#f87171', fontSize: '0.8rem' }}>
+                  <AlertCircle size={16} />
+                  <span>Please select a registered client above. Unregistered entries cannot be created.</span>
+                </div>
+              </Card>
             )}
 
             <Divider label="Project Details" />
