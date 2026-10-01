@@ -29,6 +29,10 @@ import {
   Crown,
   Activity,
   Building,
+  Cpu,
+  Database,
+  Globe,
+  Layers,
 } from 'lucide-react';
 import { useDesignerAuth } from '@/context/AuthContext';
 import { Avatar, Badge, Divider, StatusDot, ScrollArea } from '@/components/astryx';
@@ -93,6 +97,18 @@ const NAV_CONFIG = {
       { href: '/dashboard/customers', label: 'Client Directory', icon: Users },
       { href: '/dashboard/designs', label: 'Design Showcase', icon: Sparkles },
       { href: '/dashboard/profile', label: 'Profile', icon: UserCheck },
+    ],
+  },
+  tech: {
+    label: 'Tech & Digitalization',
+    icon: Cpu,
+    items: [
+      { href: '/dashboard', label: 'Command Center', icon: LayoutDashboard },
+      { href: '/dashboard/departments', label: 'Department Management', icon: Layers },
+      { href: '/dashboard/designs', label: 'Digital Asset Library', icon: Database },
+      { href: '/dashboard/documents', label: 'System Documentation', icon: FileText },
+      { href: '/dashboard/monitor', label: 'System Logs & Activity', icon: Activity },
+      { href: '/dashboard/profile', label: 'Tech Profile', icon: UserCheck },
     ],
   },
 };

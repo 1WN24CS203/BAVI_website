@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import {
   Users, KeyRound, Shield, Mail, Phone, Building, HardHat,
   Target, Crown, Plus, CheckCircle2, XCircle, Search, Filter,
-  Activity, RefreshCw, ExternalLink, ShieldAlert, Clock
+  Activity, RefreshCw, ExternalLink, ShieldAlert, Clock, Cpu
 } from 'lucide-react';
 import DesignerHeader from '@/components/Header';
 import { Button, Badge, Card, TextInput, Select, Modal, SearchInput, Toast } from '@/components/astryx';
@@ -214,6 +214,7 @@ export default function EmployeeDirectoryPage() {
       case 'architecture': return Building;
       case 'construction': return HardHat;
       case 'marketing': return Target;
+      case 'tech': return Cpu;
       default: return Users;
     }
   };
@@ -253,7 +254,8 @@ export default function EmployeeDirectoryPage() {
               { id: 'admin', label: 'Owners' },
               { id: 'architecture', label: 'Architecture' },
               { id: 'construction', label: 'Construction' },
-              { id: 'marketing', label: 'Marketing' }
+              { id: 'marketing', label: 'Marketing' },
+              { id: 'tech', label: 'Tech & Digital' },
             ].map(d => (
               <button
                 key={d.id}
@@ -426,6 +428,7 @@ export default function EmployeeDirectoryPage() {
                     { value: 'architecture', label: 'Architecture & Design' },
                     { value: 'construction', label: 'Construction & Management' },
                     { value: 'marketing', label: 'Marketing & Sales' },
+                    { value: 'tech', label: 'Tech & Digitalization' },
                     { value: 'admin', label: 'Owner Administration' },
                   ]}
                 />

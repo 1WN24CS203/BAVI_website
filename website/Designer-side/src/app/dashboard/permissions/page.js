@@ -35,8 +35,16 @@ const DEFAULT_POLICY_RULES = [
   },
   {
     id: 'pol-4',
+    department: 'Tech & Digitalization',
+    scope: 'System integration management, digital asset library, documentation systems, activity log monitoring, and exclusive authority to submit department add/remove requests (requires owner approval).',
+    allowedRoutes: ['/dashboard/departments', '/dashboard/designs', '/dashboard/documents', '/dashboard/monitor'],
+    crossAccessRestricted: ['Architecture design files & client SRS', 'Construction site procurement & safety logs', 'Marketing lead pipeline & callbacks'],
+    isolationEnforced: true,
+  },
+  {
+    id: 'pol-5',
     department: 'Owner / Administration',
-    scope: 'Unrestricted monitorability across all departments, project oversight, employee registration security keys, keyless entry lock toggles.',
+    scope: 'Unrestricted monitorability across all departments, project oversight, employee registration security keys, keyless entry lock toggles, and approval authority over department structure changes.',
     allowedRoutes: ['ALL ROUTES (Global Command)'],
     crossAccessRestricted: ['None (Full Monitorability & Governance)'],
     isolationEnforced: false,

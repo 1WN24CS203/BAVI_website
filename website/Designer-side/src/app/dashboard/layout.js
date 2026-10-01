@@ -40,6 +40,14 @@ const DEPARTMENT_ALLOWED_PREFIXES = {
     '/dashboard/designs',
     '/dashboard/profile',
   ],
+  tech: [
+    '/dashboard',
+    '/dashboard/departments',
+    '/dashboard/designs',
+    '/dashboard/documents',
+    '/dashboard/monitor',
+    '/dashboard/profile',
+  ],
 };
 
 export default function DesignerDashboardLayout({ children }) {

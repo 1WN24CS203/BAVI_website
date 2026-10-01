@@ -1,6 +1,6 @@
-'use client';
+﻿'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { 
@@ -28,7 +28,14 @@ import styles from './register.module.css';
 
 export default function DesignerRegisterPage() {
   const router = useRouter();
-  const { hasOwner, registerOwner, submitAccessRequest, checkRequestStatus } = useDesignerAuth();
+  const { hasOwner, registerOwner, submitAccessRequest, checkRequestStatus, designer, loading } = useDesignerAuth();
+
+  // ðŸ”’ Redirect already-authenticated users to dashboard
+  useEffect(() => {
+    if (!loading && designer) {
+      router.replace('/dashboard');
+    }
+  }, [designer, loading, router]);
 
   const [activeTab, setActiveTab] = useState('request'); // 'request' | 'status'
   
@@ -55,7 +62,7 @@ export default function DesignerRegisterPage() {
 
   const [requestSubmitted, setRequestSubmitted] = useState(false);
   const [submittedEmail, setSubmittedEmail] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
 
   // Status Search State
@@ -69,7 +76,7 @@ export default function DesignerRegisterPage() {
   // Handler for First Registration (Site Owner)
   const handleOwnerRegister = async (e) => {
     e.preventDefault();
-    setLoading(true);
+    setIsSubmitting(true);
     setError('');
 
     try {
@@ -78,14 +85,14 @@ export default function DesignerRegisterPage() {
     } catch (err) {
       setError(err.message || 'Owner registration failed.');
     } finally {
-      setLoading(false);
+      setIsSubmitting(false);
     }
   };
 
   // Handler for Subsequent Registrations (New Designer Request)
   const handleDesignerRequest = async (e) => {
     e.preventDefault();
-    setLoading(true);
+    setIsSubmitting(true);
     setError('');
 
     try {
@@ -95,7 +102,7 @@ export default function DesignerRegisterPage() {
     } catch (err) {
       setError(err.message || 'Failed to submit application.');
     } finally {
-      setLoading(false);
+      setIsSubmitting(false);
     }
   };
 
@@ -140,7 +147,7 @@ export default function DesignerRegisterPage() {
           </div>
         )}
 
-        {/* CASE 1: NO OWNER REGISTERED YET — FIRST REGISTRATION FLOW */}
+        {/* CASE 1: NO OWNER REGISTERED YET â€” FIRST REGISTRATION FLOW */}
         {!hasOwner ? (
           <div>
             <div style={{
@@ -206,7 +213,7 @@ export default function DesignerRegisterPage() {
                       type="password"
                       required
                       minLength={6}
-                      placeholder="••••••••••••"
+                      placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
                       value={ownerData.password}
                       onChange={(e) => setOwnerData({ ...ownerData, password: e.target.value })}
                       className={styles.formInput}
@@ -255,8 +262,8 @@ export default function DesignerRegisterPage() {
                 />
               </div>
 
-              <button type="submit" disabled={loading} className={styles.submitBtn}>
-                {loading ? (
+              <button type="submit" disabled={isSubmitting} className={styles.submitBtn}>
+                {isSubmitting ? (
                   <span>Registering Owner Account...</span>
                 ) : (
                   <>
@@ -269,7 +276,7 @@ export default function DesignerRegisterPage() {
             </form>
           </div>
         ) : (
-          /* CASE 2: OWNER ALREADY EXISTS — NEW DESIGNERS SUBMIT ACCESS REQUESTS */
+          /* CASE 2: OWNER ALREADY EXISTS â€” NEW DESIGNERS SUBMIT ACCESS REQUESTS */
           <div>
             {/* Tabs */}
             <div style={{
@@ -428,7 +435,7 @@ export default function DesignerRegisterPage() {
                             type="password"
                             required
                             minLength={6}
-                            placeholder="••••••••••••"
+                            placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
                             value={applicantData.password}
                             onChange={(e) => setApplicantData({ ...applicantData, password: e.target.value })}
                             className={styles.formInput}
@@ -466,6 +473,7 @@ export default function DesignerRegisterPage() {
                             <option value="architecture">Architecture & Design</option>
                             <option value="construction">Construction & Management</option>
                             <option value="marketing">Marketing & Sales</option>
+                            <option value="tech">Tech & Digitalization</option>
                           </select>
                         </div>
                       </div>
@@ -539,8 +547,8 @@ export default function DesignerRegisterPage() {
                       />
                     </div>
 
-                    <button type="submit" disabled={loading} className={styles.submitBtn}>
-                      {loading ? (
+                    <button type="submit" disabled={isSubmitting} className={styles.submitBtn}>
+                      {isSubmitting ? (
                         <span>Submitting Request...</span>
                       ) : (
                         <>
@@ -758,3 +766,4 @@ export default function DesignerRegisterPage() {
     </div>
   );
 }
+

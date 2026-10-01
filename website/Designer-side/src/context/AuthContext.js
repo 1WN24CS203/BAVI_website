@@ -24,10 +24,11 @@ const DesignerAuthContext = createContext({
 const SESSION_EXPIRY_MS = 24 * 60 * 60 * 1000;
 
 // Departments
-const DEPARTMENTS = {
+const BASE_DEPARTMENTS = {
   architecture: { name: 'architecture', display: 'Architecture & Design' },
   construction: { name: 'construction', display: 'Construction & Management' },
   marketing: { name: 'marketing', display: 'Marketing & Sales' },
+  tech: { name: 'tech', display: 'Tech & Digitalization' },
   admin: { name: 'admin', display: 'Owner / Administration' },
 };
 
@@ -35,6 +36,40 @@ export function DesignerAuthProvider({ children }) {
   const [designer, setDesigner] = useState(null);
   const [hasOwner, setHasOwner] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [departments, setDepartments] = useState(BASE_DEPARTMENTS);
+
+  // --- LocalStorage helpers for Departments ---
+  const getStoredDepts = () => {
+    if (typeof window === 'undefined') return null;
+    try {
+      const stored = localStorage.getItem('bavi_departments');
+      return stored ? JSON.parse(stored) : null;
+    } catch { return null; }
+  };
+
+  const saveDepts = (depts) => {
+    if (typeof window === 'undefined') return;
+    try {
+      localStorage.setItem('bavi_departments', JSON.stringify(depts));
+      setDepartments(depts);
+    } catch (err) { console.warn('Failed to save departments:', err); }
+  };
+
+  // Department change requests
+  const getDeptRequests = () => {
+    if (typeof window === 'undefined') return [];
+    try {
+      const stored = localStorage.getItem('bavi_department_requests');
+      return stored ? JSON.parse(stored) : [];
+    } catch { return []; }
+  };
+
+  const saveDeptRequests = (reqs) => {
+    if (typeof window === 'undefined') return;
+    try {
+      localStorage.setItem('bavi_department_requests', JSON.stringify(reqs));
+    } catch (err) { console.warn('Failed to save dept requests:', err); }
+  };
 
   // --- LocalStorage helpers ---
   const getOwner = () => {
@@ -135,6 +170,10 @@ export function DesignerAuthProvider({ children }) {
     const owner = getOwner();
     setHasOwner(!!owner);
 
+    // Load dynamic departments
+    const storedDepts = getStoredDepts();
+    if (storedDepts) setDepartments(storedDepts);
+
     const saved = localStorage.getItem('bavi_designer_session');
     if (saved) {
       try {
@@ -148,7 +187,10 @@ export function DesignerAuthProvider({ children }) {
             setDesigner(null);
           }
         } else if (parsed && parsed.full_name) {
-          setDesigner(parsed);
+          // Legacy session without sessionCreatedAt — assign fresh timestamp and re-save
+          const refreshed = { ...parsed, sessionCreatedAt: Date.now() };
+          localStorage.setItem('bavi_designer_session', JSON.stringify(refreshed));
+          setDesigner(refreshed);
         } else {
           setDesigner(null);
         }
@@ -376,6 +418,14 @@ export function DesignerAuthProvider({ children }) {
         view_consultations: true,
         view_client_feedback: true,
       },
+      tech: {
+        manage_tech_systems: true,
+        manage_digital_assets: true,
+        request_add_department: true,
+        request_remove_department: true,
+        view_system_logs: true,
+        manage_integrations: true,
+      },
       admin: {
         view_all_projects: true,
         manage_all_departments: true,
@@ -583,6 +633,85 @@ export function DesignerAuthProvider({ children }) {
   };
 
   // ================================================================
+  // 9. DEPARTMENT MANAGEMENT (Tech & Digitalization)
+  // ================================================================
+
+  // Tech submits a request to add/remove a department — owner must approve
+  const submitDepartmentRequest = (action, deptData) => {
+    if (designer?.department !== 'tech' && !designer?.isOwner) {
+      throw new Error('Only Tech & Digitalization department can submit department change requests.');
+    }
+    const allReqs = getDeptRequests();
+    const newReq = {
+      id: 'dreq-' + Date.now(),
+      action, // 'add' | 'remove'
+      deptKey: deptData.key?.toLowerCase().replace(/\s+/g, '_'),
+      deptDisplay: deptData.display,
+      deptRoutes: deptData.routes || [],
+      requestedBy: designer?.full_name,
+      requestedByDept: designer?.department,
+      status: 'PENDING',
+      submittedAt: new Date().toISOString(),
+      approvedAt: null,
+      rejectedAt: null,
+      rejectionReason: null,
+    };
+    saveDeptRequests([newReq, ...allReqs]);
+    logActivity('submitted_dept_request', 'department', deptData.display, { action });
+    return newReq;
+  };
+
+  // Owner approves a department change request
+  const approveDepartmentRequest = (reqId) => {
+    if (!designer?.isOwner && designer?.department !== 'admin') {
+      throw new Error('Only the Site Owner can approve department changes.');
+    }
+    const allReqs = getDeptRequests();
+    const req = allReqs.find(r => r.id === reqId);
+    if (!req) throw new Error('Department request not found.');
+
+    const currentDepts = getStoredDepts() || { ...BASE_DEPARTMENTS };
+
+    if (req.action === 'add') {
+      if (currentDepts[req.deptKey]) {
+        throw new Error(`Department "${req.deptDisplay}" already exists.`);
+      }
+      currentDepts[req.deptKey] = { name: req.deptKey, display: req.deptDisplay, custom: true };
+    } else if (req.action === 'remove') {
+      // Never allow removing base departments or admin/tech
+      const protected_depts = ['admin', 'tech', 'architecture', 'construction', 'marketing'];
+      if (protected_depts.includes(req.deptKey)) {
+        throw new Error(`The "${req.deptDisplay}" department is protected and cannot be removed.`);
+      }
+      delete currentDepts[req.deptKey];
+    }
+
+    saveDepts(currentDepts);
+
+    const updated = allReqs.map(r => r.id === reqId
+      ? { ...r, status: 'APPROVED', approvedAt: new Date().toISOString(), approvedBy: designer?.full_name }
+      : r
+    );
+    saveDeptRequests(updated);
+    logActivity('approved_dept_request', 'department', req.deptDisplay, { action: req.action });
+    return currentDepts;
+  };
+
+  // Owner rejects a department change request
+  const rejectDepartmentRequest = (reqId, reason = 'Not approved by owner') => {
+    const allReqs = getDeptRequests();
+    const updated = allReqs.map(r => r.id === reqId
+      ? { ...r, status: 'REJECTED', rejectedAt: new Date().toISOString(), rejectionReason: reason }
+      : r
+    );
+    saveDeptRequests(updated);
+    logActivity('rejected_dept_request', 'department', reqId, { reason });
+    return true;
+  };
+
+  const getDepartmentRequests = () => getDeptRequests();
+
+  // ================================================================
   // 9. UTILITY: Get approved designers list (for owner)
   // ================================================================
   const getApprovedDesignersList = () => getApprovedDesigners();
@@ -593,7 +722,7 @@ export function DesignerAuthProvider({ children }) {
         designer,
         loading,
         hasOwner,
-        departments: DEPARTMENTS,
+        departments,
         registerOwner,
         submitAccessRequest,
         checkRequestStatus,
@@ -605,6 +734,11 @@ export function DesignerAuthProvider({ children }) {
         getApprovedDesignersList,
         getAllActivityLog,
         logActivity,
+        // Department management
+        submitDepartmentRequest,
+        approveDepartmentRequest,
+        rejectDepartmentRequest,
+        getDepartmentRequests,
       }}
     >
       {children}

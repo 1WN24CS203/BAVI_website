@@ -80,7 +80,6 @@ export default function ContactPage() {
               Schedule Your Private <span className={styles.goldText}>Design Consultation</span>
             </h1>
             <p className={styles.subtitle}>
-              ! WE BOND YOUR SPACE WITH BAHUBALI GRACE !<br />
               Connect with our master architects to review plot feasibility, structural blueprints, and custom interior execution.
             </p>
           </div>

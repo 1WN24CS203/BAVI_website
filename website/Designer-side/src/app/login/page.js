@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { 
@@ -18,19 +18,29 @@ import styles from './login.module.css';
 
 export default function DesignerLoginPage() {
   const router = useRouter();
-  const { login } = useDesignerAuth();
+  const { login, designer, loading } = useDesignerAuth();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [companyCode, setCompanyCode] = useState('');
   const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+
+  // 🔒 If already authenticated, redirect to dashboard immediately
+  useEffect(() => {
+    if (!loading && designer) {
+      router.replace('/dashboard');
+    }
+  }, [designer, loading, router]);
+
+  // Show nothing while checking auth or if redirecting
+  if (loading || designer) return null;
 
   const customerPortalUrl = process.env.NEXT_PUBLIC_SITE_URL || '/';
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
+    setIsLoading(true);
     setError('');
 
     try {
@@ -39,7 +49,7 @@ export default function DesignerLoginPage() {
     } catch (err) {
       setError(err.message || 'Authentication failed. Please verify your email, password, and security code.');
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
@@ -126,8 +136,8 @@ export default function DesignerLoginPage() {
             </div>
           </div>
 
-          <button type="submit" disabled={loading} className={styles.submitBtn}>
-            {loading ? (
+          <button type="submit" disabled={isLoading} className={styles.submitBtn}>
+            {isLoading ? (
               <span>Validating Security Key...</span>
             ) : (
               <>

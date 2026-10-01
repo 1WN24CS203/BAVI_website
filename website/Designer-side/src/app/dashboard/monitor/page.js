@@ -20,7 +20,7 @@ export default function OwnerMonitorPage() {
   const requests = getRequests();
 
   const departmentColors = {
-    admin: 'gold', architecture: 'info', construction: 'warning', marketing: 'success',
+    admin: 'gold', architecture: 'info', construction: 'warning', marketing: 'success', tech: 'primary',
   };
 
   const actionLabels = {
@@ -47,6 +47,7 @@ export default function OwnerMonitorPage() {
     { value: 'architecture', label: 'Architecture', count: activityLog.filter(l => l.department === 'architecture').length },
     { value: 'construction', label: 'Construction', count: activityLog.filter(l => l.department === 'construction').length },
     { value: 'marketing', label: 'Marketing', count: activityLog.filter(l => l.department === 'marketing').length },
+    { value: 'tech', label: 'Tech & Digital', count: activityLog.filter(l => l.department === 'tech').length },
   ];
 
   const filtered = activityLog.filter(log => {
