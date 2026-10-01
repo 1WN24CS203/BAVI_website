@@ -143,12 +143,57 @@ CREATE POLICY "Allow all department_change_requests"
 
 
 -- ================================================================
--- STEP 6: Activity log — new action types documentation
+-- STEP 6: CREATE TABLE — email_change_requests
+-- Designers/staff submit email change requests; owner reviews & approves
+-- ================================================================
+
+CREATE TABLE IF NOT EXISTS public.email_change_requests (
+    id                 TEXT PRIMARY KEY,                        -- emreq-<timestamp>
+    designer_id        TEXT,                                    -- designer id
+    full_name          VARCHAR(255) NOT NULL,
+    department         VARCHAR(100),
+    role               VARCHAR(100),
+    company_code       VARCHAR(100),
+    current_email      VARCHAR(255) NOT NULL,
+    requested_email    VARCHAR(255) NOT NULL,
+    reason             TEXT,
+    status             VARCHAR(50) DEFAULT 'PENDING',           -- PENDING | APPROVED | REJECTED | CANCELLED
+    submitted_at       TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    approved_at        TIMESTAMP WITH TIME ZONE,
+    approved_by        VARCHAR(255),
+    rejected_at        TIMESTAMP WITH TIME ZONE,
+    rejection_reason   TEXT
+);
+
+-- Indexes
+CREATE INDEX IF NOT EXISTS idx_email_change_requests_status
+  ON public.email_change_requests(status);
+
+CREATE INDEX IF NOT EXISTS idx_email_change_requests_current_email
+  ON public.email_change_requests(current_email);
+
+CREATE INDEX IF NOT EXISTS idx_email_change_requests_requested_email
+  ON public.email_change_requests(requested_email);
+
+-- RLS
+ALTER TABLE public.email_change_requests ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Allow all email_change_requests" ON public.email_change_requests;
+CREATE POLICY "Allow all email_change_requests"
+  ON public.email_change_requests FOR ALL USING (true);
+
+
+-- ================================================================
+-- STEP 7: Activity log — new action types documentation
 -- No schema change needed; 'action' is already VARCHAR(255)
 -- Just documenting new values used by the app:
 --   submitted_dept_request  → Tech submitted add/remove dept request
 --   approved_dept_request   → Owner approved dept change
 --   rejected_dept_request   → Owner rejected dept change
+--   requested_email_change  → Staff requested corporate email change
+--   approved_email_change   → Owner approved corporate email change
+--   rejected_email_change   → Owner rejected corporate email change
+--   cancelled_email_change  → Staff cancelled email change request
 -- ================================================================
 
 -- New index to help filter tech department activity specifically
@@ -157,7 +202,7 @@ CREATE INDEX IF NOT EXISTS idx_activity_log_action
 
 
 -- ================================================================
--- STEP 7: Guard — make existing RLS policies idempotent
+-- STEP 8: Guard — make existing RLS policies idempotent
 -- The original schema used CREATE POLICY without IF NOT EXISTS
 -- (not supported in older Postgres). These guards prevent errors
 -- if you run the original schema again after this migration.

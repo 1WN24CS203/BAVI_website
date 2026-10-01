@@ -18,6 +18,12 @@ const DesignerAuthContext = createContext({
   getApprovedDesignersList: () => [],
   getAllActivityLog: () => [],
   logActivity: () => {},
+  // Email change request functions
+  submitEmailChangeRequest: async () => {},
+  getEmailChangeRequests: () => [],
+  cancelEmailChangeRequest: async () => {},
+  approveEmailChangeRequest: async () => {},
+  rejectEmailChangeRequest: async () => {},
 });
 
 // Session duration: 24 hours
@@ -69,6 +75,22 @@ export function DesignerAuthProvider({ children }) {
     try {
       localStorage.setItem('bavi_department_requests', JSON.stringify(reqs));
     } catch (err) { console.warn('Failed to save dept requests:', err); }
+  };
+
+  // Email change requests helpers
+  const getStoredEmailRequests = () => {
+    if (typeof window === 'undefined') return [];
+    try {
+      const stored = localStorage.getItem('bavi_email_change_requests');
+      return stored ? JSON.parse(stored) : [];
+    } catch { return []; }
+  };
+
+  const saveStoredEmailRequests = (reqs) => {
+    if (typeof window === 'undefined') return;
+    try {
+      localStorage.setItem('bavi_email_change_requests', JSON.stringify(reqs));
+    } catch (err) { console.warn('Failed to save email change requests:', err); }
   };
 
   // --- LocalStorage helpers ---
@@ -712,7 +734,207 @@ export function DesignerAuthProvider({ children }) {
   const getDepartmentRequests = () => getDeptRequests();
 
   // ================================================================
-  // 9. UTILITY: Get approved designers list (for owner)
+  // 10. EMAIL CHANGE REQUESTS
+  // Designers/Staff request email change; Site Owner approves
+  // ================================================================
+
+  // Designer submits email change request
+  const submitEmailChangeRequest = async ({ newEmail, reason, password }) => {
+    if (!designer) {
+      throw new Error('You must be logged in to request an email change.');
+    }
+    if (!newEmail || !newEmail.trim()) {
+      throw new Error('Please enter a valid new email address.');
+    }
+
+    const normalizedNew = newEmail.trim().toLowerCase();
+    const currentNorm = (designer.email || '').trim().toLowerCase();
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(normalizedNew)) {
+      throw new Error('Please enter a valid email address format (e.g., architect@bavi.com).');
+    }
+
+    if (normalizedNew === currentNorm) {
+      throw new Error('The new email address cannot be identical to your current corporate email.');
+    }
+
+    // Verify password if user has password set and entered one
+    if (designer.password && password && designer.password !== password) {
+      throw new Error('Current password verification failed. Please check your password and try again.');
+    }
+
+    // Check if new email is already used by owner
+    const owner = getOwner();
+    if (owner && owner.email.toLowerCase() === normalizedNew) {
+      throw new Error('This email address is already associated with an existing account.');
+    }
+
+    // Check if new email is already in use by another approved designer
+    const approvedList = getApprovedDesigners();
+    if (approvedList.some(d => d.email.toLowerCase() === normalizedNew && d.id !== designer.id)) {
+      throw new Error('This email address is already in use by another team member.');
+    }
+
+    // Check if user already has an active pending request
+    const existingReqs = getStoredEmailRequests();
+    const pendingForUser = existingReqs.find(
+      r => (r.designerId === designer.id || r.currentEmail.toLowerCase() === currentNorm) && r.status === 'PENDING'
+    );
+    if (pendingForUser) {
+      throw new Error('You already have an email change request awaiting Site Owner approval.');
+    }
+
+    const newReq = {
+      id: 'emreq-' + Date.now(),
+      designerId: designer.id,
+      fullName: designer.full_name,
+      department: designer.department || 'architecture',
+      role: designer.role || (designer.isOwner ? 'owner' : 'designer'),
+      company_code: designer.company_code || 'N/A',
+      currentEmail: designer.email,
+      requestedEmail: normalizedNew,
+      reason: reason?.trim() || 'Official corporate email update request',
+      status: 'PENDING',
+      requestedAt: new Date().toISOString(),
+      approvedAt: null,
+      approvedBy: null,
+      rejectedAt: null,
+      rejectionReason: null,
+    };
+
+    const updated = [newReq, ...existingReqs];
+    saveStoredEmailRequests(updated);
+
+    logActivity('requested_email_change', 'account', designer.email, {
+      requestedEmail: normalizedNew,
+      reason: newReq.reason,
+    });
+
+    return newReq;
+  };
+
+  // Get email change requests (all for owner, or filtered by designer)
+  const getEmailChangeRequests = (designerId = null) => {
+    const all = getStoredEmailRequests();
+    if (designerId) {
+      return all.filter(r => r.designerId === designerId);
+    }
+    return all;
+  };
+
+  // Requester cancels their pending email change request
+  const cancelEmailChangeRequest = async (requestId) => {
+    const allReqs = getStoredEmailRequests();
+    const target = allReqs.find(r => r.id === requestId);
+    if (!target) throw new Error('Email change request not found.');
+    if (target.status !== 'PENDING') throw new Error('Only pending requests can be cancelled.');
+
+    const updatedReqs = allReqs.map(r => r.id === requestId ? {
+      ...r,
+      status: 'CANCELLED',
+      cancelledAt: new Date().toISOString(),
+    } : r);
+    saveStoredEmailRequests(updatedReqs);
+
+    logActivity('cancelled_email_change', 'account', target.requestedEmail, {
+      currentEmail: target.currentEmail,
+    });
+
+    return true;
+  };
+
+  // Owner approves email change request
+  const approveEmailChangeRequest = async (requestId) => {
+    if (!designer?.isOwner && designer?.department !== 'admin') {
+      throw new Error('Only the Site Owner can approve email change requests.');
+    }
+    const allReqs = getStoredEmailRequests();
+    const target = allReqs.find(r => r.id === requestId);
+    if (!target) throw new Error('Email change request not found.');
+    if (target.status !== 'PENDING') throw new Error('This request is not in pending status.');
+
+    const oldEmail = target.currentEmail.toLowerCase();
+    const newEmail = target.requestedEmail.toLowerCase();
+
+    // 1) Update in approved designers list
+    const approvedList = getApprovedDesigners();
+    const updatedApproved = approvedList.map(d => {
+      if (d.id === target.designerId || d.email.toLowerCase() === oldEmail) {
+        return { ...d, email: newEmail };
+      }
+      return d;
+    });
+    saveApprovedDesigners(updatedApproved);
+
+    // 2) Update owner if owner requested it
+    const owner = getOwner();
+    if (owner && (owner.id === target.designerId || owner.email.toLowerCase() === oldEmail)) {
+      const updatedOwner = { ...owner, email: newEmail };
+      saveOwner(updatedOwner);
+    }
+
+    // 3) Update access requests records
+    const accessReqs = getStoredRequests();
+    const updatedAccess = accessReqs.map(r => {
+      if (r.email.toLowerCase() === oldEmail) {
+        return { ...r, email: newEmail };
+      }
+      return r;
+    });
+    saveRequests(updatedAccess);
+
+    // 4) Update active session if it affects currently logged-in user
+    if (designer && (designer.id === target.designerId || designer.email.toLowerCase() === oldEmail)) {
+      const updatedSession = { ...designer, email: newEmail };
+      setDesigner(updatedSession);
+      localStorage.setItem('bavi_designer_session', JSON.stringify(updatedSession));
+    }
+
+    // 5) Update request status
+    const updatedReqs = allReqs.map(r => r.id === requestId ? {
+      ...r,
+      status: 'APPROVED',
+      approvedAt: new Date().toISOString(),
+      approvedBy: designer?.full_name || 'Site Owner',
+    } : r);
+    saveStoredEmailRequests(updatedReqs);
+
+    logActivity('approved_email_change', 'account', newEmail, {
+      oldEmail,
+      designerName: target.fullName,
+    });
+
+    return { success: true, target, newEmail };
+  };
+
+  // Owner rejects email change request
+  const rejectEmailChangeRequest = async (requestId, reason = 'Request not approved by Site Owner') => {
+    if (!designer?.isOwner && designer?.department !== 'admin') {
+      throw new Error('Only the Site Owner can reject email change requests.');
+    }
+    const allReqs = getStoredEmailRequests();
+    const target = allReqs.find(r => r.id === requestId);
+    if (!target) throw new Error('Email change request not found.');
+
+    const updatedReqs = allReqs.map(r => r.id === requestId ? {
+      ...r,
+      status: 'REJECTED',
+      rejectedAt: new Date().toISOString(),
+      rejectionReason: reason,
+    } : r);
+    saveStoredEmailRequests(updatedReqs);
+
+    logActivity('rejected_email_change', 'account', target.requestedEmail, {
+      oldEmail: target.currentEmail,
+      reason,
+    });
+
+    return true;
+  };
+
+  // ================================================================
+  // 11. UTILITY: Get approved designers list (for owner)
   // ================================================================
   const getApprovedDesignersList = () => getApprovedDesigners();
 
@@ -739,6 +961,12 @@ export function DesignerAuthProvider({ children }) {
         approveDepartmentRequest,
         rejectDepartmentRequest,
         getDepartmentRequests,
+        // Email change requests
+        submitEmailChangeRequest,
+        getEmailChangeRequests,
+        cancelEmailChangeRequest,
+        approveEmailChangeRequest,
+        rejectEmailChangeRequest,
       }}
     >
       {children}

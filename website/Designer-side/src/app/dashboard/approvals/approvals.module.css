@@ -428,3 +428,95 @@
   align-items: center;
   justifyContent: center;
 }
+
+/* Section Navigation Tabs */
+.sectionNav {
+  display: flex;
+  gap: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding-bottom: 12px;
+}
+
+.sectionNavBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  background: #141414;
+  border: 1px solid #242424;
+  border-radius: 8px;
+  color: #aaa;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.sectionNavBtn:hover {
+  color: #fff;
+  border-color: rgba(201, 168, 76, 0.4);
+}
+
+.sectionNavBtnActive {
+  background: rgba(201, 168, 76, 0.15);
+  border-color: var(--color-gold, #c9a84c);
+  color: var(--color-gold, #c9a84c);
+}
+
+.countBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  background: rgba(201, 168, 76, 0.3);
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 700;
+  border-radius: 10px;
+}
+
+.countBadgePending {
+  background: #c9a84c;
+  color: #000;
+}
+
+.emailFlowWrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #0d0d0d;
+  padding: 12px 16px;
+  border-radius: 8px;
+  border: 1px solid #222;
+  flex-wrap: wrap;
+}
+
+.emailFlowOld {
+  font-size: 0.88rem;
+  color: #888;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.emailFlowNew {
+  font-size: 0.92rem;
+  color: #4ade80;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.emailDepartmentTag {
+  font-size: 0.75rem;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: #1f1f1f;
+  color: var(--color-gold, #c9a84c);
+  border: 1px solid rgba(201, 168, 76, 0.2);
+  text-transform: capitalize;
+}
+
