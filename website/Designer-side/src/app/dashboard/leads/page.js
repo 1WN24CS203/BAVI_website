@@ -111,7 +111,7 @@ export default function LeadPipelinePage() {
           onChange={(e) => setSearchQuery(e.target.value)}
           style={{ width: '340px' }}
         />
-        <Button variant="primary" icon={<Plus size={16} />} onClick={() => setModalOpen(true)}>
+        <Button variant="primary" icon={Plus} onClick={() => setModalOpen(true)}>
           Add Prospective Lead
         </Button>
       </div>
@@ -162,7 +162,7 @@ export default function LeadPipelinePage() {
                         variant="secondary"
                         size="sm"
                         style={{ width: '100%', fontSize: '0.75rem' }}
-                        icon={<ArrowRight size={13} />}
+                        icon={ArrowRight}
                         onClick={() => advanceStage(l.id)}
                       >
                         Advance Stage

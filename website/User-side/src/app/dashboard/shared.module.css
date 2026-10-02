@@ -1,0 +1,223 @@
+/* ================================================================
+   BAVI Dashboard — Shared Layout Styles
+   Used by all designer dashboard pages.
+   All colors use Astryx CSS variables from globals.css
+   ================================================================ */
+
+/* --- Page Shell --- */
+.page { display: flex; flex-direction: column; gap: 24px; }
+
+/* --- Section Header (title + action link) --- */
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+.sectionTitle {
+  font-family: var(--font-heading);
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--astryx-text-primary);
+  margin: 0;
+}
+.viewAllLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--astryx-gold);
+  text-decoration: none;
+  transition: opacity 150ms;
+}
+.viewAllLink:hover { opacity: 0.75; }
+
+/* --- Metrics Grid --- */
+.metricsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+/* --- Split / Two-Column Grid --- */
+.splitGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+@media (max-width: 900px) { .splitGrid { grid-template-columns: 1fr; } }
+
+/* --- Three-Column Grid --- */
+.threeGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px;
+}
+
+/* --- Full-Width Cards Grid (for lists) --- */
+.listGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* --- Control Bar (search + filter tabs) --- */
+.controlBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* --- Filter Pills --- */
+.filterGroup {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.filterPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 14px;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid var(--astryx-border-subtle);
+  background: transparent;
+  color: var(--astryx-text-secondary);
+  transition: all 150ms ease;
+  white-space: nowrap;
+  font-family: var(--font-body);
+}
+.filterPill:hover {
+  border-color: var(--astryx-border-gold);
+  color: var(--astryx-gold);
+}
+.filterPillActive {
+  background: var(--astryx-gold-subtle);
+  border-color: var(--astryx-border-gold);
+  color: var(--astryx-gold);
+}
+
+/* --- Info / Alert Banners --- */
+.infoBanner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  border-radius: 10px;
+  font-size: 0.83rem;
+  line-height: 1.5;
+}
+.infoBannerSuccess {
+  background: var(--astryx-success-bg);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  color: #6ee7b7;
+}
+.infoBannerWarning {
+  background: var(--astryx-warning-bg);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  color: #fcd34d;
+}
+.infoBannerDanger {
+  background: var(--astryx-error-bg);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  color: #fca5a5;
+}
+.infoBannerGold {
+  background: var(--astryx-gold-subtle);
+  border: 1px solid var(--astryx-border-gold);
+  color: var(--astryx-gold-light);
+}
+
+/* --- Form Grid (2-col in modals) --- */
+.formGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+@media (max-width: 600px) { .formGrid { grid-template-columns: 1fr; } }
+.formFullWidth { grid-column: 1 / -1; }
+
+/* --- Credential Display Box --- */
+.credBox {
+  background: var(--astryx-gold-subtle);
+  border: 1px solid var(--astryx-border-gold);
+  border-radius: 10px;
+  padding: 14px 16px;
+}
+.credLabel {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--astryx-text-muted);
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+.credValue {
+  font-family: var(--font-mono);
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--astryx-gold);
+  letter-spacing: 1px;
+}
+
+/* --- Detail Row (icon + text) --- */
+.detailRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.82rem;
+  color: var(--astryx-text-secondary);
+}
+.detailRowList {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+/* --- Action Row (button group) --- */
+.actionRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+}
+
+/* --- Quick Actions Banner --- */
+.actionBanner {
+  background: linear-gradient(120deg, #0d0e14, #161824);
+  border: 1px solid var(--astryx-border-gold);
+  border-radius: 14px;
+  padding: 20px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.actionBannerTag {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--astryx-gold);
+  font-weight: 700;
+  display: block;
+  margin-bottom: 4px;
+}
+.actionBannerTitle {
+  font-family: var(--font-heading);
+  font-size: 1rem;
+  color: var(--astryx-text-primary);
+  margin: 0;
+}
+.actionBtnGroup {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}

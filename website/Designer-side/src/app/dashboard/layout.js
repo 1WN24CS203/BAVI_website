@@ -19,6 +19,7 @@ const DEPARTMENT_ALLOWED_PREFIXES = {
     '/dashboard/consultations',
     '/dashboard/payments',
     '/dashboard/designs',
+    '/dashboard/approvals',
     '/dashboard/profile',
   ],
   construction: [
@@ -114,7 +115,7 @@ export default function DesignerDashboardLayout({ children }) {
               </p>
               <Button
                 variant="primary"
-                icon={<ArrowLeft size={16} />}
+                icon={ArrowLeft}
                 onClick={() => router.push('/dashboard')}
               >
                 Return to My Department Command Center

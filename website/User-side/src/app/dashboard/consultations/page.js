@@ -2,20 +2,15 @@
 
 import { useState, useEffect } from 'react';
 import { 
-  CalendarDays, 
-  Clock, 
-  Video, 
-  MapPin, 
-  Plus, 
-  CheckCircle2, 
-  AlertCircle, 
-  UserCheck, 
-  Phone,
-  CalendarCheck
+  CalendarDays, Clock, Video, MapPin, Plus, CheckCircle2, 
+  AlertCircle, Phone, CalendarCheck, Sparkles, Send
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
-import styles from './consultations.module.css';
+import {
+  Card, Badge, Button, TextInput, TextArea, Select, Modal, EmptyState, Toast
+} from '@/components/astryx';
+import s from '../shared.module.css';
 
 export default function ConsultationsPage() {
   const { profile } = useAuth();
@@ -28,6 +23,25 @@ export default function ConsultationsPage() {
 
   const [consultations, setConsultations] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [showModal, setShowModal] = useState(false);
+  const [toastMsg, setToastMsg] = useState('');
+  const [toastVisible, setToastVisible] = useState(false);
+  const [toastVariant, setToastVariant] = useState('success');
+
+  const [formData, setFormData] = useState({
+    type: 'design_review',
+    preferredDate: '',
+    preferredTime: '11:00 AM',
+    mode: 'in_person',
+    notes: ''
+  });
+  const [submitting, setSubmitting] = useState(false);
+
+  const showToast = (msg, variant = 'success') => {
+    setToastMsg(msg);
+    setToastVariant(variant);
+    setToastVisible(true);
+  };
 
   const fetchConsultations = async () => {
     let list = [];
@@ -37,7 +51,7 @@ export default function ConsultationsPage() {
         if (profile?.email) {
           q = q.eq('customer_email', profile.email);
         }
-        const { data, error } = await q.order('created_at', { ascending: false });
+        const { data } = await q.order('created_at', { ascending: false });
         if (data && data.length > 0) {
           list = data.map(c => ({
             ...c,
@@ -68,18 +82,8 @@ export default function ConsultationsPage() {
     fetchConsultations();
   }, [profile]);
 
-  const [showModal, setShowModal] = useState(false);
-  const [formData, setFormData] = useState({
-    type: 'design_review',
-    preferredDate: '',
-    preferredTime: '11:00 AM',
-    mode: 'in_person',
-    notes: ''
-  });
-  const [submitted, setSubmitted] = useState(false);
-
   const handleBooking = async (e) => {
-    e.preventDefault();
+    if (e && e.preventDefault) e.preventDefault();
     const typeLabel = formData.type === 'design_review' ? 'Design & Material Review' : 
                       formData.type === 'site_visit' ? 'Site Progress Inspection' : 'Architectural Planning Consultation';
 
@@ -95,6 +99,8 @@ export default function ConsultationsPage() {
       notes: formData.notes || 'Scheduled via client portal'
     };
 
+    setSubmitting(true);
+
     if (isSupabaseConfigured()) {
       try {
         const payload = {
@@ -109,7 +115,7 @@ export default function ConsultationsPage() {
           location: newBooking.mode,
           meeting_link: newBooking.meetingLink,
         };
-        const { data, error } = await supabase.from('consultations').insert([payload]).select();
+        const { data } = await supabase.from('consultations').insert([payload]).select();
         if (data && data.length > 0) {
           newBooking = { ...newBooking, ...data[0], id: data[0].id };
         }
@@ -123,220 +129,221 @@ export default function ConsultationsPage() {
     try {
       localStorage.setItem('bavi_client_consultations', JSON.stringify(updated));
     } catch {}
-    setSubmitted(true);
-    setTimeout(() => {
-      setSubmitted(false);
-      setShowModal(false);
-      setFormData({
-        type: 'design_review',
-        preferredDate: '',
-        preferredTime: '11:00 AM',
-        mode: 'in_person',
-        notes: ''
-      });
-    }, 1500);
+
+    setSubmitting(false);
+    setShowModal(false);
+    showToast('Consultation appointment request submitted to architect!');
+    setFormData({
+      type: 'design_review',
+      preferredDate: '',
+      preferredTime: '11:00 AM',
+      mode: 'in_person',
+      notes: ''
+    });
   };
 
   return (
-    <div className={styles.container}>
+    <div className={s.container}>
+      <Toast 
+        message={toastMsg} 
+        variant={toastVariant} 
+        visible={toastVisible} 
+        onClose={() => setToastVisible(false)} 
+      />
+
       {/* Header Banner */}
-      <div className={styles.headerCard}>
-        <div className={styles.headerLeft}>
-          <span className={styles.badgeGold}>Designer Collaboration</span>
-          <h2 className={styles.title}>Consultations & Site Visits</h2>
-          <p className={styles.subtitle}>
-            Book dedicated one-on-one sessions with your assigned architect <strong className={styles.goldText}>{designer.name}</strong> for design reviews, material selections, and site walkthroughs.
-          </p>
+      <Card elevated style={{ padding: '28px 32px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 20 }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+              <Badge variant="gold">Designer Collaboration</Badge>
+              <Badge variant="info">One-on-One Sessions</Badge>
+            </div>
+            <h1 style={{ 
+              fontFamily: "var(--font-heading, 'Playfair Display', Georgia, serif)", 
+              fontSize: '1.75rem', 
+              color: 'var(--astryx-text-primary)', 
+              margin: 0 
+            }}>
+              Consultations &amp; Site Reviews
+            </h1>
+            <p style={{ fontSize: '0.85rem', color: 'var(--astryx-text-secondary)', margin: '4px 0 0', maxWidth: 640 }}>
+              Book dedicated walkthroughs and review sessions with your lead architect <strong style={{ color: 'var(--astryx-gold)' }}>{designer.name}</strong> for design signoffs and material approvals.
+            </p>
+          </div>
+
+          <Button 
+            variant="gold" 
+            icon={Plus} 
+            onClick={() => setShowModal(true)}
+            id="book-consultation-btn"
+          >
+            Request Appointment
+          </Button>
         </div>
-        <button 
-          onClick={() => setShowModal(true)} 
-          className={styles.bookBtn}
-          id="book-consultation-btn"
-        >
-          <Plus size={18} />
-          <span>Book Consultation</span>
-        </button>
-      </div>
+      </Card>
 
       {/* Consultations List */}
-      <div className={styles.listSection}>
-        <h3 className={styles.sectionTitle}>Scheduled & Past Sessions</h3>
-        
+      <div>
+        <h2 style={{ fontSize: '1.15rem', color: 'var(--astryx-text-primary)', fontWeight: 700, marginBottom: 16 }}>
+          Scheduled &amp; Past Sessions ({consultations.length})
+        </h2>
+
         {consultations.length === 0 ? (
-          <div style={{
-            textAlign: 'center',
-            padding: '60px 20px',
-            background: 'rgba(255,255,255,0.02)',
-            borderRadius: '12px',
-            border: '1px dashed rgba(255,255,255,0.1)',
-            color: '#888'
-          }}>
-            <CalendarDays size={36} style={{ color: 'var(--astryx-gold, #c9a84c)', marginBottom: '12px' }} />
-            <h4 style={{ color: '#fff', margin: '0 0 6px', fontSize: '1.1rem' }}>No Consultations Scheduled</h4>
-            <p style={{ margin: '0 0 16px', fontSize: '0.85rem' }}>
-              You have no active or upcoming review sessions with your architect.
-            </p>
-            <button onClick={() => setShowModal(true)} className={styles.bookBtn} style={{ margin: '0 auto' }}>
-              <Plus size={16} />
-              <span>Book First Session</span>
-            </button>
-          </div>
+          <EmptyState
+            icon={CalendarDays}
+            title="No Consultations Scheduled"
+            description="You have no active or upcoming review sessions with your architect. Book your first design or site walkthrough above."
+            action={
+              <Button variant="primary" icon={Plus} onClick={() => setShowModal(true)}>
+                Book First Session
+              </Button>
+            }
+          />
         ) : (
-          <div className={styles.grid}>
-          {consultations.map((item) => (
-            <div key={item.id} className={styles.card}>
-              <div className={styles.cardTop}>
-                <div className={styles.dateBadge}>
-                  <CalendarDays size={18} className={styles.dateIcon} />
-                  <span>{item.date}</span>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 20 }}>
+            {consultations.map((item) => (
+              <Card key={item.id} elevated style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--astryx-gold-light)', fontSize: '0.88rem', fontWeight: 600 }}>
+                    <CalendarDays size={18} color="var(--astryx-gold)" />
+                    <span>{item.date}</span>
+                  </div>
+                  <Badge variant={
+                    item.status === 'confirmed' ? 'success' :
+                    item.status === 'completed' ? 'info' : 'warning'
+                  }>
+                    {item.status === 'confirmed' ? 'Confirmed' :
+                     item.status === 'completed' ? 'Completed' : 'Pending Confirmation'}
+                  </Badge>
                 </div>
-                <span className={`
-                  ${styles.statusBadge} 
-                  ${item.status === 'confirmed' ? styles.statusConfirmed :
-                    item.status === 'pending' ? styles.statusPending : styles.statusCompleted}
-                `}>
-                  {item.status === 'confirmed' ? 'Confirmed' :
-                   item.status === 'pending' ? 'Pending Approval' : 'Completed'}
-                </span>
-              </div>
 
-              <h4 className={styles.cardSubject}>{item.type}</h4>
-              <p className={styles.cardNotes}>{item.notes}</p>
-
-              <div className={styles.cardMeta}>
-                <div className={styles.metaRow}>
-                  <Clock size={15} />
-                  <span>{item.time}</span>
+                <div>
+                  <h3 style={{ fontSize: '1.05rem', color: 'var(--astryx-text-primary)', margin: '0 0 6px', fontWeight: 600 }}>
+                    {item.type}
+                  </h3>
+                  <p style={{ fontSize: '0.82rem', color: 'var(--astryx-text-secondary)', margin: 0, lineHeight: 1.5 }}>
+                    {item.notes || 'Review session scheduled with architectural team.'}
+                  </p>
                 </div>
-                <div className={styles.metaRow}>
-                  {item.mode.includes('Video') ? <Video size={15} color="var(--color-info)" /> : <MapPin size={15} color="var(--color-gold)" />}
-                  <span>{item.mode}</span>
+
+                <div style={{ 
+                  background: 'var(--astryx-surface-1)', 
+                  padding: '12px 14px', 
+                  borderRadius: 'var(--radius-sm)', 
+                  display: 'flex', 
+                  flexDirection: 'column', 
+                  gap: 8, 
+                  fontSize: '0.82rem',
+                  color: 'var(--astryx-text-muted)'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <Clock size={15} color="var(--astryx-text-secondary)" />
+                    <span style={{ color: 'var(--astryx-text-primary)' }}>{item.time}</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    {item.mode.includes('Video') ? (
+                      <Video size={15} color="var(--astryx-info)" />
+                    ) : (
+                      <MapPin size={15} color="var(--astryx-gold)" />
+                    )}
+                    <span style={{ color: 'var(--astryx-text-primary)' }}>{item.mode}</span>
+                  </div>
                 </div>
-              </div>
 
-              {item.meetingLink && (
-                <a 
-                  href={item.meetingLink} 
-                  target="_blank" 
-                  rel="noopener noreferrer" 
-                  className={styles.joinBtn}
-                >
-                  <Video size={15} />
-                  <span>Join Google Meet Call</span>
-                </a>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-
-      {/* Booking Modal */}
-      {showModal && (
-        <div className={styles.modalOverlay} onClick={() => setShowModal(false)}>
-          <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
-            <div className={styles.modalHeader}>
-              <div>
-                <span className={styles.badgeGold}>Schedule Meeting</span>
-                <h3 className={styles.modalTitle}>Request Consultation</h3>
-              </div>
-              <button className={styles.closeBtn} onClick={() => setShowModal(false)}>✕</button>
-            </div>
-
-            {submitted ? (
-              <div className={styles.successState}>
-                <CheckCircle2 size={48} color="var(--color-success)" />
-                <h4>Consultation Requested!</h4>
-                <p>{designer.name} will confirm the slot shortly.</p>
-              </div>
-            ) : (
-              <form onSubmit={handleBooking} className={styles.modalForm}>
-                <div className={styles.formGroup}>
-                  <label className={styles.formLabel}>Consultation Type</label>
-                  <select 
-                    value={formData.type} 
-                    onChange={(e) => setFormData({...formData, type: e.target.value})}
-                    className={styles.formInput}
+                {item.meetingLink && (
+                  <Button 
+                    variant="outline" 
+                    icon={Video} 
+                    onClick={() => window.open(item.meetingLink, '_blank')}
+                    fullWidth
                   >
-                    <option value="design_review">Design & Material Selection Review</option>
-                    <option value="site_visit">On-Site Progress Walkthrough</option>
-                    <option value="technical">Electrical / Plumbing / MEP Coordination</option>
-                    <option value="handover">Milestone Sign-Off Discussion</option>
-                  </select>
-                </div>
-
-                <div className={styles.formRow}>
-                  <div className={styles.formGroup}>
-                    <label className={styles.formLabel}>Preferred Date</label>
-                    <input 
-                      type="date" 
-                      required
-                      value={formData.preferredDate}
-                      onChange={(e) => setFormData({...formData, preferredDate: e.target.value})}
-                      className={styles.formInput} 
-                    />
-                  </div>
-                  <div className={styles.formGroup}>
-                    <label className={styles.formLabel}>Preferred Time Slot</label>
-                    <select 
-                      value={formData.preferredTime} 
-                      onChange={(e) => setFormData({...formData, preferredTime: e.target.value})}
-                      className={styles.formInput}
-                    >
-                      <option value="10:00 AM - 11:30 AM">10:00 AM - 11:30 AM</option>
-                      <option value="11:30 AM - 01:00 PM">11:30 AM - 01:00 PM</option>
-                      <option value="03:00 PM - 04:30 PM">03:00 PM - 04:30 PM</option>
-                      <option value="05:00 PM - 06:30 PM">05:00 PM - 06:30 PM</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className={styles.formGroup}>
-                  <label className={styles.formLabel}>Meeting Mode</label>
-                  <div className={styles.radioGroup}>
-                    <label className={styles.radioLabel}>
-                      <input 
-                        type="radio" 
-                        name="mode" 
-                        value="in_person"
-                        checked={formData.mode === 'in_person'}
-                        onChange={() => setFormData({...formData, mode: 'in_person'})}
-                      />
-                      <span>In-Person Site Visit</span>
-                    </label>
-                    <label className={styles.radioLabel}>
-                      <input 
-                        type="radio" 
-                        name="mode" 
-                        value="video"
-                        checked={formData.mode === 'video'}
-                        onChange={() => setFormData({...formData, mode: 'video'})}
-                      />
-                      <span>Google Meet Video Call</span>
-                    </label>
-                  </div>
-                </div>
-
-                <div className={styles.formGroup}>
-                  <label className={styles.formLabel}>Notes or Specific Discussion Points</label>
-                  <textarea 
-                    rows={3} 
-                    placeholder="E.g., review marble samples for master foyer and discuss false ceiling recess lighting"
-                    value={formData.notes}
-                    onChange={(e) => setFormData({...formData, notes: e.target.value})}
-                    className={`${styles.formInput} ${styles.textarea}`}
-                  />
-                </div>
-
-                <button type="submit" className={styles.submitBtn}>
-                  <CalendarCheck size={17} />
-                  <span>Confirm Consultation Request</span>
-                </button>
-              </form>
-            )}
+                    Join Video Conference
+                  </Button>
+                )}
+              </Card>
+            ))}
           </div>
-        </div>
-      )}
+        )}
+      </div>
+
+      {/* Booking Modal using Astryx Modal */}
+      <Modal
+        open={showModal}
+        onClose={() => setShowModal(false)}
+        title="Request Consultation / Site Visit"
+        size="md"
+        footer={
+          <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', width: '100%' }}>
+            <Button variant="ghost" onClick={() => setShowModal(false)}>
+              Cancel
+            </Button>
+            <Button 
+              variant="gold" 
+              icon={Send} 
+              loading={submitting} 
+              onClick={handleBooking}
+            >
+              Submit Request
+            </Button>
+          </div>
+        }
+      >
+        <p style={{ fontSize: '0.85rem', color: 'var(--astryx-text-secondary)', marginBottom: 16 }}>
+          Choose your session type and preferred appointment slot. Your architect will review and confirm within 4 business hours.
+        </p>
+
+        <form onSubmit={handleBooking} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <Select
+            label="Session Type"
+            value={formData.type}
+            onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+            options={[
+              { value: 'design_review', label: 'Design & Material Review (Studio/Online)' },
+              { value: 'site_visit', label: 'Site Progress & Snagging Inspection' },
+              { value: 'planning', label: 'Architectural Planning & Blueprint Discussion' }
+            ]}
+          />
+
+          <TextInput
+            label="Preferred Date"
+            type="date"
+            value={formData.preferredDate}
+            onChange={(e) => setFormData({ ...formData, preferredDate: e.target.value })}
+            icon={CalendarDays}
+            required
+          />
+
+          <Select
+            label="Preferred Time Window"
+            value={formData.preferredTime}
+            onChange={(e) => setFormData({ ...formData, preferredTime: e.target.value })}
+            options={[
+              { value: '10:00 AM', label: 'Morning (10:00 AM - 11:30 AM)' },
+              { value: '02:00 PM', label: 'Afternoon (02:00 PM - 03:30 PM)' },
+              { value: '05:00 PM', label: 'Evening (05:00 PM - 06:30 PM)' }
+            ]}
+          />
+
+          <Select
+            label="Meeting Mode"
+            value={formData.mode}
+            onChange={(e) => setFormData({ ...formData, mode: e.target.value })}
+            options={[
+              { value: 'in_person', label: 'On-Site Indiranagar Plot (Physical)' },
+              { value: 'video', label: 'High-Definition Video Call (Google Meet)' }
+            ]}
+          />
+
+          <TextArea
+            label="Specific Topics / Inquiries for the Architect"
+            value={formData.notes}
+            onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+            placeholder="e.g. Would like to finalize Italian marble finishes and review living room false ceiling 3D renders."
+            rows={3}
+          />
+        </form>
+      </Modal>
     </div>
   );
 }

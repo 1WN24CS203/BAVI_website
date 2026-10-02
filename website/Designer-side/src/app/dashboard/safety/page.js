@@ -96,7 +96,7 @@ export default function SafetyCompliancePage() {
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
         <h3 style={{ margin: 0, fontSize: '1.1rem', color: '#fff' }}>Site HSE & Incident Logs</h3>
-        <Button variant="primary" icon={<Plus size={16} />} onClick={() => setModalOpen(true)}>
+        <Button variant="primary" icon={Plus} onClick={() => setModalOpen(true)}>
           Record Safety Briefing / Incident
         </Button>
       </div>

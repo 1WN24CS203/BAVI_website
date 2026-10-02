@@ -87,7 +87,7 @@ export default function EquipmentTrackerPage() {
           onChange={(e) => setSearchQuery(e.target.value)}
           style={{ width: '340px' }}
         />
-        <Button variant="primary" icon={<Plus size={16} />} onClick={() => setModalOpen(true)}>
+        <Button variant="primary" icon={Plus} onClick={() => setModalOpen(true)}>
           Register Equipment Asset
         </Button>
       </div>

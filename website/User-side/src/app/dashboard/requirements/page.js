@@ -293,7 +293,7 @@ export default function ClientRequirementsPage() {
             <Button
               variant="secondary"
               size="sm"
-              icon={<Edit3 size={14} />}
+              icon={Edit3}
               onClick={() => setIsEditingWords(true)}
             >
               Update My Vision
@@ -315,7 +315,7 @@ export default function ClientRequirementsPage() {
               <Button variant="ghost" type="button" onClick={() => setIsEditingWords(false)}>
                 Cancel
               </Button>
-              <Button variant="primary" type="submit" icon={<Send size={14} />}>
+              <Button variant="primary" type="submit" icon={Send}>
                 Save & Forward to Architect
               </Button>
             </div>
@@ -347,7 +347,7 @@ export default function ClientRequirementsPage() {
             <p style={{ margin: '0 0 16px', fontSize: '0.85rem' }}>
               Describe your living requirements, room preferences, and desired aesthetic in plain everyday language.
             </p>
-            <Button variant="primary" size="sm" icon={<Edit3 size={14} />} onClick={() => setIsEditingWords(true)}>
+            <Button variant="primary" size="sm" icon={Edit3} onClick={() => setIsEditingWords(true)}>
               Define My Vision
             </Button>
           </div>
@@ -380,7 +380,7 @@ export default function ClientRequirementsPage() {
               {!data.srs?.clientApproved ? (
                 <Button
                   variant="primary"
-                  icon={<CheckCircle2 size={16} />}
+                  icon={CheckCircle2}
                   onClick={handleApproveSRS}
                 >
                   Approve & Sign Off SRS
@@ -391,7 +391,7 @@ export default function ClientRequirementsPage() {
                   <span>Approved on {data.srs.clientApprovedAt}</span>
                 </div>
               )}
-              <Button variant="secondary" size="sm" icon={<Download size={14} />}>
+              <Button variant="secondary" size="sm" icon={Download}>
                 Export PDF
               </Button>
             </div>

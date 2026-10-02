@@ -1,478 +1,534 @@
 -- ================================================================
 -- BAVI: Bahubali Builders & Visionary Interiors
--- Production Database Schema v2.0 for Supabase (PostgreSQL)
--- Multi-Department Architecture with Access Control
+-- Master Database Schema (Supabase PostgreSQL)
+-- 
+-- 100% SAFE & NON-DESTRUCTIVE:
+-- - Safe for FRESH databases (creates all tables from scratch)
+-- - Safe for EXISTING databases (uses IF NOT EXISTS & safe column migration)
+-- - Zero data loss: Never drops existing tables or columns
+-- 
+-- ARCHITECTURE DOMAINS (5 Simple Groups):
+--   1. Identity & Auth (departments, designers, profiles, access_requests)
+--   2. Project Engine   (projects, stages, documents, requirements)
+--   3. Client Concierge (callbacks, consultations, payments, reviews, password_log)
+--   4. Site Operations  (site_details, materials, contractors, inspections, safety, equipment)
+--   5. System Audit     (activity_log, permissions, change_requests, portfolio)
 -- ================================================================
 
--- 1. Enable Required PostgreSQL Extensions
+-- ----------------------------------------------------------------
+-- STEP 1: Enable Required Extensions
+-- ----------------------------------------------------------------
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
 
--- ================================================================
--- DROP EXISTING TABLES (Reverse dependency order to allow clean re-runs)
--- ================================================================
-DROP TABLE IF EXISTS public.equipment CASCADE;
-DROP TABLE IF EXISTS public.safety_records CASCADE;
-DROP TABLE IF EXISTS public.contractors CASCADE;
-DROP TABLE IF EXISTS public.quality_inspections CASCADE;
-DROP TABLE IF EXISTS public.materials CASCADE;
-DROP TABLE IF EXISTS public.highlighted_designs CASCADE;
-DROP TABLE IF EXISTS public.contact_messages CASCADE;
-DROP TABLE IF EXISTS public.reviews CASCADE;
-DROP TABLE IF EXISTS public.payments CASCADE;
-DROP TABLE IF EXISTS public.consultations CASCADE;
-DROP TABLE IF EXISTS public.site_details CASCADE;
-DROP TABLE IF EXISTS public.activity_log CASCADE;
-DROP TABLE IF EXISTS public.access_permissions CASCADE;
-DROP TABLE IF EXISTS public.callback_requests CASCADE;
-DROP TABLE IF EXISTS public.client_requirements CASCADE;
-DROP TABLE IF EXISTS public.stage_documents CASCADE;
-DROP TABLE IF EXISTS public.project_stages CASCADE;
-DROP TABLE IF EXISTS public.projects CASCADE;
-DROP TABLE IF EXISTS public.profiles CASCADE;
-DROP TABLE IF EXISTS public.designers CASCADE;
-DROP TABLE IF EXISTS public.departments CASCADE;
+-- ----------------------------------------------------------------
+-- DOMAIN 1: IDENTITY, ORG STRUCTURE & ACCESS CONTROL
+-- ----------------------------------------------------------------
 
--- ================================================================
--- TABLE DEFINITIONS
--- ================================================================
-
--- 1. DEPARTMENTS TABLE
+-- 1.1 Departments
 CREATE TABLE IF NOT EXISTS public.departments (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    name VARCHAR(100) UNIQUE NOT NULL,         -- architecture, construction, marketing, admin
-    display_name VARCHAR(255) NOT NULL,
-    description TEXT,
-    is_active BOOLEAN DEFAULT TRUE,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+    id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name              VARCHAR(100) UNIQUE NOT NULL, -- architecture, construction, marketing, tech, admin
+    display_name      VARCHAR(255) NOT NULL,
+    description       TEXT,
+    is_custom         BOOLEAN DEFAULT FALSE,
+    created_by        VARCHAR(255),
+    requested_by_dept VARCHAR(100),
+    is_active         BOOLEAN DEFAULT TRUE,
+    created_at        TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- 2. DESIGNERS TABLE (Holds master credentials & security codes)
+-- 1.2 Designers & Staff Members
 CREATE TABLE IF NOT EXISTS public.designers (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    company_code VARCHAR(50) UNIQUE NOT NULL,
-    full_name VARCHAR(255) NOT NULL,
-    email VARCHAR(255) UNIQUE NOT NULL,
-    phone VARCHAR(50),
-    department_id UUID REFERENCES public.departments(id) ON DELETE SET NULL,
-    role VARCHAR(50) DEFAULT 'designer',       -- owner, architect, engineer, marketer, designer, manager
-    permissions JSONB DEFAULT '{}'::jsonb,      -- Granular permissions per role
-    specialization VARCHAR(255) DEFAULT 'Luxury Residential & Commercial Interiors',
-    bio TEXT,
-    avatar_url TEXT,
-    is_active BOOLEAN DEFAULT TRUE,
-    is_owner BOOLEAN DEFAULT FALSE,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+    id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    company_code      VARCHAR(50) UNIQUE NOT NULL,
+    full_name         VARCHAR(255) NOT NULL,
+    email             VARCHAR(255) UNIQUE NOT NULL,
+    phone             VARCHAR(50),
+    department        VARCHAR(100) DEFAULT 'architecture',
+    department_id     UUID REFERENCES public.departments(id) ON DELETE SET NULL,
+    role              VARCHAR(50) DEFAULT 'designer', -- owner, architect, engineer, marketer, designer, manager
+    permissions       JSONB DEFAULT '{}'::jsonb,
+    specialization    VARCHAR(255) DEFAULT 'Luxury Residential & Commercial Architecture',
+    council_reg_no    VARCHAR(100),
+    bio               TEXT,
+    avatar_url        TEXT,
+    status            VARCHAR(50) DEFAULT 'ACTIVE',
+    via_request       BOOLEAN DEFAULT FALSE,
+    password_hash     TEXT,
+    is_active         BOOLEAN DEFAULT TRUE,
+    is_owner          BOOLEAN DEFAULT FALSE,
+    created_at        TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    updated_at        TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- 3. CUSTOMER PROFILES (Linked to Supabase Auth users)
+-- 1.3 Client Profiles (Synchronized with Supabase auth.users)
 CREATE TABLE IF NOT EXISTS public.profiles (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID UNIQUE, -- References auth.users(id) when email auth is enabled
-    full_name VARCHAR(255) NOT NULL,
-    email VARCHAR(255) UNIQUE NOT NULL,
-    phone VARCHAR(50),
-    address TEXT,
-    role VARCHAR(50) DEFAULT 'customer',
-    designer_id UUID REFERENCES public.designers(id) ON DELETE SET NULL,
-    avatar_url TEXT,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+    id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id           UUID UNIQUE,
+    full_name         VARCHAR(255) NOT NULL,
+    email             VARCHAR(255) UNIQUE NOT NULL,
+    phone             VARCHAR(50),
+    address           TEXT,
+    role              VARCHAR(50) DEFAULT 'customer',
+    designer_id       UUID REFERENCES public.designers(id) ON DELETE SET NULL,
+    avatar_url        TEXT,
+    metadata          JSONB DEFAULT '{}'::jsonb,
+    created_at        TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    updated_at        TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- 4. PROJECTS TABLE (with client info & requirement tracking)
+-- 1.4 Designer Registration & Access Requests
+CREATE TABLE IF NOT EXISTS public.designer_access_requests (
+    id                TEXT PRIMARY KEY,
+    full_name         VARCHAR(255) NOT NULL,
+    email             VARCHAR(255) NOT NULL,
+    password_hash     TEXT,
+    phone             VARCHAR(50),
+    specialization    VARCHAR(255) DEFAULT 'Luxury Villa Architect',
+    council_reg_no    VARCHAR(100),
+    bio               TEXT,
+    department        VARCHAR(100) DEFAULT 'architecture',
+    requested_role    VARCHAR(50) DEFAULT 'designer',
+    is_owner_request  BOOLEAN DEFAULT FALSE,
+    keyless_disabled  BOOLEAN DEFAULT FALSE,
+    status            VARCHAR(50) DEFAULT 'PENDING',
+    generated_code    VARCHAR(100),
+    submitted_to      VARCHAR(255),
+    requested_at      TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    approved_at       TIMESTAMP WITH TIME ZONE,
+    approved_by       VARCHAR(255),
+    rejection_reason  TEXT
+);
+
+
+-- ----------------------------------------------------------------
+-- DOMAIN 2: PROJECT & CONSTRUCTION STAGES ENGINE
+-- ----------------------------------------------------------------
+
+-- 2.1 Projects
 CREATE TABLE IF NOT EXISTS public.projects (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    customer_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
-    designer_id UUID REFERENCES public.designers(id) ON DELETE SET NULL,
-    title VARCHAR(255) NOT NULL,
-    description TEXT,
-    category VARCHAR(100) DEFAULT 'residential',       -- residential, commercial, interior, renovation
-    status VARCHAR(50) DEFAULT 'planning',              -- planning, requirement_analysis, in_progress, completed, on_hold
-    budget NUMERIC(14, 2) DEFAULT 0,
-    paid_amount NUMERIC(14, 2) DEFAULT 0,
-    location VARCHAR(255),
+    id                             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    customer_id                    UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
+    designer_id                    UUID REFERENCES public.designers(id) ON DELETE SET NULL,
+    title                          VARCHAR(255) NOT NULL,
+    description                    TEXT,
+    category                       VARCHAR(100) DEFAULT 'residential',
+    status                         VARCHAR(50) DEFAULT 'planning',
+    budget                         NUMERIC(14, 2) DEFAULT 0,
+    paid_amount                    NUMERIC(14, 2) DEFAULT 0,
+    location                       VARCHAR(255),
     
-    -- Client information
-    client_name VARCHAR(255),
-    client_phone VARCHAR(50),
-    client_email VARCHAR(255),
+    -- Client Contact Snapshot
+    client_name                    VARCHAR(255),
+    client_phone                   VARCHAR(50),
+    client_email                   VARCHAR(255),
     
-    -- Requirement Analysis Phase
-    client_requirements_plain_text TEXT,                 -- Client describes needs in plain words
-    srs_document_url TEXT,                              -- Builder-generated SRS document
-    srs_status VARCHAR(50) DEFAULT 'not_started',       -- not_started, draft, review, approved, revision_requested
-    srs_content TEXT,                                   -- SRS content (structured)
+    -- Fast JSON Storage for Stages, Milestones & SRS (Zero complex joins)
+    stages                         JSONB DEFAULT '[]'::jsonb,
+    milestones                     JSONB DEFAULT '[]'::jsonb,
+    client_requirements            TEXT,
+    client_requirements_plain_text TEXT,
+    srs_content                    TEXT,
+    srs_status                     VARCHAR(50) DEFAULT 'draft', -- draft, review, approved
+    completion_percentage          INT DEFAULT 0,
+    progress                       INT DEFAULT 0,
     
-    start_date DATE,
-    estimated_completion DATE,
-    completion_percentage INT DEFAULT 0,
-    floor_plan_url TEXT,
-    site_photos JSONB DEFAULT '[]'::jsonb,
-    documents JSONB DEFAULT '[]'::jsonb,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+    start_date                     DATE,
+    estimated_end_date             DATE,
+    created_at                     TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    updated_at                     TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- 5. PROJECT STAGES TABLE (replaces hardcoded milestone arrays â€” dual approval)
+-- 2.2 Relational Project Stages (For relational workflows if needed)
 CREATE TABLE IF NOT EXISTS public.project_stages (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    project_id UUID REFERENCES public.projects(id) ON DELETE CASCADE NOT NULL,
-    title VARCHAR(255) NOT NULL,
-    description TEXT,
-    due_date DATE,
-    amount NUMERIC(12, 2) DEFAULT 0,
-    status VARCHAR(50) DEFAULT 'pending',               -- pending, in_progress, awaiting_approval, completed
-    order_index INT DEFAULT 1,
-    
-    -- Dual Approval System
-    builder_approved BOOLEAN DEFAULT FALSE,
-    builder_approved_at TIMESTAMP WITH TIME ZONE,
-    builder_approved_by UUID REFERENCES public.designers(id),
-    client_approved BOOLEAN DEFAULT FALSE,
-    client_approved_at TIMESTAMP WITH TIME ZONE,
-    client_approved_by UUID REFERENCES public.profiles(id),
-    
-    -- Stage Documents
-    documents JSONB DEFAULT '[]'::jsonb,                -- Array of {url, name, size, type, uploaded_by, uploaded_at}
-    
-    -- Stage feedback
-    client_feedback TEXT,
-    builder_notes TEXT,
-    
-    completion_date DATE,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+    id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    project_id        UUID REFERENCES public.projects(id) ON DELETE CASCADE,
+    stage_number      INT NOT NULL,
+    name              VARCHAR(255) NOT NULL,
+    description       TEXT,
+    status            VARCHAR(50) DEFAULT 'pending',
+    progress          INT DEFAULT 0,
+    builder_approved  BOOLEAN DEFAULT FALSE,
+    client_approved   BOOLEAN DEFAULT FALSE,
+    queries           JSONB DEFAULT '[]'::jsonb,
+    created_at        TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    updated_at        TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- 6. STAGE DOCUMENTS TABLE (per-stage uploaded documents)
+-- 2.3 Stage Documents & Blueprints
 CREATE TABLE IF NOT EXISTS public.stage_documents (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    stage_id UUID REFERENCES public.project_stages(id) ON DELETE CASCADE NOT NULL,
-    project_id UUID REFERENCES public.projects(id) ON DELETE CASCADE NOT NULL,
-    file_name VARCHAR(500) NOT NULL,
-    file_url TEXT NOT NULL,
-    file_size BIGINT DEFAULT 0,
-    file_type VARCHAR(100),                             -- pdf, dwg, jpg, png, docx, xlsx, zip
-    category VARCHAR(100) DEFAULT 'general',            -- blueprint, report, photo, invoice, permit, contract
-    uploaded_by_type VARCHAR(50) DEFAULT 'designer',    -- designer, client
-    uploaded_by_id UUID,
-    uploaded_by_name VARCHAR(255),
-    notes TEXT,
-    is_approved BOOLEAN DEFAULT FALSE,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+    id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    stage_id          UUID REFERENCES public.project_stages(id) ON DELETE CASCADE,
+    project_id        UUID REFERENCES public.projects(id) ON DELETE CASCADE,
+    file_name         VARCHAR(255) NOT NULL,
+    file_type         VARCHAR(100),
+    file_url          TEXT,
+    file_data         TEXT, -- Base64 storage fallback
+    file_size         BIGINT,
+    uploaded_by       VARCHAR(255),
+    created_at        TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- 7. CLIENT REQUIREMENTS TABLE
+-- 2.4 Client Requirements Table (Backward compatibility)
 CREATE TABLE IF NOT EXISTS public.client_requirements (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    project_id UUID REFERENCES public.projects(id) ON DELETE CASCADE NOT NULL,
-    client_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
-    
-    -- Client's plain text requirements
-    plain_text_requirements TEXT NOT NULL,
-    
-    -- Builder's SRS output
-    srs_title VARCHAR(255),
-    srs_scope TEXT,
-    srs_functional_requirements TEXT,
-    srs_non_functional_requirements TEXT,
-    srs_material_specifications TEXT,
-    srs_timeline TEXT,
-    srs_budget_breakdown TEXT,
-    srs_additional_notes TEXT,
-    
-    status VARCHAR(50) DEFAULT 'submitted',             -- submitted, srs_drafted, under_review, approved, revision_requested
-    revision_notes TEXT,
-    
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+    id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    project_id        UUID REFERENCES public.projects(id) ON DELETE CASCADE,
+    customer_id       UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
+    raw_text          TEXT NOT NULL,
+    structured_srs    JSONB DEFAULT '{}'::jsonb,
+    status            VARCHAR(50) DEFAULT 'pending_review',
+    created_at        TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    updated_at        TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- 8. CALLBACK REQUESTS TABLE (Marketing Team)
+
+-- ----------------------------------------------------------------
+-- DOMAIN 3: CLIENT CONCIERGE & FINANCIAL ESCROW
+-- ----------------------------------------------------------------
+
+-- 3.1 Callback Requests (Gated Client Onboarding)
 CREATE TABLE IF NOT EXISTS public.callback_requests (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    name VARCHAR(255) NOT NULL,
-    phone VARCHAR(50) NOT NULL,
-    email VARCHAR(255),
-    is_client BOOLEAN DEFAULT FALSE,                    -- Whether requester is existing client
-    client_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
-    project_id UUID REFERENCES public.projects(id) ON DELETE SET NULL,
-    
-    subject VARCHAR(255),
-    message TEXT,
-    preferred_time VARCHAR(100),
-    priority VARCHAR(50) DEFAULT 'normal',              -- low, normal, high, urgent
-    status VARCHAR(50) DEFAULT 'new',                   -- new, contacted, scheduled, completed, cancelled
-    
-    assigned_to UUID REFERENCES public.designers(id) ON DELETE SET NULL,
-    assigned_to_name VARCHAR(255),
-    notes TEXT,
-    
-    contacted_at TIMESTAMP WITH TIME ZONE,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+    id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name              VARCHAR(255) NOT NULL,
+    phone             VARCHAR(50) NOT NULL,
+    email             VARCHAR(255),
+    is_client         BOOLEAN DEFAULT FALSE,
+    client_id         UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+    subject           VARCHAR(255) DEFAULT 'General Consultation Inquiry',
+    message           TEXT,
+    status            VARCHAR(50) DEFAULT 'new', -- new, contacted/attended, completed/resolved
+    assigned_to       UUID REFERENCES public.designers(id) ON DELETE SET NULL,
+    assigned_to_name  VARCHAR(255),
+    priority          VARCHAR(20) DEFAULT 'medium',
+    contacted_at      TIMESTAMP WITH TIME ZONE,
+    created_at        TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    updated_at        TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- 9. ACCESS PERMISSIONS TABLE (Cross-access grants)
-CREATE TABLE IF NOT EXISTS public.access_permissions (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    
-    -- Who is granting access
-    granted_by UUID NOT NULL,
-    granted_by_type VARCHAR(50) NOT NULL,               -- owner, designer, client
-    
-    -- Who is receiving access
-    granted_to UUID NOT NULL,
-    granted_to_type VARCHAR(50) NOT NULL,               -- designer, client
-    
-    -- What access is being granted
-    resource_type VARCHAR(50) NOT NULL,                  -- project, department, client_data
-    resource_id UUID,                                    -- Specific resource ID (project, etc.)
-    permission_level VARCHAR(50) DEFAULT 'read',         -- read, write, admin
-    
-    expires_at TIMESTAMP WITH TIME ZONE,
-    is_active BOOLEAN DEFAULT TRUE,
-    
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
-);
-
--- 10. ACTIVITY LOG TABLE (Owner monitoring / audit trail)
-CREATE TABLE IF NOT EXISTS public.activity_log (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    
-    actor_id UUID NOT NULL,
-    actor_type VARCHAR(50) NOT NULL,                     -- owner, designer, client, system
-    actor_name VARCHAR(255),
-    department VARCHAR(100),
-    
-    action VARCHAR(255) NOT NULL,                        -- created_project, approved_stage, uploaded_document, etc.
-    resource_type VARCHAR(100),                          -- project, stage, document, callback, requirement
-    resource_id UUID,
-    resource_name VARCHAR(255),
-    
-    details JSONB DEFAULT '{}'::jsonb,
-    ip_address VARCHAR(50),
-    
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
-);
-
--- 11. SITE DETAILS TABLE
-CREATE TABLE IF NOT EXISTS public.site_details (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    project_id UUID REFERENCES public.projects(id) ON DELETE CASCADE NOT NULL,
-    customer_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
-    site_address TEXT NOT NULL,
-    city VARCHAR(100) DEFAULT 'Bengaluru',
-    state VARCHAR(100) DEFAULT 'Karnataka',
-    pincode VARCHAR(20),
-    coordinates VARCHAR(100),
-    land_area_sqft NUMERIC(10, 2),
-    builtup_area_sqft NUMERIC(10, 2),
-    approval_status VARCHAR(50) DEFAULT 'under_review',
-    zoning VARCHAR(100) DEFAULT 'Residential (R1)',
-    soil_test_status VARCHAR(50) DEFAULT 'pending',
-    water_source VARCHAR(100) DEFAULT 'Municipal / Borewell',
-    electricity_status VARCHAR(100) DEFAULT 'Connection Under Sanction',
-    notes TEXT,
-    site_images JSONB DEFAULT '[]'::jsonb,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
-);
-
--- 12. CONSULTATIONS TABLE
+-- 3.2 Scheduled Consultations & Site Walkthroughs
 CREATE TABLE IF NOT EXISTS public.consultations (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    customer_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
-    designer_id UUID REFERENCES public.designers(id) ON DELETE SET NULL,
-    customer_name VARCHAR(255) NOT NULL,
-    customer_email VARCHAR(255) NOT NULL,
-    customer_phone VARCHAR(50),
-    consultation_type VARCHAR(100) DEFAULT 'initial',
-    preferred_date DATE NOT NULL,
-    preferred_time VARCHAR(50) NOT NULL,
-    notes TEXT,
-    status VARCHAR(50) DEFAULT 'pending',
-    meeting_link TEXT,
-    location TEXT,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+    id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    customer_id       UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
+    customer_name     VARCHAR(255),
+    customer_email    VARCHAR(255),
+    customer_phone    VARCHAR(50),
+    designer_id       UUID REFERENCES public.designers(id) ON DELETE SET NULL,
+    consultation_type VARCHAR(100) DEFAULT 'design_review',
+    preferred_date    DATE NOT NULL,
+    preferred_time    VARCHAR(50) NOT NULL,
+    notes             TEXT,
+    status            VARCHAR(50) DEFAULT 'pending', -- pending, confirmed, completed, cancelled
+    location          VARCHAR(255) DEFAULT 'On-Site Indiranagar Plot',
+    meeting_link      TEXT,
+    created_at        TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    updated_at        TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- 13. PAYMENTS TABLE
+-- 3.3 Payments & Billing Milestone Escrow
 CREATE TABLE IF NOT EXISTS public.payments (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    project_id UUID REFERENCES public.projects(id) ON DELETE SET NULL,
-    customer_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
-    designer_id UUID REFERENCES public.designers(id) ON DELETE SET NULL,
-    milestone_id UUID REFERENCES public.project_stages(id) ON DELETE SET NULL,
-    amount NUMERIC(12, 2) NOT NULL,
-    currency VARCHAR(10) DEFAULT 'INR',
-    status VARCHAR(50) DEFAULT 'completed',
-    payment_method VARCHAR(50) DEFAULT 'phone_upi',
-    utr_number VARCHAR(100),
-    proof_url TEXT,
-    receipt_number VARCHAR(100) UNIQUE,
-    description TEXT,
-    notes TEXT,
-    paid_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+    id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    project_id        UUID REFERENCES public.projects(id) ON DELETE CASCADE,
+    customer_id       UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
+    amount            NUMERIC(14, 2) NOT NULL,
+    milestone_id      UUID REFERENCES public.project_stages(id) ON DELETE SET NULL,
+    description       TEXT,
+    payment_method    VARCHAR(50) DEFAULT 'upi',
+    utr_number        VARCHAR(100),
+    receipt_number    VARCHAR(100) UNIQUE,
+    status            VARCHAR(50) DEFAULT 'pending', -- pending, completed, failed, refunded
+    due_date          DATE,
+    paid_at           TIMESTAMP WITH TIME ZONE,
+    notes             TEXT,
+    created_at        TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    updated_at        TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- 14. REVIEWS TABLE
+-- 3.4 Client Reviews & Ratings
 CREATE TABLE IF NOT EXISTS public.reviews (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    project_id UUID REFERENCES public.projects(id) ON DELETE CASCADE,
-    customer_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
-    designer_id UUID REFERENCES public.designers(id) ON DELETE SET NULL,
-    customer_name VARCHAR(255) NOT NULL,
-    rating INT CHECK (rating >= 1 AND rating <= 5) NOT NULL,
-    title VARCHAR(255),
-    review_text TEXT NOT NULL,
-    is_featured BOOLEAN DEFAULT FALSE,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+    id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    project_id        UUID REFERENCES public.projects(id) ON DELETE CASCADE,
+    customer_id       UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
+    rating            INT CHECK (rating >= 1 AND rating <= 5) NOT NULL,
+    title             VARCHAR(255),
+    comment           TEXT,
+    author_name       VARCHAR(255),
+    is_published      BOOLEAN DEFAULT TRUE,
+    created_at        TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- 15. CONTACT MESSAGES TABLE
+-- 3.5 Contact Messages (Public Showcase Site)
 CREATE TABLE IF NOT EXISTS public.contact_messages (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    name VARCHAR(255) NOT NULL,
-    email VARCHAR(255) NOT NULL,
-    phone VARCHAR(50),
-    subject VARCHAR(255),
-    message TEXT NOT NULL,
-    status VARCHAR(50) DEFAULT 'new',
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+    id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name              VARCHAR(255) NOT NULL,
+    email             VARCHAR(255) NOT NULL,
+    phone             VARCHAR(50),
+    subject           VARCHAR(255),
+    message           TEXT NOT NULL,
+    status            VARCHAR(50) DEFAULT 'unread',
+    created_at        TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- 16. HIGHLIGHTED DESIGNS TABLE
-CREATE TABLE IF NOT EXISTS public.highlighted_designs (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    designer_id UUID REFERENCES public.designers(id) ON DELETE SET NULL,
-    title VARCHAR(255) NOT NULL,
-    category VARCHAR(100) NOT NULL,
-    description TEXT,
-    image_url TEXT NOT NULL,
-    location VARCHAR(255),
-    is_active BOOLEAN DEFAULT TRUE,
-    display_order INT DEFAULT 1,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+-- 3.6 Client Password Change Audit Log
+CREATE TABLE IF NOT EXISTS public.client_password_log (
+    id                TEXT PRIMARY KEY,
+    client_id         TEXT,
+    client_code       VARCHAR(100),
+    client_name       VARCHAR(255) NOT NULL,
+    client_email      VARCHAR(255) NOT NULL,
+    reason            TEXT,
+    status            VARCHAR(50) DEFAULT 'APPLIED',
+    submitted_at      TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    designer_notified BOOLEAN DEFAULT TRUE
 );
 
--- 17. MATERIALS TRACKER TABLE (Construction Department)
+
+-- ----------------------------------------------------------------
+-- DOMAIN 4: SITE OPERATIONS, PROCUREMENT & CONSTRUCTION MANAGEMENT
+-- ----------------------------------------------------------------
+
+-- 4.1 Plot & Geolocation Site Details
+CREATE TABLE IF NOT EXISTS public.site_details (
+    id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    project_id        UUID REFERENCES public.projects(id) ON DELETE CASCADE,
+    plot_number       VARCHAR(100),
+    survey_number     VARCHAR(100),
+    address           TEXT,
+    city              VARCHAR(100) DEFAULT 'Bengaluru',
+    state             VARCHAR(100) DEFAULT 'Karnataka',
+    pincode           VARCHAR(20),
+    latitude          NUMERIC(10, 8),
+    longitude         NUMERIC(11, 8),
+    plot_dimensions   VARCHAR(100),
+    total_area_sqft   NUMERIC(10, 2),
+    builtup_area_sqft NUMERIC(10, 2),
+    zoning_type       VARCHAR(100),
+    soil_test_report  TEXT,
+    sanction_number   VARCHAR(100),
+    sanction_date     DATE,
+    created_at        TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    updated_at        TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- 4.2 Material Procurement & Inventory Tracker
 CREATE TABLE IF NOT EXISTS public.materials (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    project_id UUID REFERENCES public.projects(id) ON DELETE CASCADE NOT NULL,
-    name VARCHAR(255) NOT NULL,
-    category VARCHAR(100) DEFAULT 'general',            -- cement, steel, timber, electrical, plumbing, paint, tiles, fittings
-    quantity NUMERIC(12, 2) DEFAULT 0,
-    unit VARCHAR(50) DEFAULT 'units',                   -- units, bags, tons, sqft, meters, liters
-    unit_price NUMERIC(12, 2) DEFAULT 0,
-    total_cost NUMERIC(14, 2) DEFAULT 0,
-    supplier VARCHAR(255),
-    status VARCHAR(50) DEFAULT 'required',              -- required, ordered, delivered, in_use, consumed
-    delivery_date DATE,
-    notes TEXT,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+    id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    project_id        UUID REFERENCES public.projects(id) ON DELETE CASCADE,
+    name              VARCHAR(255) NOT NULL,
+    category          VARCHAR(100) NOT NULL, -- cement, steel, timber, electrical, plumbing, tiles, paint
+    quantity          NUMERIC(10, 2) NOT NULL,
+    unit              VARCHAR(50) DEFAULT 'units',
+    unit_price        NUMERIC(10, 2) DEFAULT 0,
+    total_cost        NUMERIC(12, 2) DEFAULT 0,
+    supplier          VARCHAR(255),
+    status            VARCHAR(50) DEFAULT 'required', -- required, ordered, delivered, in_use, consumed
+    delivery_date     DATE,
+    notes             TEXT,
+    created_at        TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    updated_at        TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- 18. QUALITY INSPECTIONS TABLE (Construction Department)
+-- 4.3 Quality Inspections & Audit Scorecards
 CREATE TABLE IF NOT EXISTS public.quality_inspections (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    project_id UUID REFERENCES public.projects(id) ON DELETE CASCADE NOT NULL,
-    stage_id UUID REFERENCES public.project_stages(id) ON DELETE SET NULL,
-    inspector_name VARCHAR(255) NOT NULL,
-    inspection_type VARCHAR(100) DEFAULT 'structural',   -- structural, electrical, plumbing, finishing, safety, environmental
-    inspection_date DATE NOT NULL,
-    result VARCHAR(50) DEFAULT 'pending',                -- pending, passed, failed, conditional
-    findings TEXT,
-    corrective_actions TEXT,
-    photos JSONB DEFAULT '[]'::jsonb,
-    report_url TEXT,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+    id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    project_id        UUID REFERENCES public.projects(id) ON DELETE CASCADE,
+    inspector_id      UUID REFERENCES public.designers(id) ON DELETE SET NULL,
+    title             VARCHAR(255) NOT NULL,
+    category          VARCHAR(100), -- structural, electrical, plumbing, finishing, waterproofing
+    inspection_date   DATE NOT NULL,
+    status            VARCHAR(50) DEFAULT 'passed', -- passed, action_required, failed
+    score             INT DEFAULT 100,
+    checklist         JSONB DEFAULT '[]'::jsonb,
+    remarks           TEXT,
+    action_items      TEXT,
+    created_at        TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- 19. CONTRACTORS TABLE (Construction Department)
+-- 4.4 Contractor & Agency Registry
 CREATE TABLE IF NOT EXISTS public.contractors (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    name VARCHAR(255) NOT NULL,
-    company VARCHAR(255),
-    specialization VARCHAR(255),                         -- masonry, electrical, plumbing, painting, carpentry, landscaping
-    phone VARCHAR(50),
-    email VARCHAR(255),
-    license_number VARCHAR(100),
-    rating INT DEFAULT 0,
-    total_projects INT DEFAULT 0,
-    status VARCHAR(50) DEFAULT 'active',                 -- active, on_assignment, suspended, blacklisted
-    notes TEXT,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+    id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name              VARCHAR(255) NOT NULL,
+    specialty         VARCHAR(100) NOT NULL,
+    phone             VARCHAR(50),
+    email             VARCHAR(255),
+    address           TEXT,
+    rating            NUMERIC(3, 2) DEFAULT 5.0,
+    compliance_status VARCHAR(50) DEFAULT 'VERIFIED',
+    is_active         BOOLEAN DEFAULT TRUE,
+    created_at        TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- 20. SAFETY COMPLIANCE TABLE (Construction Department)
+-- 4.5 Site Health, Safety & Environment (HSE) Records
 CREATE TABLE IF NOT EXISTS public.safety_records (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    project_id UUID REFERENCES public.projects(id) ON DELETE CASCADE NOT NULL,
-    record_type VARCHAR(100) DEFAULT 'inspection',       -- inspection, incident, drill, certification, violation
-    title VARCHAR(255) NOT NULL,
-    description TEXT,
-    severity VARCHAR(50) DEFAULT 'low',                  -- low, medium, high, critical
-    status VARCHAR(50) DEFAULT 'open',                   -- open, resolved, escalated, closed
-    reported_by VARCHAR(255),
-    resolved_by VARCHAR(255),
-    resolution_notes TEXT,
-    incident_date DATE,
-    resolved_date DATE,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+    id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    project_id        UUID REFERENCES public.projects(id) ON DELETE CASCADE,
+    record_type       VARCHAR(50) NOT NULL, -- briefing, drill, incident, near_miss, inspection
+    title             VARCHAR(255) NOT NULL,
+    description       TEXT,
+    severity          VARCHAR(20) DEFAULT 'low',
+    logged_by         VARCHAR(255),
+    action_taken      TEXT,
+    logged_date       DATE NOT NULL,
+    created_at        TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- 21. EQUIPMENT TRACKER TABLE (Construction Department)
+-- 4.6 Heavy Machinery & Equipment Tracking
 CREATE TABLE IF NOT EXISTS public.equipment (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    name VARCHAR(255) NOT NULL,
-    category VARCHAR(100) DEFAULT 'general',             -- excavation, concrete, scaffolding, lifting, surveying, safety, power_tools
-    status VARCHAR(50) DEFAULT 'available',              -- available, in_use, maintenance, retired
-    project_id UUID REFERENCES public.projects(id) ON DELETE SET NULL,
-    assigned_to VARCHAR(255),
-    condition_status VARCHAR(50) DEFAULT 'good',         -- excellent, good, fair, needs_repair
-    rental_daily_cost NUMERIC(10, 2) DEFAULT 0,
-    last_maintenance DATE,
-    next_maintenance DATE,
-    notes TEXT,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+    id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name              VARCHAR(255) NOT NULL,
+    category          VARCHAR(100),
+    serial_number     VARCHAR(100),
+    project_id        UUID REFERENCES public.projects(id) ON DELETE SET NULL,
+    status            VARCHAR(50) DEFAULT 'available', -- active, maintenance, available
+    operator_name     VARCHAR(255),
+    daily_rate        NUMERIC(10, 2) DEFAULT 0,
+    created_at        TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    updated_at        TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- ================================================================
--- PERFORMANCE INDEXES
--- ================================================================
+
+-- ----------------------------------------------------------------
+-- DOMAIN 5: AUDIT TRAIL, GOVERNANCE & PORTFOLIO
+-- ----------------------------------------------------------------
+
+-- 5.1 Audit Activity Log
+CREATE TABLE IF NOT EXISTS public.activity_log (
+    id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    actor_id          UUID,
+    actor_name        VARCHAR(255) NOT NULL,
+    actor_role        VARCHAR(50),
+    department        VARCHAR(100),
+    action            VARCHAR(100) NOT NULL,
+    target_type       VARCHAR(100),
+    target_id         VARCHAR(255),
+    target_name       VARCHAR(255),
+    details           JSONB DEFAULT '{}'::jsonb,
+    ip_address        VARCHAR(50),
+    created_at        TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- 5.2 Access Permissions
+CREATE TABLE IF NOT EXISTS public.access_permissions (
+    id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    resource          VARCHAR(100) NOT NULL,
+    action            VARCHAR(50) NOT NULL,
+    granted_to        VARCHAR(50) NOT NULL,
+    granted_by        UUID REFERENCES public.designers(id) ON DELETE SET NULL,
+    created_at        TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- 5.3 Department Change Requests (Exclusive to Tech department)
+CREATE TABLE IF NOT EXISTS public.department_change_requests (
+    id                 TEXT PRIMARY KEY,
+    action             VARCHAR(10) NOT NULL,
+    dept_key           VARCHAR(100) NOT NULL,
+    dept_display       VARCHAR(255) NOT NULL,
+    requested_by       VARCHAR(255),
+    requested_by_dept  VARCHAR(100) DEFAULT 'tech',
+    status             VARCHAR(50) DEFAULT 'PENDING',
+    submitted_at       TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    approved_at        TIMESTAMP WITH TIME ZONE,
+    approved_by        VARCHAR(255),
+    rejected_at        TIMESTAMP WITH TIME ZONE,
+    rejection_reason   TEXT
+);
+
+-- 5.4 Email Change Requests
+CREATE TABLE IF NOT EXISTS public.email_change_requests (
+    id                 TEXT PRIMARY KEY,
+    designer_id        TEXT,
+    full_name          VARCHAR(255) NOT NULL,
+    department         VARCHAR(100),
+    role               VARCHAR(100),
+    company_code       VARCHAR(100),
+    current_email      VARCHAR(255) NOT NULL,
+    requested_email    VARCHAR(255) NOT NULL,
+    reason             TEXT,
+    status             VARCHAR(50) DEFAULT 'PENDING',
+    submitted_at       TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    approved_at        TIMESTAMP WITH TIME ZONE,
+    approved_by        VARCHAR(255),
+    rejected_at        TIMESTAMP WITH TIME ZONE,
+    rejection_reason   TEXT
+);
+
+-- 5.5 Featured Signature Designs Portfolio
+CREATE TABLE IF NOT EXISTS public.highlighted_designs (
+    id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    designer_id       UUID REFERENCES public.designers(id) ON DELETE CASCADE,
+    title             VARCHAR(255) NOT NULL,
+    category          VARCHAR(100) DEFAULT 'interior',
+    description       TEXT,
+    image_url         TEXT NOT NULL,
+    tags              TEXT[],
+    is_featured       BOOLEAN DEFAULT TRUE,
+    created_at        TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+
+-- ----------------------------------------------------------------
+-- SAFE COLUMN MIGRATION FOR PRE-EXISTING TABLES
+-- (Guarantees zero-error re-runs even if tables already existed)
+-- ----------------------------------------------------------------
+
+ALTER TABLE public.departments
+  ADD COLUMN IF NOT EXISTS is_custom          BOOLEAN DEFAULT FALSE,
+  ADD COLUMN IF NOT EXISTS created_by         VARCHAR(255),
+  ADD COLUMN IF NOT EXISTS requested_by_dept  VARCHAR(100);
+
+ALTER TABLE public.designers
+  ADD COLUMN IF NOT EXISTS council_reg_no     VARCHAR(100),
+  ADD COLUMN IF NOT EXISTS status             VARCHAR(50) DEFAULT 'ACTIVE',
+  ADD COLUMN IF NOT EXISTS via_request        BOOLEAN DEFAULT FALSE,
+  ADD COLUMN IF NOT EXISTS department         VARCHAR(100) DEFAULT 'architecture',
+  ADD COLUMN IF NOT EXISTS password_hash      TEXT;
+
+ALTER TABLE public.profiles
+  ADD COLUMN IF NOT EXISTS metadata           JSONB DEFAULT '{}'::jsonb;
+
+ALTER TABLE public.projects
+  ADD COLUMN IF NOT EXISTS stages                         JSONB DEFAULT '[]'::jsonb,
+  ADD COLUMN IF NOT EXISTS milestones                     JSONB DEFAULT '[]'::jsonb,
+  ADD COLUMN IF NOT EXISTS client_requirements            TEXT,
+  ADD COLUMN IF NOT EXISTS client_requirements_plain_text TEXT,
+  ADD COLUMN IF NOT EXISTS srs_content                    TEXT,
+  ADD COLUMN IF NOT EXISTS srs_status                     VARCHAR(50) DEFAULT 'draft',
+  ADD COLUMN IF NOT EXISTS progress                       INT DEFAULT 0;
+
+ALTER TABLE public.project_stages
+  ADD COLUMN IF NOT EXISTS progress           INT DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS queries            JSONB DEFAULT '[]'::jsonb,
+  ADD COLUMN IF NOT EXISTS updated_at         TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now());
+
+ALTER TABLE public.stage_documents
+  ADD COLUMN IF NOT EXISTS file_data          TEXT;
+
+ALTER TABLE public.payments
+  ADD COLUMN IF NOT EXISTS updated_at         TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now());
+
+
+-- ----------------------------------------------------------------
+-- PERFORMANCE INDEXES (Safe IF NOT EXISTS)
+-- ----------------------------------------------------------------
+
 CREATE INDEX IF NOT EXISTS idx_profiles_email ON public.profiles(email);
-CREATE INDEX IF NOT EXISTS idx_profiles_designer_id ON public.profiles(designer_id);
+CREATE INDEX IF NOT EXISTS idx_designers_email ON public.designers(email);
 CREATE INDEX IF NOT EXISTS idx_projects_customer_id ON public.projects(customer_id);
 CREATE INDEX IF NOT EXISTS idx_projects_designer_id ON public.projects(designer_id);
 CREATE INDEX IF NOT EXISTS idx_projects_client_email ON public.projects(client_email);
-CREATE INDEX IF NOT EXISTS idx_project_stages_project_id ON public.project_stages(project_id);
-CREATE INDEX IF NOT EXISTS idx_stage_documents_stage_id ON public.stage_documents(stage_id);
-CREATE INDEX IF NOT EXISTS idx_stage_documents_project_id ON public.stage_documents(project_id);
 CREATE INDEX IF NOT EXISTS idx_callback_requests_status ON public.callback_requests(status);
 CREATE INDEX IF NOT EXISTS idx_callback_requests_is_client ON public.callback_requests(is_client);
-CREATE INDEX IF NOT EXISTS idx_activity_log_actor_id ON public.activity_log(actor_id);
-CREATE INDEX IF NOT EXISTS idx_activity_log_department ON public.activity_log(department);
-CREATE INDEX IF NOT EXISTS idx_access_permissions_granted_to ON public.access_permissions(granted_to);
-CREATE INDEX IF NOT EXISTS idx_client_requirements_project_id ON public.client_requirements(project_id);
-CREATE INDEX IF NOT EXISTS idx_payments_customer_id ON public.payments(customer_id);
 CREATE INDEX IF NOT EXISTS idx_payments_project_id ON public.payments(project_id);
-CREATE INDEX IF NOT EXISTS idx_consultations_customer_id ON public.consultations(customer_id);
-CREATE INDEX IF NOT EXISTS idx_consultations_designer_id ON public.consultations(designer_id);
-CREATE INDEX IF NOT EXISTS idx_materials_project_id ON public.materials(project_id);
-CREATE INDEX IF NOT EXISTS idx_quality_inspections_project_id ON public.quality_inspections(project_id);
-CREATE INDEX IF NOT EXISTS idx_designers_department_id ON public.designers(department_id);
+CREATE INDEX IF NOT EXISTS idx_payments_customer_id ON public.payments(customer_id);
+CREATE INDEX IF NOT EXISTS idx_consultations_customer_email ON public.consultations(customer_email);
+CREATE INDEX IF NOT EXISTS idx_activity_log_actor_id ON public.activity_log(actor_id);
 
--- ================================================================
--- AUTOMATED UPDATED_AT TRIGGER FUNCTION
--- ================================================================
+
+-- ----------------------------------------------------------------
+-- AUTOMATED UPDATED_AT TRIGGERS
+-- ----------------------------------------------------------------
+
 CREATE OR REPLACE FUNCTION public.handle_updated_at()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -490,89 +546,14 @@ CREATE TRIGGER set_profiles_updated_at BEFORE UPDATE ON public.profiles FOR EACH
 DROP TRIGGER IF EXISTS set_projects_updated_at ON public.projects;
 CREATE TRIGGER set_projects_updated_at BEFORE UPDATE ON public.projects FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
 
-DROP TRIGGER IF EXISTS set_site_details_updated_at ON public.site_details;
-CREATE TRIGGER set_site_details_updated_at BEFORE UPDATE ON public.site_details FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
-
-DROP TRIGGER IF EXISTS set_consultations_updated_at ON public.consultations;
-CREATE TRIGGER set_consultations_updated_at BEFORE UPDATE ON public.consultations FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
-
-DROP TRIGGER IF EXISTS set_callback_requests_updated_at ON public.callback_requests;
-CREATE TRIGGER set_callback_requests_updated_at BEFORE UPDATE ON public.callback_requests FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
-
-DROP TRIGGER IF EXISTS set_client_requirements_updated_at ON public.client_requirements;
-CREATE TRIGGER set_client_requirements_updated_at BEFORE UPDATE ON public.client_requirements FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
-
-DROP TRIGGER IF EXISTS set_materials_updated_at ON public.materials;
-CREATE TRIGGER set_materials_updated_at BEFORE UPDATE ON public.materials FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
-
-DROP TRIGGER IF EXISTS set_equipment_updated_at ON public.equipment;
-CREATE TRIGGER set_equipment_updated_at BEFORE UPDATE ON public.equipment FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
-
--- ================================================================
--- ROW LEVEL SECURITY (RLS) POLICIES
--- ================================================================
-ALTER TABLE public.departments ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.designers ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.projects ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.project_stages ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.stage_documents ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.client_requirements ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.callback_requests ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.access_permissions ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.activity_log ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.site_details ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.consultations ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.payments ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.reviews ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.contact_messages ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.highlighted_designs ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.materials ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.quality_inspections ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.contractors ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.safety_records ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.equipment ENABLE ROW LEVEL SECURITY;
-
--- Open policies for initial development (tighten for production)
-CREATE POLICY "Allow all departments" ON public.departments FOR ALL USING (true);
-CREATE POLICY "Allow all designers" ON public.designers FOR ALL USING (true);
-CREATE POLICY "Allow all profiles" ON public.profiles FOR ALL USING (true);
-CREATE POLICY "Allow all projects" ON public.projects FOR ALL USING (true);
-CREATE POLICY "Allow all project_stages" ON public.project_stages FOR ALL USING (true);
-CREATE POLICY "Allow all stage_documents" ON public.stage_documents FOR ALL USING (true);
-CREATE POLICY "Allow all client_requirements" ON public.client_requirements FOR ALL USING (true);
-CREATE POLICY "Allow all callback_requests" ON public.callback_requests FOR ALL USING (true);
-CREATE POLICY "Allow all access_permissions" ON public.access_permissions FOR ALL USING (true);
-CREATE POLICY "Allow all activity_log" ON public.activity_log FOR ALL USING (true);
-CREATE POLICY "Allow all site_details" ON public.site_details FOR ALL USING (true);
-CREATE POLICY "Allow all consultations" ON public.consultations FOR ALL USING (true);
-CREATE POLICY "Allow all payments" ON public.payments FOR ALL USING (true);
-CREATE POLICY "Allow all reviews" ON public.reviews FOR ALL USING (true);
-CREATE POLICY "Allow all contact_messages" ON public.contact_messages FOR ALL USING (true);
-CREATE POLICY "Allow all highlighted_designs" ON public.highlighted_designs FOR ALL USING (true);
-CREATE POLICY "Allow all materials" ON public.materials FOR ALL USING (true);
-CREATE POLICY "Allow all quality_inspections" ON public.quality_inspections FOR ALL USING (true);
-CREATE POLICY "Allow all contractors" ON public.contractors FOR ALL USING (true);
-CREATE POLICY "Allow all safety_records" ON public.safety_records FOR ALL USING (true);
-CREATE POLICY "Allow all equipment" ON public.equipment FOR ALL USING (true);
-
--- ================================================================
--- SEED DATA: Departments
--- ================================================================
-INSERT INTO public.departments (name, display_name, description)
-VALUES
-    ('architecture', 'Architecture & Design', 'Architectural planning, interior design, blueprint creation, and design portfolio management'),
-    ('construction', 'Construction & Management', 'Site supervision, material procurement, quality inspections, contractor management, and safety compliance'),
-    ('marketing', 'Marketing & Sales', 'Lead management, callback handling, campaign tracking, and client acquisition'),
-    ('admin', 'Owner / Administration', 'Cross-department monitoring, access control, employee management, and system configuration')
-ON CONFLICT (name) DO NOTHING;
+DROP TRIGGER IF EXISTS set_payments_updated_at ON public.payments;
+CREATE TRIGGER set_payments_updated_at BEFORE UPDATE ON public.payments FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
 
 
--- ================================================================
--- EXTRA ADDITIONS: AUTH HOOK & AUTOMATIC PROFILE PERSISTENCE
--- ================================================================
+-- ----------------------------------------------------------------
+-- AUTH HOOK: AUTO-SYNC AUTH.USERS -> PUBLIC.PROFILES
+-- ----------------------------------------------------------------
 
--- Function to automatically create or update a profile when a new user signs up in auth.users
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -595,15 +576,76 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Trigger to execute whenever a user signs up
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
     AFTER INSERT ON auth.users
     FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
--- Ensure RLS allows insert and upsert from both authenticated and anon roles during signup
-DROP POLICY IF EXISTS "Allow all profiles insert" ON public.profiles;
-CREATE POLICY "Allow all profiles insert" ON public.profiles FOR INSERT WITH CHECK (true);
 
-DROP POLICY IF EXISTS "Allow all profiles update" ON public.profiles;
-CREATE POLICY "Allow all profiles update" ON public.profiles FOR UPDATE USING (true) WITH CHECK (true);
+-- ----------------------------------------------------------------
+-- ROW LEVEL SECURITY (RLS) POLICIES
+-- Permissive policies for frontend web clients
+-- ----------------------------------------------------------------
+
+DO $$
+DECLARE
+  t text;
+  tables text[] := ARRAY[
+    'departments', 'designers', 'profiles', 'projects', 'project_stages',
+    'stage_documents', 'client_requirements', 'callback_requests', 'access_permissions',
+    'activity_log', 'site_details', 'consultations', 'payments', 'reviews',
+    'contact_messages', 'highlighted_designs', 'materials', 'quality_inspections',
+    'contractors', 'safety_records', 'equipment', 'designer_access_requests',
+    'department_change_requests', 'email_change_requests', 'client_password_log'
+  ];
+BEGIN
+  FOREACH t IN ARRAY tables LOOP
+    EXECUTE format('ALTER TABLE public.%I ENABLE ROW LEVEL SECURITY', t);
+    EXECUTE format('DROP POLICY IF EXISTS "Allow all %I" ON public.%I', t, t);
+    EXECUTE format('CREATE POLICY "Allow all %I" ON public.%I FOR ALL USING (true) WITH CHECK (true)', t, t);
+  END LOOP;
+END $$;
+
+
+-- ----------------------------------------------------------------
+-- CORE SEED DATA
+-- ----------------------------------------------------------------
+
+-- Seed default departments
+INSERT INTO public.departments (name, display_name, description, is_custom, created_by)
+VALUES
+  ('architecture', 'Architecture & Design',
+   'Architectural planning, interior design, blueprint creation, and design portfolio management',
+   FALSE, 'system'),
+  ('construction', 'Construction & Management',
+   'Site supervision, material procurement, quality inspections, contractor management, and safety compliance',
+   FALSE, 'system'),
+  ('marketing', 'Marketing & Sales',
+   'Lead management, callback handling, campaign tracking, and client acquisition',
+   FALSE, 'system'),
+  ('tech', 'Tech & Digitalization',
+   'System integration management, digital asset library, documentation systems, and activity monitoring',
+   FALSE, 'system'),
+  ('admin', 'Owner / Administration',
+   'Cross-department monitoring, access control, employee management, and system configuration',
+   FALSE, 'system')
+ON CONFLICT (name) DO UPDATE SET
+  display_name = EXCLUDED.display_name,
+  description  = EXCLUDED.description;
+
+-- Seed default Owner Admin account
+INSERT INTO public.designers (
+  company_code, full_name, email, role, specialization, is_owner, is_active, status, department
+)
+VALUES (
+  'BAVI-OWNER-ADMIN',
+  'BAVI Principal Owner',
+  'owner@bavi.in',
+  'owner',
+  'Principal Architect & Site Owner',
+  TRUE,
+  TRUE,
+  'ACTIVE',
+  'admin'
+)
+ON CONFLICT (email) DO NOTHING;

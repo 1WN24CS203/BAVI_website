@@ -89,7 +89,7 @@ export default function ContractorRegistryPage() {
           onChange={(e) => setSearchQuery(e.target.value)}
           style={{ width: '360px' }}
         />
-        <Button variant="primary" icon={<Plus size={16} />} onClick={() => setModalOpen(true)}>
+        <Button variant="primary" icon={Plus} onClick={() => setModalOpen(true)}>
           Register Partner Agency
         </Button>
       </div>

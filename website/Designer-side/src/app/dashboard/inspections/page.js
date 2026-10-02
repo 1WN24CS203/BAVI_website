@@ -136,7 +136,7 @@ export default function QualityInspectionsPage() {
           </div>
         </div>
 
-        <Button variant="primary" icon={<Plus size={16} />} onClick={() => setModalOpen(true)}>
+        <Button variant="primary" icon={Plus} onClick={() => setModalOpen(true)}>
           New Inspection Report
         </Button>
       </div>
@@ -169,7 +169,7 @@ export default function QualityInspectionsPage() {
               </div>
 
               <div style={{ display: 'flex', gap: '8px' }}>
-                <Button variant="secondary" size="sm" icon={<FileText size={14} />}>View Full Audit</Button>
+                <Button variant="secondary" size="sm" icon={FileText}>View Full Audit</Button>
               </div>
             </div>
 

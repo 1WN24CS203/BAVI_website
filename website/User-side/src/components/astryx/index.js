@@ -123,6 +123,16 @@ export function Button({
       color: TOKENS.info,
       border: `1px solid ${TOKENS.infoBorder}`,
     },
+    gold: {
+      background: `linear-gradient(135deg, ${TOKENS.gold}, ${TOKENS.goldDark})`,
+      color: '#080808',
+      boxShadow: `0 4px 15px ${TOKENS.goldGlow}`,
+    },
+    warn: {
+      background: TOKENS.warningBg,
+      color: TOKENS.warning,
+      border: `1px solid ${TOKENS.warningBorder}`,
+    },
   };
 
   const iconSize = size === 'xs' ? 12 : size === 'sm' ? 14 : size === 'lg' || size === 'xl' ? 18 : 16;

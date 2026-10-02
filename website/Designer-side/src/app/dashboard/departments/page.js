@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useState, useEffect } from 'react';
 import {
@@ -169,7 +169,7 @@ export default function DepartmentManagementPage() {
             Active Departments ({deptList.length})
           </h3>
           {isTech && (
-            <Button variant="primary" size="sm" icon={<Plus size={15} />}
+            <Button variant="primary" size="sm" icon={Plus}
               onClick={() => { setShowAddModal(true); setError(''); }}>
               Propose New Department
             </Button>
