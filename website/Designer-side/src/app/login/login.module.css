@@ -288,3 +288,13 @@
 .publicLink:hover {
   color: var(--astryx-gold);
 }
+
+@media (max-width: 480px) {
+  .container {
+    padding: 16px 12px;
+  }
+  .card {
+    padding: 24px 18px;
+    border-radius: var(--radius-lg);
+  }
+}

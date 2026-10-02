@@ -754,3 +754,23 @@
     align-items: flex-start;
   }
 }
+
+@media (max-width: 640px) {
+  .receiptModal {
+    padding: 18px 14px;
+    gap: 14px;
+  }
+  .receiptHeader {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .receiptClientRow {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  .receiptTable {
+    overflow-x: auto;
+  }
+}

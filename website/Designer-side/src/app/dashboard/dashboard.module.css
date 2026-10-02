@@ -341,3 +341,44 @@
     grid-template-columns: 1fr;
   }
 }
+
+@media (max-width: 640px) {
+  .container {
+    padding: 16px 14px;
+    gap: 20px;
+  }
+
+  .metricsGrid {
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  .metricCard {
+    padding: 16px;
+  }
+
+  .metricValue, .metricValueGold {
+    font-size: 1.45rem;
+  }
+
+  .actionBanner {
+    padding: 18px 16px;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .actionBtnGroup {
+    width: 100%;
+    flex-direction: column;
+  }
+
+  .actionBtnGroup button {
+    width: 100%;
+  }
+}
+
+@media (max-width: 420px) {
+  .metricsGrid {
+    grid-template-columns: 1fr;
+  }
+}

@@ -259,3 +259,12 @@
     padding: 50px 0;
   }
 }
+
+@media (max-width: 640px) {
+  .philosophyGrid,
+  .teamGrid,
+  .timelineGrid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+}

@@ -4,12 +4,12 @@
   left: 0;
   right: 0;
   z-index: 1000;
-  padding: 18px 0;
+  padding: 16px clamp(12px, 3vw, 24px);
   transition: all var(--duration-base) var(--ease-spring);
 }
 
 .scrolled {
-  padding: 10px 0;
+  padding: 10px clamp(12px, 3vw, 24px);
 }
 
 .scrolled .navbarContainer {
@@ -436,20 +436,30 @@
   }
 }
 
-@media (max-width: 640px) {
-  .headerWrapper {
-    padding: 12px 14px;
-  }
-
-  .navbarContainer {
-    padding: 8px 16px;
-  }
-
+@media (max-width: 768px) {
   .brandSubtitle {
     display: none;
   }
 
   .brandTitle {
-    font-size: 1.2rem;
+    font-size: 1.25rem;
+  }
+
+  .drawerCard {
+    width: min(360px, 88vw);
+  }
+}
+
+@media (max-width: 640px) {
+  .headerWrapper {
+    padding: 10px 12px;
+  }
+
+  .navbarContainer {
+    padding: 8px 14px;
+  }
+
+  .brandTitle {
+    font-size: 1.15rem;
   }
 }

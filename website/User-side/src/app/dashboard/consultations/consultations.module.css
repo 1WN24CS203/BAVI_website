@@ -244,3 +244,18 @@
   font-weight: 700;
   border-radius: var(--radius-sm);
 }
+
+@media (max-width: 480px) {
+  .modalBackdrop {
+    padding: 12px;
+  }
+
+  .modalCard {
+    padding: 20px 16px;
+    border-radius: var(--radius-lg);
+  }
+
+  .modalActions {
+    flex-direction: column;
+  }
+}

@@ -93,12 +93,14 @@
 
 .headline {
   font-family: var(--font-heading);
-  font-size: clamp(2.4rem, 4.8vw, 4.2rem);
+  font-size: clamp(1.85rem, 4.6vw, 4.2rem);
   font-weight: 700;
-  line-height: 1.12;
+  line-height: 1.15;
   color: var(--astryx-text-primary);
   margin-bottom: 20px;
   letter-spacing: -0.02em;
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 .goldGradientText {
@@ -343,7 +345,7 @@
 @media (max-width: 1024px) {
   .heroGrid {
     grid-template-columns: 1fr;
-    gap: 3rem;
+    gap: 2.5rem;
   }
 
   .contentCol {
@@ -365,15 +367,48 @@
   }
 }
 
+@media (max-width: 820px) {
+  .heroSection {
+    padding-top: calc(var(--navbar-height-mobile) + 30px);
+    padding-bottom: 50px;
+  }
+
+  .statsBar {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px 20px;
+    padding: 20px 24px;
+  }
+
+  .statSeparator {
+    display: none;
+  }
+
+  .statItem {
+    align-items: center;
+    text-align: center;
+  }
+
+  .showcaseCard {
+    max-width: 100%;
+  }
+
+  .showcaseImage {
+    height: 320px;
+  }
+}
+
 @media (max-width: 640px) {
   .heroSection {
     padding-top: calc(var(--navbar-height-mobile) + 20px);
-    padding-bottom: 40px;
+    padding-bottom: 36px;
   }
 
   .buttonGroup {
     width: 100%;
     flex-direction: column;
+    gap: 10px;
+    margin-bottom: 36px;
   }
 
   .primaryCta,
@@ -383,17 +418,17 @@
   }
 
   .statsBar {
-    flex-direction: column;
-    gap: 1rem;
-    text-align: center;
-  }
-
-  .statSeparator {
-    width: 60%;
-    height: 1px;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    padding: 16px;
   }
 
   .showcaseImage {
-    height: 300px;
+    height: 280px;
+    padding: 16px;
+  }
+
+  .showcaseTitle {
+    font-size: 1.25rem;
   }
 }

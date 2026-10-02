@@ -1,11 +1,22 @@
 /* ================================================================
-   BAVI Dashboard — Shared Layout Styles
-   Used by all designer dashboard pages.
-   All colors use Astryx CSS variables from globals.css
+   BAVI Dashboard - Shared Layout Styles
+   Used across all dashboard pages (User-side & Designer-side).
+   All colors use Astryx CSS tokens from globals.css.
    ================================================================ */
 
 /* --- Page Shell --- */
-.page { display: flex; flex-direction: column; gap: 24px; }
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  width: 100%;
+}
+
+@media (max-width: 640px) {
+  .page {
+    gap: 16px;
+  }
+}
 
 /* --- Section Header (title + action link) --- */
 .sectionHeader {
@@ -13,7 +24,10 @@
   align-items: center;
   justify-content: space-between;
   margin-bottom: 4px;
+  flex-wrap: wrap;
+  gap: 8px;
 }
+
 .sectionTitle {
   font-family: var(--font-heading);
   font-size: 1.1rem;
@@ -21,6 +35,7 @@
   color: var(--astryx-text-primary);
   margin: 0;
 }
+
 .viewAllLink {
   display: inline-flex;
   align-items: center;
@@ -31,7 +46,10 @@
   text-decoration: none;
   transition: opacity 150ms;
 }
-.viewAllLink:hover { opacity: 0.75; }
+
+.viewAllLink:hover {
+  opacity: 0.75;
+}
 
 /* --- Metrics Grid --- */
 .metricsGrid {
@@ -40,19 +58,45 @@
   gap: 16px;
 }
 
+@media (max-width: 640px) {
+  .metricsGrid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+}
+
+@media (max-width: 380px) {
+  .metricsGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* --- Split / Two-Column Grid --- */
 .splitGrid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 20px;
 }
-@media (max-width: 900px) { .splitGrid { grid-template-columns: 1fr; } }
+
+@media (max-width: 900px) {
+  .splitGrid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+}
 
 /* --- Three-Column Grid --- */
 .threeGrid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 20px;
+}
+
+@media (max-width: 768px) {
+  .threeGrid {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
 }
 
 /* --- Full-Width Cards Grid (for lists) --- */
@@ -71,12 +115,24 @@
   flex-wrap: wrap;
 }
 
+@media (max-width: 640px) {
+  .controlBar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+}
+
 /* --- Filter Pills --- */
 .filterGroup {
   display: flex;
   gap: 6px;
   flex-wrap: wrap;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  -webkit-overflow-scrolling: touch;
 }
+
 .filterPill {
   display: inline-flex;
   align-items: center;
@@ -93,10 +149,12 @@
   white-space: nowrap;
   font-family: var(--font-body);
 }
+
 .filterPill:hover {
   border-color: var(--astryx-border-gold);
   color: var(--astryx-gold);
 }
+
 .filterPillActive {
   background: var(--astryx-gold-subtle);
   border-color: var(--astryx-border-gold);
@@ -113,21 +171,25 @@
   font-size: 0.83rem;
   line-height: 1.5;
 }
+
 .infoBannerSuccess {
   background: var(--astryx-success-bg);
   border: 1px solid rgba(16, 185, 129, 0.25);
   color: #6ee7b7;
 }
+
 .infoBannerWarning {
   background: var(--astryx-warning-bg);
   border: 1px solid rgba(245, 158, 11, 0.25);
   color: #fcd34d;
 }
+
 .infoBannerDanger {
   background: var(--astryx-error-bg);
   border: 1px solid rgba(239, 68, 68, 0.25);
   color: #fca5a5;
 }
+
 .infoBannerGold {
   background: var(--astryx-gold-subtle);
   border: 1px solid var(--astryx-border-gold);
@@ -140,8 +202,17 @@
   grid-template-columns: 1fr 1fr;
   gap: 16px;
 }
-@media (max-width: 600px) { .formGrid { grid-template-columns: 1fr; } }
-.formFullWidth { grid-column: 1 / -1; }
+
+@media (max-width: 600px) {
+  .formGrid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+}
+
+.formFullWidth {
+  grid-column: 1 / -1;
+}
 
 /* --- Credential Display Box --- */
 .credBox {
@@ -150,6 +221,7 @@
   border-radius: 10px;
   padding: 14px 16px;
 }
+
 .credLabel {
   font-size: 0.68rem;
   text-transform: uppercase;
@@ -158,12 +230,14 @@
   font-weight: 600;
   margin-bottom: 4px;
 }
+
 .credValue {
   font-family: var(--font-mono);
   font-size: 1rem;
   font-weight: 700;
   color: var(--astryx-gold);
   letter-spacing: 1px;
+  word-break: break-all;
 }
 
 /* --- Detail Row (icon + text) --- */
@@ -174,6 +248,7 @@
   font-size: 0.82rem;
   color: var(--astryx-text-secondary);
 }
+
 .detailRowList {
   display: flex;
   flex-direction: column;
@@ -189,6 +264,12 @@
   margin-top: 14px;
 }
 
+@media (max-width: 640px) {
+  .actionRow button {
+    flex: 1 1 auto;
+  }
+}
+
 /* --- Quick Actions Banner --- */
 .actionBanner {
   background: linear-gradient(120deg, #0d0e14, #161824);
@@ -201,6 +282,22 @@
   gap: 16px;
   flex-wrap: wrap;
 }
+
+@media (max-width: 640px) {
+  .actionBanner {
+    padding: 16px 18px;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .actionBtnGroup {
+    width: 100%;
+    flex-direction: column;
+  }
+  .actionBtnGroup button {
+    width: 100%;
+  }
+}
+
 .actionBannerTag {
   font-size: 0.68rem;
   text-transform: uppercase;
@@ -210,14 +307,17 @@
   display: block;
   margin-bottom: 4px;
 }
+
 .actionBannerTitle {
   font-family: var(--font-heading);
   font-size: 1rem;
   color: var(--astryx-text-primary);
   margin: 0;
 }
+
 .actionBtnGroup {
   display: flex;
-  gap: 10px;
+  align-items: center;
+  gap: 8px;
   flex-wrap: wrap;
 }

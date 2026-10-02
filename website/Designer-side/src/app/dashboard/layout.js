@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useDesignerAuth } from '@/context/AuthContext';
 import DesignerSidebar from '@/components/Sidebar';
-import { ShieldAlert, ArrowLeft } from 'lucide-react';
+import { ShieldAlert, ArrowLeft, Menu, X } from 'lucide-react';
 import { Button } from '@/components/astryx';
 import styles from './DashboardLayout.module.css';
 
@@ -78,6 +78,24 @@ export default function DesignerDashboardLayout({ children }) {
 
   return (
     <div className={styles.layout}>
+      {/* Mobile Header Bar */}
+      <div className={styles.mobileTopBar}>
+        <div className={styles.mobileBrand}>
+          <img src="/logo.png" alt="BAVI" className={styles.mobileLogoImg} />
+          <div>
+            <span className={styles.mobileBrandName}>BAVI DESIGNER</span>
+            <span className={styles.mobileBrandTag}>{dept.toUpperCase()}</span>
+          </div>
+        </div>
+        <button
+          className={styles.mobileToggleBtn}
+          onClick={() => setMobileOpen(!mobileOpen)}
+          aria-label={mobileOpen ? 'Close Menu' : 'Open Menu'}
+        >
+          {mobileOpen ? <X size={22} /> : <Menu size={22} />}
+        </button>
+      </div>
+
       <DesignerSidebar mobileOpen={mobileOpen} onClose={() => setMobileOpen(false)} />
       <div className={styles.contentArea}>
         <div className={styles.innerContent}>

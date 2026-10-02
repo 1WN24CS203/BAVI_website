@@ -70,7 +70,7 @@
 
 .clientsGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 24px;
 }
 
@@ -250,8 +250,9 @@
   color: var(--astryx-gold);
 }
 
-@media (max-width: 640px) {
+@media (max-width: 768px) {
   .clientsGrid {
     grid-template-columns: 1fr;
+    gap: 16px;
   }
 }

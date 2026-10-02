@@ -431,7 +431,11 @@
   }
 
   .topHeader {
-    display: none;
+    position: static;
+    height: auto;
+    padding: 16px 20px;
+    flex-wrap: wrap;
+    gap: 12px;
   }
 
   .mobileBackdrop {
@@ -440,5 +444,19 @@
     background: rgba(5, 5, 8, 0.8);
     backdrop-filter: var(--backdrop-blur-sm);
     z-index: 999;
+  }
+}
+
+@media (max-width: 640px) {
+  .pageContainer {
+    padding: 16px 12px;
+  }
+
+  .pageHeading {
+    font-size: 1.2rem;
+  }
+
+  .publicSiteLink {
+    display: none;
   }
 }
