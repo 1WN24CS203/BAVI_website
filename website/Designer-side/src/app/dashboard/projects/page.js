@@ -54,7 +54,7 @@ export default function DesignerProjectsPage() {
     let list = [];
     if (isSupabaseConfigured()) {
       try {
-        const { data } = await supabase.from('profiles').select('*').eq('role', 'customer');
+        const { data } = await supabase.from('profiles').select('*').in('role', ['customer', 'client']).order('created_at', { ascending: false });
         if (data && data.length > 0) list = data;
       } catch (err) {
         console.warn('Failed to fetch clients from Supabase:', err);
@@ -101,23 +101,39 @@ export default function DesignerProjectsPage() {
   };
 
   const fetchProjects = async () => {
+    let list = [];
     if (isSupabaseConfigured()) {
       try {
-        const { data } = await supabase.from('projects').select('*').order('created_at', { ascending: false });
-        if (data && data.length > 0) setProjects(data);
-        else setProjects([]);
+        const { data, error } = await supabase.from('projects').select('*').order('created_at', { ascending: false });
+        if (data && data.length > 0) {
+          list = data.map(p => ({
+            ...p,
+            progress: p.completion_percentage || p.progress || 0,
+            stages: p.stages && Array.isArray(p.stages) && p.stages.length > 0 ? p.stages : [
+              { id: 1, name: 'Requirement Analysis & SRS Preparation', status: 'in_progress', builder_approved: false, client_approved: false, documents: [] },
+              { id: 2, name: 'Architectural Blueprint & Sanction', status: 'pending', builder_approved: false, client_approved: false, documents: [] },
+              { id: 3, name: 'Excavation & RCC Foundation Structure', status: 'pending', builder_approved: false, client_approved: false, documents: [] },
+              { id: 4, name: 'Brick Masonry, Plumbing & Electrical Conduits', status: 'pending', builder_approved: false, client_approved: false, documents: [] },
+              { id: 5, name: 'Flooring, False Ceiling & Premium Painting', status: 'pending', builder_approved: false, client_approved: false, documents: [] },
+              { id: 6, name: 'Smart Home Automation & Final Handover', status: 'pending', builder_approved: false, client_approved: false, documents: [] },
+            ],
+          }));
+        }
       } catch (err) {
         console.warn('Supabase fetch projects error:', err);
       }
     }
     // Load from localStorage as fallback
-    try {
-      const local = localStorage.getItem('bavi_projects');
-      if (local) {
-        const parsed = JSON.parse(local);
-        if (parsed.length > 0 && projects.length === 0) setProjects(parsed);
-      }
-    } catch {}
+    if (list.length === 0) {
+      try {
+        const local = localStorage.getItem('bavi_projects');
+        if (local) {
+          const parsed = JSON.parse(local);
+          if (Array.isArray(parsed) && parsed.length > 0) list = parsed;
+        }
+      } catch {}
+    }
+    setProjects(list);
     setLoading(false);
   };
 
@@ -139,7 +155,7 @@ export default function DesignerProjectsPage() {
       return;
     }
 
-    const created = {
+    let created = {
       ...newProject,
       id: `proj-${Date.now()}`,
       progress: 0,
@@ -158,18 +174,26 @@ export default function DesignerProjectsPage() {
 
     if (isSupabaseConfigured()) {
       try {
-        await supabase.from('projects').insert([{
+        const payload = {
           title: newProject.title,
-          category: newProject.category,
+          category: newProject.category || 'residential',
           location: newProject.location,
           budget: parseFloat(newProject.budget) || 0,
-          description: newProject.description,
-          client_id: newProject.client_id,
+          description: newProject.description || '',
           client_name: newProject.client_name,
-          client_phone: newProject.client_phone,
-          client_email: newProject.client_email,
-          client_requirements_plain_text: newProject.client_requirements,
-        }]);
+          client_phone: newProject.client_phone || '',
+          client_email: newProject.client_email || '',
+          customer_id: (newProject.client_id && !String(newProject.client_id).startsWith('cli-') && !String(newProject.client_id).startsWith('user-')) ? newProject.client_id : null,
+          client_requirements_plain_text: newProject.client_requirements || '',
+          stages: created.stages,
+          documents: [],
+        };
+        const { data, error } = await supabase.from('projects').insert([payload]).select();
+        if (error) {
+          console.warn('Supabase project insert warning:', error);
+        } else if (data && data.length > 0) {
+          created = { ...created, ...data[0], id: data[0].id, stages: created.stages };
+        }
       } catch (err) {
         console.warn('Supabase save error:', err);
       }
@@ -190,7 +214,8 @@ export default function DesignerProjectsPage() {
   };
 
   // Builder approves a stage
-  const handleBuilderApprove = (projectId, stageId) => {
+  const handleBuilderApprove = async (projectId, stageId) => {
+    let targetProject = null;
     const updated = projects.map(p => {
       if (p.id === projectId) {
         const nextStages = (p.stages || []).map(s => {
@@ -218,12 +243,28 @@ export default function DesignerProjectsPage() {
           return s;
         });
         const completedCount = finalStages.filter(s => s.status === 'completed').length;
-        return { ...p, stages: finalStages, progress: Math.round((completedCount / finalStages.length) * 100) };
+        const progress = Math.round((completedCount / finalStages.length) * 100);
+        targetProject = { ...p, stages: finalStages, progress, completion_percentage: progress };
+        return targetProject;
       }
       return p;
     });
+
     setProjects(updated);
     saveProjectsLocal(updated);
+
+    if (isSupabaseConfigured() && targetProject && targetProject.id && !String(targetProject.id).startsWith('proj-')) {
+      try {
+        await supabase.from('projects').update({
+          stages: targetProject.stages,
+          completion_percentage: targetProject.progress || 0,
+          status: targetProject.progress === 100 ? 'completed' : 'in_progress',
+        }).eq('id', targetProject.id);
+      } catch (err) {
+        console.warn('Failed to update stage in Supabase:', err);
+      }
+    }
+
     showToast('Builder approval recorded! Waiting for client sign-off.');
     logActivity('builder_approved_stage', 'stage', `Stage ${stageId}`, { projectId });
   };
@@ -236,8 +277,9 @@ export default function DesignerProjectsPage() {
   };
 
   // Handle stage document upload
-  const handleStageDocUpload = () => {
+  const handleStageDocUpload = async () => {
     if (stageFiles.length === 0) return;
+    let targetProject = null;
     const updated = projects.map(p => {
       if (p.id === activeStageUpload.projectId) {
         const nextStages = (p.stages || []).map(s => {
@@ -253,14 +295,29 @@ export default function DesignerProjectsPage() {
           }
           return s;
         });
-        return { ...p, stages: nextStages };
+        targetProject = { ...p, stages: nextStages };
+        return targetProject;
       }
       return p;
     });
+
     setProjects(updated);
     saveProjectsLocal(updated);
+
+    if (isSupabaseConfigured() && targetProject && targetProject.id && !String(targetProject.id).startsWith('proj-')) {
+      try {
+        const allDocs = targetProject.stages.flatMap(s => s.documents || []);
+        await supabase.from('projects').update({
+          stages: targetProject.stages,
+          documents: allDocs,
+        }).eq('id', targetProject.id);
+      } catch (err) {
+        console.warn('Failed to sync uploaded document to Supabase:', err);
+      }
+    }
+
     setShowStageUploadModal(false);
-    showToast(`${stageFiles.length} document(s) uploaded to stage successfully!`);
+    showToast(`${stageFiles.length} document(s) uploaded to stage and synced across portals!`);
     logActivity('uploaded_stage_document', 'document', stageFiles.map(f => f.name).join(', '), {
       projectId: activeStageUpload.projectId,
       stageId: activeStageUpload.stageId,

@@ -48,7 +48,7 @@ export default function DesignerCustomersPage() {
         const { data, error } = await supabase
           .from('profiles')
           .select('*')
-          .eq('role', 'customer');
+          .in('role', ['customer', 'client']);
 
         if (data && data.length > 0) {
           loadedClients = data;

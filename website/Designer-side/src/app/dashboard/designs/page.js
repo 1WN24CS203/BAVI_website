@@ -28,6 +28,7 @@ export default function DesignerDesignsPage() {
   }, []);
 
   const fetchDesigns = async () => {
+    let list = [];
     if (isSupabaseConfigured()) {
       try {
         const { data, error } = await supabase
@@ -35,13 +36,20 @@ export default function DesignerDesignsPage() {
           .select('*')
           .order('created_at', { ascending: false });
 
-        if (data) {
-          setDesigns(data);
+        if (data && data.length > 0) {
+          list = data;
         }
       } catch (err) {
         console.warn('Supabase fetch fallback:', err);
       }
     }
+    if (list.length === 0 && typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem('bavi_highlighted_designs');
+        if (stored) list = JSON.parse(stored);
+      } catch {}
+    }
+    setDesigns(list);
     setLoading(false);
   };
 
@@ -49,12 +57,19 @@ export default function DesignerDesignsPage() {
     const nextStatus = !currentStatus;
     const updated = designs.map(d => d.id === id ? { ...d, is_active: nextStatus } : d);
     setDesigns(updated);
+    try {
+      localStorage.setItem('bavi_highlighted_designs', JSON.stringify(updated));
+    } catch {}
 
-    if (isSupabaseConfigured()) {
-      await supabase
-        .from('highlighted_designs')
-        .update({ is_active: nextStatus })
-        .eq('id', id);
+    if (isSupabaseConfigured() && id && !String(id).startsWith('des-')) {
+      try {
+        await supabase
+          .from('highlighted_designs')
+          .update({ is_active: nextStatus })
+          .eq('id', id);
+      } catch (err) {
+        console.warn('Failed to update design in Supabase:', err);
+      }
     }
 
     setToast(nextStatus ? 'Design published to Client Website!' : 'Design hidden from Client Website');
@@ -68,21 +83,37 @@ export default function DesignerDesignsPage() {
       return;
     }
 
-    const createdItem = {
-      ...newDesign,
-      id: `des-${Date.now()}`,
-      display_order: designs.length + 1
+    const payload = {
+      title: newDesign.title,
+      category: newDesign.category ? newDesign.category.toLowerCase() : 'residential',
+      location: newDesign.location,
+      description: newDesign.description || '',
+      image_url: newDesign.image_url || 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=1000&q=80',
+      is_active: Boolean(newDesign.is_active),
+      display_order: designs.length + 1,
     };
+
+    let itemToStore = { ...payload, id: `des-${Date.now()}` };
 
     if (isSupabaseConfigured()) {
       try {
-        await supabase.from('highlighted_designs').insert([newDesign]);
+        const { data, error } = await supabase.from('highlighted_designs').insert([payload]).select();
+        if (error) {
+          console.warn('Supabase design insert notice:', error);
+        } else if (data && data.length > 0) {
+          itemToStore = data[0];
+        }
       } catch (err) {
         console.warn('Supabase save error:', err);
       }
     }
 
-    setDesigns([createdItem, ...designs]);
+    const updated = [itemToStore, ...designs];
+    setDesigns(updated);
+    try {
+      localStorage.setItem('bavi_highlighted_designs', JSON.stringify(updated));
+    } catch {}
+
     setShowAddModal(false);
     setNewDesign({
       title: '',
@@ -92,15 +123,24 @@ export default function DesignerDesignsPage() {
       image_url: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=1000&q=80',
       is_active: true
     });
-    setToast('New architectural showcase published successfully!');
+    setToast('New architectural showcase published to client website!');
     setTimeout(() => setToast(''), 3500);
   };
 
   const handleDelete = async (id) => {
     if (!confirm('Are you sure you want to delete this showcase item?')) return;
-    setDesigns(designs.filter(d => d.id !== id));
-    if (isSupabaseConfigured()) {
-      await supabase.from('highlighted_designs').delete().eq('id', id);
+    const updated = designs.filter(d => d.id !== id);
+    setDesigns(updated);
+    try {
+      localStorage.setItem('bavi_highlighted_designs', JSON.stringify(updated));
+    } catch {}
+
+    if (isSupabaseConfigured() && id && !String(id).startsWith('des-')) {
+      try {
+        await supabase.from('highlighted_designs').delete().eq('id', id);
+      } catch (err) {
+        console.warn('Supabase delete notice:', err);
+      }
     }
     setToast('Showcase item deleted');
     setTimeout(() => setToast(''), 3000);

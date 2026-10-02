@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { Button, Badge, Card } from '@/components/astryx';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import styles from './project.module.css';
 
 export default function MyProjectPage() {
@@ -28,28 +29,102 @@ export default function MyProjectPage() {
   const [project, setProject] = useState(null);
   const [activeTab, setActiveTab] = useState('milestones');
   const [approvalNotification, setApprovalNotification] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    try {
-      const stored = localStorage.getItem('bavi_client_active_project');
-      if (stored) {
-        setProject(JSON.parse(stored));
-      } else {
-        // Also check if any project exists in bavi_projects
-        const projectsList = localStorage.getItem('bavi_projects');
-        if (projectsList) {
-          const parsed = JSON.parse(projectsList);
-          if (parsed && parsed.length > 0) {
-            setProject(parsed[0]);
-            return;
+  const normalizeProject = (p) => {
+    if (!p) return null;
+    const stages = (p.stages && Array.isArray(p.stages) && p.stages.length > 0)
+      ? p.stages
+      : (p.milestones || [
+          { id: 1, name: 'Requirement Analysis & SRS Preparation', status: 'in_progress', builder_approved: true, client_approved: false, documents: [] },
+          { id: 2, name: 'Architectural Blueprint & Sanction', status: 'pending', builder_approved: false, client_approved: false, documents: [] },
+          { id: 3, name: 'Excavation & RCC Foundation Structure', status: 'pending', builder_approved: false, client_approved: false, documents: [] },
+          { id: 4, name: 'Brick Masonry, Plumbing & Electrical Conduits', status: 'pending', builder_approved: false, client_approved: false, documents: [] },
+          { id: 5, name: 'Flooring, False Ceiling & Premium Painting', status: 'pending', builder_approved: false, client_approved: false, documents: [] },
+          { id: 6, name: 'Smart Home Automation & Final Handover', status: 'pending', builder_approved: false, client_approved: false, documents: [] },
+        ]);
+
+    const normalizedMilestones = stages.map(s => {
+      const bApp = Boolean(s.builderApproved ?? s.builder_approved ?? false);
+      const cApp = Boolean(s.clientApproved ?? s.client_approved ?? false);
+      let st = (s.status || 'pending').toUpperCase();
+      if (bApp && cApp) st = 'COMPLETED';
+      else if (bApp) st = 'AWAITING_CLIENT_APPROVAL';
+      else if (st === 'IN_PROGRESS') st = 'IN_PROGRESS';
+
+      return {
+        id: s.id,
+        title: s.title || s.name || `Stage ${s.id}`,
+        desc: s.desc || s.description || 'Structural and interior execution milestone verified by BAVI architects.',
+        date: s.date || s.due_date || 'Stage Milestone',
+        status: st,
+        builderApproved: bApp,
+        clientApproved: cApp,
+        documents: s.documents || [],
+      };
+    });
+
+    return {
+      ...p,
+      title: p.title || 'Bahubali Visionary Residence',
+      location: p.location || 'Bengaluru / Channarayapatna',
+      budget: p.budget || 'Custom Luxury Tier',
+      progress: p.progress ?? p.completion_percentage ?? Math.round((normalizedMilestones.filter(m => m.status === 'COMPLETED').length / normalizedMilestones.length) * 100),
+      milestones: normalizedMilestones,
+      stages: normalizedMilestones,
+    };
+  };
+
+  const fetchProject = async () => {
+    let found = null;
+    if (isSupabaseConfigured()) {
+      try {
+        let query = supabase.from('projects').select('*');
+        if (profile?.email) {
+          query = query.or(`client_email.eq.${profile.email},customer_id.eq.${profile.id}`);
+        }
+        const { data, error } = await query.order('created_at', { ascending: false }).limit(1);
+        if (data && data.length > 0) {
+          found = data[0];
+        } else {
+          // Fallback to latest project in Supabase if specific client email not matched
+          const { data: anyProj } = await supabase.from('projects').select('*').order('created_at', { ascending: false }).limit(1);
+          if (anyProj && anyProj.length > 0) {
+            found = anyProj[0];
           }
         }
-        setProject(null);
+      } catch (err) {
+        console.warn('Supabase fetch project warning:', err);
       }
-    } catch {
+    }
+
+    if (!found) {
+      try {
+        const stored = localStorage.getItem('bavi_client_active_project');
+        if (stored) {
+          found = JSON.parse(stored);
+        } else {
+          const projectsList = localStorage.getItem('bavi_projects');
+          if (projectsList) {
+            const parsed = JSON.parse(projectsList);
+            if (parsed && parsed.length > 0) found = parsed[0];
+          }
+        }
+      } catch {}
+    }
+
+    if (found) {
+      const norm = normalizeProject(found);
+      setProject(norm);
+    } else {
       setProject(null);
     }
-  }, []);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    fetchProject();
+  }, [profile]);
 
   const saveProject = (updated) => {
     setProject(updated);
@@ -60,10 +135,11 @@ export default function MyProjectPage() {
     }
   };
 
-  const handleClientApproveStage = (stageId) => {
+  const handleClientApproveStage = async (stageId) => {
+    if (!project) return;
     const updatedMilestones = project.milestones.map(m => {
       if (m.id === stageId) {
-        const isNowCompleted = m.builderApproved; // If builder already approved, both permissions are now met!
+        const isNowCompleted = m.builderApproved;
         return {
           ...m,
           clientApproved: true,
@@ -76,10 +152,23 @@ export default function MyProjectPage() {
     const updatedProject = {
       ...project,
       milestones: updatedMilestones,
+      stages: updatedMilestones,
     };
 
     saveProject(updatedProject);
-    setApprovalNotification(`You have successfully authorized Stage ${stageId}. Dual permission verification recorded.`);
+
+    if (isSupabaseConfigured() && project.id && !String(project.id).startsWith('proj-')) {
+      try {
+        await supabase.from('projects').update({
+          stages: updatedMilestones,
+          status: updatedMilestones.every(m => m.status === 'COMPLETED') ? 'completed' : 'in_progress',
+        }).eq('id', project.id);
+      } catch (err) {
+        console.warn('Failed to sync client approval to Supabase:', err);
+      }
+    }
+
+    setApprovalNotification(`You have successfully authorized Stage ${stageId}. Dual permission verification recorded and synced with designer!`);
     setTimeout(() => setApprovalNotification(null), 5000);
   };
 
@@ -357,11 +446,13 @@ export default function MyProjectPage() {
         </div>
       ) : (
         <div className={styles.documentsGrid}>
-          {project.milestones.flatMap(m => m.documents || []).concat([
+          {[
+            ...(Array.isArray(project.documents) ? project.documents : []),
+            ...project.milestones.flatMap(m => m.documents || []),
             { name: 'Sanctioned_Floor_Plan_V3.dwg', size: '18.5 MB', desc: 'BBMP Approved drawings, structural column loads and elevation sections.' },
             { name: 'Interior_Material_Specification_Schedule.pdf', size: '6.2 MB', desc: 'Botticino Marble grade A, Hafele hardware, Saint-Gobain toughened glass specs.' },
             { name: 'Geotechnical_Soil_Report.pdf', size: '3.1 MB', desc: 'Certified geotechnical analysis for multi-storey residential load compliance.' }
-          ]).map((doc, idx) => (
+          ].map((doc, idx) => (
             <div key={idx} className={styles.documentCard}>
               <div className={styles.docIconBox}><FileText size={24} /></div>
               <div className={styles.docMain}>

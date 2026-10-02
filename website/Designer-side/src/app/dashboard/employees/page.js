@@ -4,8 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Users, KeyRound, Shield, Mail, Phone, Building, HardHat,
-  Target, Crown, Plus, CheckCircle2, XCircle, Search, Filter,
-  Activity, RefreshCw, ExternalLink, ShieldAlert, Clock, Cpu
+  Target, Crown, CheckCircle2, Activity, RefreshCw, ExternalLink, Clock, Cpu
 } from 'lucide-react';
 import DesignerHeader from '@/components/Header';
 import { Button, Badge, Card, TextInput, Select, Modal, SearchInput, Toast } from '@/components/astryx';

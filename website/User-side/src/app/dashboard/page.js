@@ -9,17 +9,14 @@ import {
   CalendarDays, 
   CheckCircle2, 
   AlertCircle, 
-  ArrowUpRight, 
   FileText, 
-  ShieldAlert,
   ChevronRight,
-  TrendingUp,
   MapPin,
   FolderKanban,
-  Sparkles,
   PhoneCall
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import styles from './dashboard.module.css';
 
 export default function DashboardOverviewPage() {
@@ -28,31 +25,80 @@ export default function DashboardOverviewPage() {
   const [upcomingConsultation, setUpcomingConsultation] = useState(null);
 
   useEffect(() => {
-    // Load real project data if present
-    try {
-      const activeProj = localStorage.getItem('bavi_client_active_project');
-      if (activeProj) {
-        setProject(JSON.parse(activeProj));
-      } else {
-        const allProjs = localStorage.getItem('bavi_projects');
-        if (allProjs) {
-          const parsed = JSON.parse(allProjs);
-          if (parsed && parsed.length > 0) setProject(parsed[0]);
+    const fetchOverviewData = async () => {
+      // 1. Fetch real project from Supabase
+      let activeProject = null;
+      if (isSupabaseConfigured()) {
+        try {
+          let query = supabase.from('projects').select('*');
+          if (profile?.email) {
+            query = query.or(`client_email.eq.${profile.email},customer_id.eq.${profile.id}`);
+          }
+          const { data } = await query.order('created_at', { ascending: false }).limit(1);
+          if (data && data.length > 0) {
+            activeProject = data[0];
+          } else {
+            const { data: latest } = await supabase.from('projects').select('*').order('created_at', { ascending: false }).limit(1);
+            if (latest && latest.length > 0) activeProject = latest[0];
+          }
+        } catch (err) {
+          console.warn('Supabase fetch project warning:', err);
         }
       }
-    } catch {}
 
-    // Load real consultations if present
-    try {
-      const storedCons = localStorage.getItem('bavi_client_consultations');
-      if (storedCons) {
-        const parsedCons = JSON.parse(storedCons);
-        if (parsedCons && parsedCons.length > 0) {
-          setUpcomingConsultation(parsedCons[0]);
+      if (!activeProject) {
+        try {
+          const stored = localStorage.getItem('bavi_client_active_project') || localStorage.getItem('bavi_projects');
+          if (stored) {
+            const parsed = JSON.parse(stored);
+            activeProject = Array.isArray(parsed) ? parsed[0] : parsed;
+          }
+        } catch {}
+      }
+
+      if (activeProject) {
+        setProject(activeProject);
+      }
+
+      // 2. Fetch real consultations from Supabase
+      let foundCons = null;
+      if (isSupabaseConfigured()) {
+        try {
+          let q = supabase.from('consultations').select('*');
+          if (profile?.email) {
+            q = q.eq('customer_email', profile.email);
+          }
+          const { data: consData } = await q.order('created_at', { ascending: false }).limit(1);
+          if (consData && consData.length > 0) {
+            foundCons = consData[0];
+          }
+        } catch (err) {
+          console.warn('Supabase fetch consultation error:', err);
         }
       }
-    } catch {}
-  }, []);
+
+      if (!foundCons) {
+        try {
+          const storedCons = localStorage.getItem('bavi_client_consultations');
+          if (storedCons) {
+            const parsedCons = JSON.parse(storedCons);
+            if (Array.isArray(parsedCons) && parsedCons.length > 0) foundCons = parsedCons[0];
+          }
+        } catch {}
+      }
+
+      if (foundCons) {
+        setUpcomingConsultation({
+          ...foundCons,
+          date: foundCons.preferred_date || foundCons.date || 'Upcoming',
+          time: foundCons.preferred_time || foundCons.time || '11:00 AM',
+          type: foundCons.consultation_type || foundCons.type || 'Architectural Review',
+        });
+      }
+    };
+
+    fetchOverviewData();
+  }, [profile]);
 
   return (
     <div className={styles.container}>

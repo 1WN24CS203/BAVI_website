@@ -24,6 +24,7 @@ import {
   PhoneCall
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import styles from './DashboardLayout.module.css';
 
 const navItems = [
@@ -52,7 +53,7 @@ export default function DashboardLayout({ children }) {
     }
   }, [pathname, profile, loading, router]);
 
-  const handleRequestCallback = () => {
+  const handleRequestCallback = async () => {
     setCallbackLoading(true);
     const newCallback = {
       id: 'cb-' + Date.now(),
@@ -69,6 +70,24 @@ export default function DashboardLayout({ children }) {
       subject: 'Priority Client Assistance',
       message: `Direct callback requested from Client Dashboard by ${profile?.full_name || 'Client'}.`,
     };
+
+    if (isSupabaseConfigured()) {
+      try {
+        await supabase.from('callback_requests').insert([{
+          name: profile?.full_name || 'Valued Client',
+          phone: profile?.phone || 'Not provided',
+          email: profile?.email || null,
+          is_client: true,
+          client_id: profile?.id && !String(profile.id).startsWith('user-') ? profile.id : null,
+          subject: 'Priority Client Assistance',
+          message: `Direct callback requested from Client Dashboard by ${profile?.full_name || 'Client'}.`,
+          priority: 'urgent',
+          status: 'pending',
+        }]);
+      } catch (err) {
+        console.warn('Failed to insert callback to Supabase:', err);
+      }
+    }
 
     try {
       const stored = localStorage.getItem('bavi_callback_requests');

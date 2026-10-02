@@ -11,6 +11,7 @@ import {
   EmptyState, Divider, Tag, StatusDot, SearchInput, Avatar
 } from '@/components/astryx';
 import { useDesignerAuth } from '@/context/AuthContext';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 
 export default function CallbackRequestsPage() {
   const { designer, logActivity } = useDesignerAuth();
@@ -32,38 +33,63 @@ export default function CallbackRequestsPage() {
     return 'pending'; // Covers 'pending', 'new', 'unattended', etc.
   };
 
-  const loadCallbacks = () => {
-    try {
-      const stored = localStorage.getItem('bavi_callback_requests');
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          const normalized = parsed.map(c => ({
-            ...c,
-            name: c.name || c.clientName || 'Inquiry Contact',
-            phone: c.phone || 'Not provided',
-            is_client: Boolean(c.is_client ?? c.isClient ?? false),
-            status: normalizeStatus(c.status),
-            created_at: c.created_at || c.requestedAt || new Date().toISOString(),
-          }));
-          setCallbacks(normalized);
-          return;
-        }
-      }
-    } catch {}
+  const loadCallbacks = async () => {
+    let list = [];
+    if (isSupabaseConfigured()) {
+      try {
+        const { data, error } = await supabase
+          .from('callback_requests')
+          .select('*')
+          .order('created_at', { ascending: false });
 
-    setCallbacks([]);
+        if (data && data.length > 0) {
+          list = data.map(c => ({
+            ...c,
+            name: c.name || 'Inquiry Contact',
+            phone: c.phone || 'Not provided',
+            is_client: Boolean(c.is_client),
+            status: normalizeStatus(c.status),
+            created_at: c.created_at || new Date().toISOString(),
+          }));
+        }
+      } catch (err) {
+        console.warn('Supabase fetch callbacks error:', err);
+      }
+    }
+
+    if (list.length === 0) {
+      try {
+        const stored = localStorage.getItem('bavi_callback_requests');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            list = parsed.map(c => ({
+              ...c,
+              name: c.name || c.clientName || 'Inquiry Contact',
+              phone: c.phone || 'Not provided',
+              is_client: Boolean(c.is_client ?? c.isClient ?? false),
+              status: normalizeStatus(c.status),
+              created_at: c.created_at || c.requestedAt || new Date().toISOString(),
+            }));
+          }
+        }
+      } catch {}
+    }
+
+    setCallbacks(list);
   };
 
   const saveCallbacks = (data) => {
-    localStorage.setItem('bavi_callback_requests', JSON.stringify(data));
+    try {
+      localStorage.setItem('bavi_callback_requests', JSON.stringify(data));
+    } catch {}
     setCallbacks(data);
   };
 
   const showToast = (msg) => { setToastMsg(msg); setToastVisible(true); };
 
   // Status Workflow Handlers
-  const handleMarkAttended = (id) => {
+  const handleMarkAttended = async (id) => {
     const updated = callbacks.map(c => {
       if (c.id === id) {
         return {
@@ -76,12 +102,25 @@ export default function CallbackRequestsPage() {
       return c;
     });
     saveCallbacks(updated);
+
+    if (isSupabaseConfigured() && !String(id).startsWith('cb-')) {
+      try {
+        await supabase.from('callback_requests').update({
+          status: 'contacted',
+          contacted_at: new Date().toISOString(),
+          assigned_to_name: designer?.full_name || 'Design Team Architect',
+        }).eq('id', id);
+      } catch (err) {
+        console.warn('Failed to update callback in Supabase:', err);
+      }
+    }
+
     showToast('Callback request marked as Attended!');
     const target = callbacks.find(c => c.id === id);
     logActivity('attended_callback', 'callback', target?.name || 'Inquiry', { status: 'attended' });
   };
 
-  const handleMarkResolved = (id) => {
+  const handleMarkResolved = async (id) => {
     const updated = callbacks.map(c => {
       if (c.id === id) {
         return {
@@ -95,12 +134,25 @@ export default function CallbackRequestsPage() {
       return c;
     });
     saveCallbacks(updated);
+
+    if (isSupabaseConfigured() && !String(id).startsWith('cb-')) {
+      try {
+        await supabase.from('callback_requests').update({
+          status: 'completed',
+          contacted_at: new Date().toISOString(),
+          assigned_to_name: designer?.full_name || 'Design Team Architect',
+        }).eq('id', id);
+      } catch (err) {
+        console.warn('Failed to resolve callback in Supabase:', err);
+      }
+    }
+
     showToast('Callback request marked as Resolved!');
     const target = callbacks.find(c => c.id === id);
     logActivity('resolved_callback', 'callback', target?.name || 'Inquiry', { status: 'resolved' });
   };
 
-  const handleRevertPending = (id) => {
+  const handleRevertPending = async (id) => {
     const updated = callbacks.map(c => {
       if (c.id === id) {
         return {
@@ -111,6 +163,16 @@ export default function CallbackRequestsPage() {
       return c;
     });
     saveCallbacks(updated);
+
+    if (isSupabaseConfigured() && !String(id).startsWith('cb-')) {
+      try {
+        await supabase.from('callback_requests').update({
+          status: 'new'
+        }).eq('id', id);
+      } catch (err) {
+        console.warn('Failed to revert callback in Supabase:', err);
+      }
+    }
     showToast('Callback request moved back to Pending (Unattended)');
   };
 

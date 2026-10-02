@@ -5,6 +5,7 @@ import { FileText, Sparkles, Check, Clock, Edit3, Send, Eye, AlertCircle } from 
 import DesignerHeader from '@/components/Header';
 import { Button, Badge, Card, TextArea, Modal, Toast, Tabs, EmptyState, Divider, Tag, Stepper, Accordion } from '@/components/astryx';
 import { useDesignerAuth } from '@/context/AuthContext';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 
 export default function RequirementsPage() {
   const { designer, logActivity } = useDesignerAuth();
@@ -17,11 +18,75 @@ export default function RequirementsPage() {
   const [toastVisible, setToastVisible] = useState(false);
 
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem('bavi_projects');
-      if (stored) setProjects(JSON.parse(stored));
-    } catch {}
+    const fetchProjectsList = async () => {
+      let list = [];
+      if (isSupabaseConfigured()) {
+        try {
+          const { data } = await supabase.from('projects').select('*').order('created_at', { ascending: false });
+          if (data && data.length > 0) {
+            list = data.map(p => ({
+              ...p,
+              client_requirements: p.client_requirements_plain_text || p.client_requirements || '',
+            }));
+          }
+        } catch (err) {
+          console.warn('Supabase fetch projects error:', err);
+        }
+      }
+      if (list.length === 0) {
+        try {
+          const stored = localStorage.getItem('bavi_projects');
+          if (stored) {
+            const parsed = JSON.parse(stored);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              list = parsed.map(p => ({
+                ...p,
+                client_requirements: p.client_requirements_plain_text || p.client_requirements || '',
+              }));
+            }
+          }
+        } catch {}
+      }
+
+      // Also merge in the User-side requirements submission (bavi_client_requirements)
+      try {
+        const clientReqStored = localStorage.getItem('bavi_client_requirements');
+        if (clientReqStored) {
+          const clientReq = JSON.parse(clientReqStored);
+          if (clientReq && clientReq.clientPlainWords) {
+            const reqProjectId = clientReq.projectId || clientReq.id;
+            const existingIdx = list.findIndex(p => p.id === reqProjectId);
+            if (existingIdx >= 0) {
+              // Update existing project with client requirements
+              list[existingIdx] = {
+                ...list[existingIdx],
+                client_requirements: clientReq.clientPlainWords,
+                client_requirements_plain_text: clientReq.clientPlainWords,
+              };
+            } else if (reqProjectId) {
+              // Add as a new entry so it shows in the selector
+              list.unshift({
+                id: reqProjectId,
+                title: clientReq.projectName || 'Client Residence Project',
+                client_name: clientReq.clientName || 'Client',
+                client_requirements: clientReq.clientPlainWords,
+                client_requirements_plain_text: clientReq.clientPlainWords,
+                srs_status: clientReq.status === 'SRS_CLIENT_APPROVED' ? 'approved' : (clientReq.srs ? 'review' : 'draft'),
+                srs_content: clientReq.srs ? JSON.stringify(clientReq.srs) : null,
+                created_at: clientReq.submittedAt || new Date().toISOString(),
+                stages: [],
+              });
+            }
+          }
+        }
+      } catch {}
+
+      setProjects(list);
+    };
+
+    fetchProjectsList();
   }, []);
+
 
   const showToast = (msg) => { setToastMsg(msg); setToastVisible(true); };
 
@@ -39,38 +104,87 @@ export default function RequirementsPage() {
   };
 
   const handleGenerateSRS = () => {
-    if (!selectedProject?.client_requirements) {
-      showToast('No client requirements to generate SRS from');
+    const reqText = selectedProject?.client_requirements || selectedProject?.client_requirements_plain_text;
+    if (!reqText) {
+      showToast('No client requirements found to generate SRS from');
       return;
     }
-    const req = selectedProject.client_requirements;
+    const req = reqText;
     setSrsContent({
       title: `SRS: ${selectedProject.title}`,
-      scope: `This Software Requirements Specification covers the architectural and construction requirements for ${selectedProject.title} at ${selectedProject.location || 'specified location'}. Budget: ₹${Number(selectedProject.budget || 0).toLocaleString('en-IN')}.`,
-      functional: `Based on client's requirements:\n\n${req}\n\nKey deliverables to be extracted and documented by the architect.`,
-      nonFunctional: 'Quality standards: IS codes compliance, structural safety, fire safety, aesthetic finish quality as per BAVI standards.',
-      materials: 'Materials to be specified based on client budget range and quality preferences.',
-      timeline: `Estimated project timeline from ${selectedProject.start_date || 'TBD'} to ${selectedProject.estimated_completion || 'TBD'}.`,
-      budget: `Total budget: ₹${Number(selectedProject.budget || 0).toLocaleString('en-IN')}. Breakdown to be defined per milestone.`,
-      notes: 'Additional notes and clarifications to be added after client consultation.',
+      scope: `This Software & Architectural Requirements Specification covers the structural and interior requirements for ${selectedProject.title} at ${selectedProject.location || 'specified location'}. Budget: ₹${Number(selectedProject.budget || 0).toLocaleString('en-IN')}.`,
+      functional: `Based on client's plain-text requirements:\n\n${req}\n\nKey deliverables to be executed and verified by the architectural team.`,
+      nonFunctional: 'Quality standards: IS codes compliance, structural safety, moisture resistance, and premium BAVI finishing.',
+      materials: 'Materials specified to match client aesthetic preferences and luxury grade budget allocations.',
+      timeline: `Estimated project milestone roadmap from ${selectedProject.start_date || 'Project Initiation'} to ${selectedProject.estimated_completion || 'Final Handover'}.`,
+      budget: `Total verified budget: ₹${Number(selectedProject.budget || 0).toLocaleString('en-IN')}. Dual stage permissions enforced.`,
+      notes: 'Blueprint and design sanctions to be finalized prior to foundation execution.',
     });
     showToast('SRS template generated from client requirements!');
   };
 
-  const handleSaveSRS = () => {
+  const handleSaveSRS = async () => {
     if (!selectedProject) return;
     const updated = projects.map(p => {
       if (p.id === selectedProject.id) {
-        return { ...p, srs_content: srsContent, srs_status: 'draft' };
+        return { ...p, srs_content: srsContent, srs_status: 'review' };
       }
       return p;
     });
     setProjects(updated);
-    setSelectedProject({ ...selectedProject, srs_content: srsContent, srs_status: 'draft' });
-    localStorage.setItem('bavi_projects', JSON.stringify(updated));
-    showToast('SRS document saved successfully!');
+    setSelectedProject({ ...selectedProject, srs_content: srsContent, srs_status: 'review' });
+    try {
+      localStorage.setItem('bavi_projects', JSON.stringify(updated));
+    } catch {}
+
+    // Sync SRS back to bavi_client_requirements so the User-side can see the published SRS
+    try {
+      const clientReqStored = localStorage.getItem('bavi_client_requirements');
+      const clientReq = clientReqStored ? JSON.parse(clientReqStored) : {};
+      const isMatchingProject =
+        clientReq.projectId === selectedProject.id ||
+        clientReq.id === selectedProject.id ||
+        clientReq.clientName === selectedProject.client_name;
+
+      if (isMatchingProject || !clientReq.projectId) {
+        const updatedClientReq = {
+          ...clientReq,
+          projectId: selectedProject.id,
+          projectName: selectedProject.title || clientReq.projectName,
+          status: 'SRS_READY_FOR_REVIEW',
+          srs: {
+            title: srsContent.title,
+            scope: srsContent.scope,
+            functional: srsContent.functional,
+            nonFunctional: srsContent.nonFunctional,
+            materials: srsContent.materials,
+            timeline: srsContent.timeline,
+            budget: srsContent.budget,
+            notes: srsContent.notes,
+            clientApproved: false,
+          },
+        };
+        localStorage.setItem('bavi_client_requirements', JSON.stringify(updatedClientReq));
+      }
+    } catch (err) {
+      console.warn('Failed to sync SRS to bavi_client_requirements:', err);
+    }
+
+    if (isSupabaseConfigured() && selectedProject.id && !String(selectedProject.id).startsWith('proj-')) {
+      try {
+        await supabase.from('projects').update({
+          srs_content: JSON.stringify(srsContent),
+          srs_status: 'review',
+        }).eq('id', selectedProject.id);
+      } catch (err) {
+        console.warn('Failed to sync SRS to Supabase:', err);
+      }
+    }
+
+    showToast('SRS document saved and published to client portal!');
     logActivity('saved_srs', 'requirement', selectedProject.title, {});
   };
+
 
   const srsSteps = [
     { label: 'Client Submits Requirements' },

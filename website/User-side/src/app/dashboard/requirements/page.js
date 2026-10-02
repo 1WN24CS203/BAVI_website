@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { Button, Badge, Card, TextArea, TextInput } from '@/components/astryx';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 
 export default function ClientRequirementsPage() {
   const { profile } = useAuth();
@@ -26,14 +27,89 @@ export default function ClientRequirementsPage() {
   const [approvalSuccess, setApprovalSuccess] = useState(false);
 
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem('bavi_client_requirements');
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        setData(parsed);
-        setPlainWordsDraft(parsed.clientPlainWords || '');
-      } else {
-        const fresh = {
+    const fetchRequirements = async () => {
+      let activeProj = null;
+      if (isSupabaseConfigured()) {
+        try {
+          let query = supabase.from('projects').select('*');
+          if (profile?.email) {
+            query = query.or(`client_email.eq.${profile.email},customer_id.eq.${profile.id}`);
+          }
+          const { data: projData } = await query.order('created_at', { ascending: false }).limit(1);
+          if (projData && projData.length > 0) {
+            activeProj = projData[0];
+          } else {
+            const { data: anyProj } = await supabase.from('projects').select('*').order('created_at', { ascending: false }).limit(1);
+            if (anyProj && anyProj.length > 0) activeProj = anyProj[0];
+          }
+        } catch (err) {
+          console.warn('Supabase fetch project requirements error:', err);
+        }
+      }
+
+      if (activeProj) {
+        let srsObj = null;
+        if (activeProj.srs_content) {
+          try {
+            srsObj = typeof activeProj.srs_content === 'string' ? JSON.parse(activeProj.srs_content) : activeProj.srs_content;
+          } catch {
+            srsObj = { title: `SRS: ${activeProj.title}`, scope: activeProj.srs_content };
+          }
+        }
+
+        const projectStatus = activeProj.srs_status === 'approved' 
+          ? 'SRS_CLIENT_APPROVED' 
+          : (activeProj.srs_content ? 'SRS_READY_FOR_REVIEW' : (activeProj.client_requirements_plain_text ? 'AWAITING_SRS_REVISION' : 'NOT_SUBMITTED'));
+
+        const loaded = {
+          id: activeProj.id,
+          projectId: activeProj.id,
+          projectName: activeProj.title || 'My Residence Project',
+          clientName: activeProj.client_name || profile?.full_name || 'Client',
+          clientPlainWords: activeProj.client_requirements_plain_text || '',
+          submittedAt: activeProj.created_at ? activeProj.created_at.split('T')[0] : null,
+          status: projectStatus,
+          srs: srsObj ? {
+            title: srsObj.title || `SRS: ${activeProj.title}`,
+            scope: srsObj.scope || '',
+            functional: srsObj.functional || '',
+            nonFunctional: srsObj.nonFunctional || '',
+            materials: srsObj.materials || '',
+            timeline: srsObj.timeline || '',
+            budget: srsObj.budget || '',
+            notes: srsObj.notes || '',
+            clientApproved: activeProj.srs_status === 'approved',
+          } : null,
+        };
+
+        setData(loaded);
+        setPlainWordsDraft(loaded.clientPlainWords || '');
+        return;
+      }
+
+      // LocalStorage fallback
+      try {
+        const stored = localStorage.getItem('bavi_client_requirements');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          setData(parsed);
+          setPlainWordsDraft(parsed.clientPlainWords || '');
+        } else {
+          const fresh = {
+            id: 'req-' + Date.now(),
+            projectId: 'proj-active',
+            projectName: 'My Residence Project',
+            clientName: profile?.full_name || 'Client',
+            clientPlainWords: '',
+            submittedAt: null,
+            status: 'NOT_SUBMITTED',
+            srs: null,
+          };
+          setData(fresh);
+          setPlainWordsDraft('');
+        }
+      } catch {
+        setData({
           id: 'req-' + Date.now(),
           projectId: 'proj-active',
           projectName: 'My Residence Project',
@@ -42,26 +118,15 @@ export default function ClientRequirementsPage() {
           submittedAt: null,
           status: 'NOT_SUBMITTED',
           srs: null,
-        };
-        setData(fresh);
+        });
         setPlainWordsDraft('');
       }
-    } catch {
-      setData({
-        id: 'req-' + Date.now(),
-        projectId: 'proj-active',
-        projectName: 'My Residence Project',
-        clientName: profile?.full_name || 'Client',
-        clientPlainWords: '',
-        submittedAt: null,
-        status: 'NOT_SUBMITTED',
-        srs: null,
-      });
-      setPlainWordsDraft('');
-    }
+    };
+
+    fetchRequirements();
   }, [profile]);
 
-  const handleSavePlainWords = (e) => {
+  const handleSavePlainWords = async (e) => {
     e.preventDefault();
     const updated = {
       ...data,
@@ -75,12 +140,59 @@ export default function ClientRequirementsPage() {
     } catch (err) {
       console.warn(err);
     }
+
+    // Sync requirements into bavi_projects so Designer-side can pick them up
+    try {
+      const storedProjects = localStorage.getItem('bavi_projects');
+      const projectsList = storedProjects ? JSON.parse(storedProjects) : [];
+      const projectId = updated.projectId || updated.id;
+      const existingIdx = projectsList.findIndex(p => p.id === projectId);
+      if (existingIdx >= 0) {
+        projectsList[existingIdx] = {
+          ...projectsList[existingIdx],
+          client_requirements_plain_text: plainWordsDraft,
+          client_requirements: plainWordsDraft,
+          srs_status: 'draft',
+        };
+      } else {
+        // No project entry yet — create a placeholder so Designer sees the requirements
+        projectsList.unshift({
+          id: projectId || `proj-client-${Date.now()}`,
+          title: updated.projectName || 'My Residence Project',
+          client_name: profile?.full_name || updated.clientName || 'Client',
+          client_email: profile?.email || '',
+          client_phone: profile?.phone || '',
+          client_requirements_plain_text: plainWordsDraft,
+          client_requirements: plainWordsDraft,
+          srs_status: 'draft',
+          progress: 0,
+          created_at: new Date().toISOString(),
+          stages: [],
+        });
+      }
+      localStorage.setItem('bavi_projects', JSON.stringify(projectsList));
+    } catch (err) {
+      console.warn('Failed to sync requirements to bavi_projects:', err);
+    }
+
+    if (isSupabaseConfigured() && data.projectId && !String(data.projectId).startsWith('proj-')) {
+      try {
+        await supabase.from('projects').update({
+          client_requirements_plain_text: plainWordsDraft,
+          srs_status: 'draft',
+        }).eq('id', data.projectId);
+      } catch (err) {
+        console.warn('Failed to sync requirements to Supabase:', err);
+      }
+    }
+
     setIsEditingWords(false);
     setSavedSuccess(true);
     setTimeout(() => setSavedSuccess(false), 4000);
   };
 
-  const handleApproveSRS = () => {
+
+  const handleApproveSRS = async () => {
     const updated = {
       ...data,
       status: 'SRS_CLIENT_APPROVED',
@@ -96,9 +208,39 @@ export default function ClientRequirementsPage() {
     } catch (err) {
       console.warn(err);
     }
+
+    // Sync SRS approval to bavi_projects so Designer sees client sign-off
+    try {
+      const storedProjects = localStorage.getItem('bavi_projects');
+      const projectsList = storedProjects ? JSON.parse(storedProjects) : [];
+      const projectId = updated.projectId || updated.id;
+      const existingIdx = projectsList.findIndex(p => p.id === projectId);
+      if (existingIdx >= 0) {
+        projectsList[existingIdx] = {
+          ...projectsList[existingIdx],
+          srs_status: 'approved',
+          srs_content: JSON.stringify(updated.srs),
+        };
+        localStorage.setItem('bavi_projects', JSON.stringify(projectsList));
+      }
+    } catch (err) {
+      console.warn('Failed to sync SRS approval to bavi_projects:', err);
+    }
+
+    if (isSupabaseConfigured() && data.projectId && !String(data.projectId).startsWith('proj-')) {
+      try {
+        await supabase.from('projects').update({
+          srs_status: 'approved',
+        }).eq('id', data.projectId);
+      } catch (err) {
+        console.warn('Failed to sync SRS approval to Supabase:', err);
+      }
+    }
+
     setApprovalSuccess(true);
     setTimeout(() => setApprovalSuccess(false), 5000);
   };
+
 
   return (
     <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '10px 0 60px' }}>

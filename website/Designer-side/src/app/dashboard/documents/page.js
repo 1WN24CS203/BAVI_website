@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import DesignerHeader from '@/components/Header';
 import { Button, Badge, Card, TextInput, Select, Modal, SearchInput, EmptyState } from '@/components/astryx';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 
 export default function DocumentUploadCenterPage() {
   const [documents, setDocuments] = useState([]);
@@ -25,6 +26,11 @@ export default function DocumentUploadCenterPage() {
   });
 
   useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadData = async () => {
+    // 1. Load documents
     try {
       const stored = localStorage.getItem('bavi_documents_registry');
       if (stored) {
@@ -36,19 +42,54 @@ export default function DocumentUploadCenterPage() {
       setDocuments([]);
     }
 
+    // 2. Load clients from Supabase
+    let clientList = [];
+    if (isSupabaseConfigured()) {
+      try {
+        const { data } = await supabase.from('profiles').select('*').in('role', ['customer', 'client']).order('created_at', { ascending: false });
+        if (data && data.length > 0) clientList = data;
+      } catch (e) {
+        console.warn('Failed to load profiles:', e);
+      }
+    }
     try {
       const storedClients = localStorage.getItem('bavi_registered_clients');
       if (storedClients) {
-        setClients(JSON.parse(storedClients));
-      }
-      const storedProjects = localStorage.getItem('bavi_projects_registry');
-      if (storedProjects) {
-        setProjects(JSON.parse(storedProjects));
+        const parsed = JSON.parse(storedClients);
+        const map = new Map();
+        [...clientList, ...parsed].forEach(c => {
+          if (c.email) map.set(c.email.toLowerCase(), c);
+        });
+        clientList = Array.from(map.values());
       }
     } catch (e) {
-      console.warn('Failed to load registered clients or projects:', e);
+      console.warn(e);
     }
-  }, []);
+    setClients(clientList);
+
+    // 3. Load projects from Supabase
+    let projectList = [];
+    if (isSupabaseConfigured()) {
+      try {
+        const { data } = await supabase.from('projects').select('*').order('created_at', { ascending: false });
+        if (data && data.length > 0) projectList = data;
+      } catch (e) {
+        console.warn('Failed to load projects:', e);
+      }
+    }
+    try {
+      const storedProjects = localStorage.getItem('bavi_projects');
+      if (storedProjects) {
+        const parsed = JSON.parse(storedProjects);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          projectList = [...projectList, ...parsed.filter(p => !projectList.some(sp => sp.id === p.id))];
+        }
+      }
+    } catch (e) {
+      console.warn(e);
+    }
+    setProjects(projectList);
+  };
 
   const saveDocs = (updated) => {
     setDocuments(updated);
@@ -59,7 +100,7 @@ export default function DocumentUploadCenterPage() {
     }
   };
 
-  const handleUpload = (e) => {
+  const handleUpload = async (e) => {
     e.preventDefault();
     if (!newDoc.name.trim()) return;
 
@@ -77,7 +118,29 @@ export default function DocumentUploadCenterPage() {
       type: newDoc.name.endsWith('.pdf') ? 'pdf' : (newDoc.name.endsWith('.dwg') ? 'cad' : 'doc'),
     };
 
-    saveDocs([doc, ...documents]);
+    const updatedDocs = [doc, ...documents];
+    saveDocs(updatedDocs);
+
+    // Sync to Supabase project documents if project matches
+    if (isSupabaseConfigured() && newDoc.projectName) {
+      try {
+        const matched = projects.find(p => (p.title || p.name) === newDoc.projectName);
+        if (matched && matched.id && !String(matched.id).startsWith('proj-')) {
+          const currentProjectDocs = Array.isArray(matched.documents) ? matched.documents : [];
+          await supabase.from('projects').update({
+            documents: [{
+              name: doc.name,
+              size: doc.fileSize,
+              desc: `${doc.category} — ${doc.stage}`,
+              uploaded_at: doc.uploadedAt,
+            }, ...currentProjectDocs]
+          }).eq('id', matched.id);
+        }
+      } catch (err) {
+        console.warn('Failed to attach document to Supabase project:', err);
+      }
+    }
+
     setUploadModalOpen(false);
     setNewDoc({
       name: '',

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   CalendarDays, 
   Clock, 
@@ -14,6 +14,7 @@ import {
   CalendarCheck
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import styles from './consultations.module.css';
 
 export default function ConsultationsPage() {
@@ -26,15 +27,46 @@ export default function ConsultationsPage() {
   };
 
   const [consultations, setConsultations] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchConsultations = async () => {
+    let list = [];
+    if (isSupabaseConfigured()) {
+      try {
+        let q = supabase.from('consultations').select('*');
+        if (profile?.email) {
+          q = q.eq('customer_email', profile.email);
+        }
+        const { data, error } = await q.order('created_at', { ascending: false });
+        if (data && data.length > 0) {
+          list = data.map(c => ({
+            ...c,
+            type: c.consultation_type || c.type || 'Architectural Review',
+            date: c.preferred_date || c.date || 'TBD',
+            time: c.preferred_time || c.time || '11:00 AM',
+            mode: c.location || (c.meeting_link ? 'Google Meet Video Call' : 'On-Site Indiranagar Plot'),
+            meetingLink: c.meeting_link,
+          }));
+        }
+      } catch (err) {
+        console.warn('Supabase fetch consultations error:', err);
+      }
+    }
+
+    if (list.length === 0) {
+      try {
+        const stored = localStorage.getItem('bavi_client_consultations');
+        if (stored) list = JSON.parse(stored);
+      } catch {}
+    }
+
+    setConsultations(list);
+    setLoading(false);
+  };
 
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem('bavi_client_consultations');
-      if (stored) {
-        setConsultations(JSON.parse(stored));
-      }
-    } catch {}
-  }, []);
+    fetchConsultations();
+  }, [profile]);
 
   const [showModal, setShowModal] = useState(false);
   const [formData, setFormData] = useState({
@@ -46,20 +78,45 @@ export default function ConsultationsPage() {
   });
   const [submitted, setSubmitted] = useState(false);
 
-  const handleBooking = (e) => {
+  const handleBooking = async (e) => {
     e.preventDefault();
-    const newBooking = {
+    const typeLabel = formData.type === 'design_review' ? 'Design & Material Review' : 
+                      formData.type === 'site_visit' ? 'Site Progress Inspection' : 'Architectural Planning Consultation';
+
+    let newBooking = {
       id: 'cons-' + Date.now(),
-      type: formData.type === 'design_review' ? 'Design & Material Review' : 
-            formData.type === 'site_visit' ? 'Site Progress Inspection' : 'Architectural Planning Consultation',
+      type: typeLabel,
       category: 'Customer Request',
-      date: formData.preferredDate || '2026-09-18',
+      date: formData.preferredDate || new Date().toISOString().split('T')[0],
       time: formData.preferredTime,
       status: 'pending',
       mode: formData.mode === 'in_person' ? 'On-Site Indiranagar Plot' : 'Google Meet Video Call',
       meetingLink: formData.mode === 'video' ? 'https://meet.google.com/bavi-custom-demo' : null,
       notes: formData.notes || 'Scheduled via client portal'
     };
+
+    if (isSupabaseConfigured()) {
+      try {
+        const payload = {
+          customer_name: profile?.full_name || 'Client',
+          customer_email: profile?.email || 'client@bavi.com',
+          customer_phone: profile?.phone || '',
+          consultation_type: typeLabel,
+          preferred_date: newBooking.date,
+          preferred_time: newBooking.time,
+          notes: newBooking.notes,
+          status: 'pending',
+          location: newBooking.mode,
+          meeting_link: newBooking.meetingLink,
+        };
+        const { data, error } = await supabase.from('consultations').insert([payload]).select();
+        if (data && data.length > 0) {
+          newBooking = { ...newBooking, ...data[0], id: data[0].id };
+        }
+      } catch (err) {
+        console.warn('Failed to insert consultation in Supabase:', err);
+      }
+    }
 
     const updated = [newBooking, ...consultations];
     setConsultations(updated);

@@ -16,6 +16,7 @@ import {
   Building2,
   Compass
 } from 'lucide-react';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import styles from './contact.module.css';
 
 export default function ContactPage() {
@@ -31,7 +32,7 @@ export default function ContactPage() {
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
 
@@ -50,6 +51,33 @@ export default function ContactPage() {
       subject: formData.projectType,
       message: `${formData.message ? formData.message + ' | ' : ''}Location: ${formData.location || 'Not specified'}`,
     };
+
+    if (isSupabaseConfigured()) {
+      try {
+        await Promise.all([
+          supabase.from('callback_requests').insert([{
+            name: publicCallback.name,
+            phone: publicCallback.phone,
+            email: publicCallback.email,
+            is_client: false,
+            subject: publicCallback.subject,
+            message: publicCallback.message,
+            priority: 'normal',
+            status: 'pending',
+          }]),
+          supabase.from('contact_messages').insert([{
+            name: publicCallback.name,
+            phone: publicCallback.phone,
+            email: publicCallback.email,
+            subject: publicCallback.subject,
+            message: publicCallback.message,
+            status: 'new'
+          }])
+        ]);
+      } catch (err) {
+        console.warn('Failed to insert contact/callback to Supabase:', err);
+      }
+    }
 
     try {
       const stored = localStorage.getItem('bavi_callback_requests');

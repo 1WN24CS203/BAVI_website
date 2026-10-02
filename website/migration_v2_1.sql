@@ -26,6 +26,10 @@ ALTER TABLE public.departments
 ALTER TABLE public.departments
   ADD COLUMN IF NOT EXISTS requested_by_dept VARCHAR(100);
 
+-- Projects table: Add stages column to store dynamic milestones, documents, and dual-approvals
+ALTER TABLE public.projects
+  ADD COLUMN IF NOT EXISTS stages JSONB DEFAULT '[]'::jsonb;
+
 
 -- ================================================================
 -- STEP 2: Seed the new TECH & DIGITALIZATION department
