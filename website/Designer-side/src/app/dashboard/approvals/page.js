@@ -19,10 +19,14 @@ import {
   AlertCircle,
   ArrowRight,
   Layers,
-  Sparkles
+  Sparkles,
+  Lock,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import DesignerHeader from '@/components/Header';
 import { useDesignerAuth } from '@/context/AuthContext';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import styles from './approvals.module.css';
 
 export default function DesignerApprovalsPage() {
@@ -33,15 +37,16 @@ export default function DesignerApprovalsPage() {
     rejectRequest,
     getEmailChangeRequests,
     approveEmailChangeRequest,
-    rejectEmailChangeRequest
+    rejectEmailChangeRequest,
+    logActivity
   } = useDesignerAuth();
 
-  // Active section: 'ACCESS' | 'EMAIL'
+  // Active section: 'ACCESS' | 'EMAIL' | 'CLIENT_PASSWORDS'
   const [activeSection, setActiveSection] = useState('ACCESS');
 
   // Access requests state
   const [requests, setRequests] = useState([]);
-  const [filterTab, setFilterTab] = useState('ALL'); // 'ALL' | 'PENDING' | 'APPROVED' | 'REJECTED'
+  const [filterTab, setFilterTab] = useState('ALL');
   const [searchTerm, setSearchTerm] = useState('');
   const [toast, setToast] = useState('');
   const [copiedId, setCopiedId] = useState(null);
@@ -57,11 +62,32 @@ export default function DesignerApprovalsPage() {
   const [rejectingEmailId, setRejectingEmailId] = useState(null);
   const [emailRejectReason, setEmailRejectReason] = useState('');
 
+  // Client Password Change Requests State
+  const [clientPwRequests, setClientPwRequests] = useState([]);
+  const [pwFilterTab, setPwFilterTab] = useState('ALL');
+  const [pwSearchTerm, setPwSearchTerm] = useState('');
+  const [approvingPwId, setApprovingPwId] = useState(null);
+  const [rejectingPwId, setRejectingPwId] = useState(null);
+  const [pwRejectReason, setPwRejectReason] = useState('');
+  const [revealedPasswords, setRevealedPasswords] = useState({});
+
   const loadAll = () => {
     const all = getRequests();
     setRequests(all);
     const emails = getEmailChangeRequests();
     setEmailRequests(emails);
+
+    // Load Client Password Requests
+    try {
+      const storedPw = localStorage.getItem('bavi_client_password_requests');
+      if (storedPw) {
+        setClientPwRequests(JSON.parse(storedPw));
+      } else {
+        setClientPwRequests([]);
+      }
+    } catch {
+      setClientPwRequests([]);
+    }
   };
 
   useEffect(() => {
@@ -130,10 +156,118 @@ export default function DesignerApprovalsPage() {
     }
   };
 
+  // --- Handlers for Client Password Change Requests ---
+  const handleApproveClientPassword = async (id) => {
+    setApprovingPwId(id);
+    try {
+      const req = clientPwRequests.find(r => r.id === id);
+      if (!req) return;
+
+      const newPassword = req.requested_password;
+
+      // 1. Update in bavi_registered_clients
+      try {
+        const stored = localStorage.getItem('bavi_registered_clients');
+        if (stored) {
+          const list = JSON.parse(stored);
+          const idx = list.findIndex(c => c.email?.toLowerCase() === req.client_email?.toLowerCase());
+          if (idx >= 0) {
+            list[idx].password = newPassword;
+            localStorage.setItem('bavi_registered_clients', JSON.stringify(list));
+          }
+        }
+      } catch {}
+
+      // 2. Update in bavi_registered_accounts
+      try {
+        const accStored = localStorage.getItem('bavi_registered_accounts');
+        if (accStored) {
+          const accs = JSON.parse(accStored);
+          const aIdx = accs.findIndex(a => a.email?.toLowerCase() === req.client_email?.toLowerCase());
+          if (aIdx >= 0) {
+            accs[aIdx].password = newPassword;
+            localStorage.setItem('bavi_registered_accounts', JSON.stringify(accs));
+          }
+        }
+      } catch {}
+
+      // 3. Update in Supabase profiles if configured
+      if (isSupabaseConfigured() && req.client_email) {
+        try {
+          await supabase.from('profiles').update({
+            metadata: {
+              password_updated_at: new Date().toISOString(),
+              authorized_by_designer: designer?.full_name || 'Design Team Architect'
+            }
+          }).eq('email', req.client_email.toLowerCase());
+        } catch {}
+      }
+
+      // 4. Mark request APPROVED in bavi_client_password_requests
+      const updatedReqs = clientPwRequests.map(r => {
+        if (r.id === id) {
+          return {
+            ...r,
+            status: 'APPROVED',
+            approved_at: new Date().toISOString(),
+            approved_by: designer?.full_name || 'Design Team Architect',
+          };
+        }
+        return r;
+      });
+
+      localStorage.setItem('bavi_client_password_requests', JSON.stringify(updatedReqs));
+      setClientPwRequests(updatedReqs);
+
+      setToast(`Authorized! Password updated for client ${req.client_name}. Client can now sign in with new credentials.`);
+      setTimeout(() => setToast(''), 4500);
+
+      logActivity('approved_client_password_change', 'client', req.client_name, {
+        email: req.client_email,
+        approved_by: designer?.full_name
+      });
+    } catch (err) {
+      alert(err.message || 'Failed to approve password update.');
+    } finally {
+      setApprovingPwId(null);
+    }
+  };
+
+  const handleRejectClientPassword = async (id) => {
+    try {
+      const updatedReqs = clientPwRequests.map(r => {
+        if (r.id === id) {
+          return {
+            ...r,
+            status: 'REJECTED',
+            rejected_at: new Date().toISOString(),
+            rejected_by: designer?.full_name || 'Design Team Architect',
+            rejection_reason: pwRejectReason || 'Declined per security protocol.'
+          };
+        }
+        return r;
+      });
+
+      localStorage.setItem('bavi_client_password_requests', JSON.stringify(updatedReqs));
+      setClientPwRequests(updatedReqs);
+      setRejectingPwId(null);
+      setPwRejectReason('');
+      setToast('Client password change request was declined.');
+      setTimeout(() => setToast(''), 3500);
+    } catch (err) {
+      alert(err.message || 'Failed to reject request.');
+    }
+  };
+
+  const togglePasswordVisibility = (id) => {
+    setRevealedPasswords(prev => ({ ...prev, [id]: !prev[id] }));
+  };
+
   // Counts
   const pendingKeyCount = requests.filter(r => r.status === 'PENDING').length;
   const approvedCount = requests.filter(r => r.status === 'APPROVED').length;
   const pendingEmailCount = emailRequests.filter(r => r.status === 'PENDING').length;
+  const pendingClientPwCount = clientPwRequests.filter(r => r.status === 'PENDING').length;
 
   // Filtered lists
   const filteredRequests = requests.filter(r => {
@@ -156,32 +290,51 @@ export default function DesignerApprovalsPage() {
     return matchesTab && matchesSearch;
   });
 
+  const filteredClientPwRequests = clientPwRequests.filter(r => {
+    const matchesTab = pwFilterTab === 'ALL' || r.status === pwFilterTab;
+    const matchesSearch = 
+      r.client_name?.toLowerCase().includes(pwSearchTerm.toLowerCase()) ||
+      r.client_email?.toLowerCase().includes(pwSearchTerm.toLowerCase()) ||
+      r.client_code?.toLowerCase().includes(pwSearchTerm.toLowerCase()) ||
+      r.reason?.toLowerCase().includes(pwSearchTerm.toLowerCase());
+    return matchesTab && matchesSearch;
+  });
+
   return (
     <>
       <DesignerHeader 
-        title="Owner Authorization & Verification Desk" 
-        subtitle="Review credential submissions, issue unique security keys, and approve corporate email update requests." 
+        title="Owner Authorization &amp; Verification Desk" 
+        subtitle="Review credential submissions, issue unique security keys, and authorize client credential change requests." 
       />
 
       <div className={styles.container}>
         {/* Metric Cards */}
-        <div className={styles.metricsGrid}>
+        <div className={styles.metricsGrid} style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
           <div className={styles.metricCard}>
             <div className={styles.metricTop}>
               <span className={styles.metricLabel}>Pending Key Requests</span>
               <Clock size={20} className={styles.metricIconGold} />
             </div>
             <div className={styles.metricValueGold}>{pendingKeyCount}</div>
-            <span className={styles.metricSub}>Awaiting security key issuance</span>
+            <span className={styles.metricSub}>Designer access keys</span>
           </div>
 
           <div className={styles.metricCard}>
             <div className={styles.metricTop}>
-              <span className={styles.metricLabel}>Pending Email Changes</span>
+              <span className={styles.metricLabel}>Client Password Changes</span>
+              <Lock size={20} className={styles.metricIconGold} />
+            </div>
+            <div className={styles.metricValueGold}>{clientPwRequests.length}</div>
+            <span className={styles.metricSub}>Client credential audit log</span>
+          </div>
+
+          <div className={styles.metricCard}>
+            <div className={styles.metricTop}>
+              <span className={styles.metricLabel}>Staff Email Changes</span>
               <Mail size={20} className={styles.metricIconGold} />
             </div>
             <div className={styles.metricValueGold}>{pendingEmailCount}</div>
-            <span className={styles.metricSub}>Staff email update requests</span>
+            <span className={styles.metricSub}>Corporate email requests</span>
           </div>
 
           <div className={styles.metricCard}>
@@ -191,17 +344,6 @@ export default function DesignerApprovalsPage() {
             </div>
             <div className={styles.metricValue}>{approvedCount}</div>
             <span className={styles.metricSub}>Active authorized designers</span>
-          </div>
-
-          <div className={styles.metricCard}>
-            <div className={styles.metricTop}>
-              <span className={styles.metricLabel}>Current Administrator</span>
-              <Crown size={20} className={styles.metricIconGold} />
-            </div>
-            <div className={styles.metricValue} style={{ fontSize: '1.2rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              {designer?.full_name || 'Site Owner'}
-            </div>
-            <span className={styles.metricSub}>Primary Site Authority</span>
           </div>
         </div>
 
@@ -219,10 +361,23 @@ export default function DesignerApprovalsPage() {
             className={`${styles.sectionNavBtn} ${activeSection === 'ACCESS' ? styles.sectionNavBtnActive : ''}`}
           >
             <KeyRound size={16} />
-            <span>Access & Key Requests</span>
+            <span>Designer Access Keys</span>
             {pendingKeyCount > 0 && (
               <span className={`${styles.countBadge} ${styles.countBadgePending}`}>
                 {pendingKeyCount}
+              </span>
+            )}
+          </button>
+
+          <button
+            onClick={() => setActiveSection('CLIENT_PASSWORDS')}
+            className={`${styles.sectionNavBtn} ${activeSection === 'CLIENT_PASSWORDS' ? styles.sectionNavBtnActive : ''}`}
+          >
+            <ShieldCheck size={16} />
+            <span>Client Password Updates</span>
+            {pendingClientPwCount > 0 && (
+              <span className={`${styles.countBadge} ${styles.countBadgePending}`}>
+                {pendingClientPwCount}
               </span>
             )}
           </button>
@@ -241,10 +396,9 @@ export default function DesignerApprovalsPage() {
           </button>
         </div>
 
-        {/* SECTION 1: ACCESS REQUESTS */}
+        {/* SECTION 1: DESIGNER ACCESS REQUESTS */}
         {activeSection === 'ACCESS' && (
           <>
-            {/* Filter and Search Bar */}
             <div className={styles.controlBar}>
               <div className={styles.filterTabs}>
                 {['ALL', 'PENDING', 'APPROVED', 'REJECTED'].map((tab) => (
@@ -263,9 +417,9 @@ export default function DesignerApprovalsPage() {
 
               <div className={styles.searchWrap}>
                 <Search size={16} className={styles.searchIcon} />
-                <input 
+                <input
                   type="text"
-                  placeholder="Search by name, email, COA reg..."
+                  placeholder="Search applicants by name, email, CoA reg..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className={styles.searchInput}
@@ -273,79 +427,73 @@ export default function DesignerApprovalsPage() {
               </div>
             </div>
 
-            {/* Requests List */}
             {filteredRequests.length > 0 ? (
-              <div className={styles.requestsList}>
+              <div className={styles.requestsGrid}>
                 {filteredRequests.map((req) => (
-                  <div key={req.id} className={`${styles.requestCard} ${req.status === 'PENDING' ? styles.cardPending : ''}`}>
+                  <div key={req.id} className={styles.requestCard}>
                     <div className={styles.cardHeader}>
-                      <div className={styles.applicantInfo}>
-                        <div className={styles.avatar}>
-                          {req.fullName?.charAt(0) || 'A'}
-                        </div>
-                        <div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <h3 className={styles.applicantName}>{req.fullName}</h3>
-                            <span className={`${styles.statusBadge} ${
-                              req.status === 'APPROVED' ? styles.badgeApproved :
-                              req.status === 'PENDING' ? styles.badgePending :
-                              styles.badgeRejected
-                            }`}>
-                              {req.status}
-                            </span>
-                          </div>
-                          <div className={styles.applicantSpecialty}>{req.specialization}</div>
-                        </div>
+                      <div>
+                        <h4 className={styles.applicantName}>{req.fullName}</h4>
+                        <span className={styles.applicantDept}>
+                          {req.department?.toUpperCase()} • {req.requestedRole?.toUpperCase()}
+                        </span>
                       </div>
-
-                      {req.status === 'APPROVED' && req.generatedCode && (
-                        <div className={styles.tokenDisplay}>
-                          <span className={styles.tokenLabel}>Assigned Security Key:</span>
-                          <div className={styles.tokenValueWrap}>
-                            <code className={styles.tokenCode}>{req.generatedCode}</code>
-                            <button 
-                              onClick={() => handleCopy(req.generatedCode, req.id)} 
-                              className={styles.copyBtn}
-                              title="Copy Token"
-                            >
-                              {copiedId === req.id ? <Check size={14} color="var(--color-success)" /> : <Copy size={14} />}
-                            </button>
-                          </div>
-                        </div>
-                      )}
+                      <span className={`${styles.statusBadge} ${
+                        req.status === 'APPROVED' ? styles.statusApproved :
+                        req.status === 'REJECTED' ? styles.statusRejected :
+                        styles.statusPending
+                      }`}>
+                        {req.status}
+                      </span>
                     </div>
 
-                    {/* Details Grid */}
-                    <div className={styles.detailsGrid}>
-                      <div className={styles.detailItem}>
-                        <Mail size={14} color="#888" />
+                    <div className={styles.detailsList}>
+                      <div className={styles.detailRow}>
+                        <Mail size={14} className={styles.detailIcon} />
                         <span>{req.email}</span>
                       </div>
                       {req.phone && (
-                        <div className={styles.detailItem}>
-                          <Phone size={14} color="#888" />
+                        <div className={styles.detailRow}>
+                          <Phone size={14} className={styles.detailIcon} />
                           <span>{req.phone}</span>
                         </div>
                       )}
                       {req.councilRegNo && (
-                        <div className={styles.detailItem}>
-                          <Award size={14} color="var(--color-gold)" />
-                          <span>COA Reg: <strong>{req.councilRegNo}</strong></span>
+                        <div className={styles.detailRow}>
+                          <Award size={14} className={styles.detailIcon} />
+                          <span>CoA Reg: <strong>{req.councilRegNo}</strong></span>
                         </div>
                       )}
-                      <div className={styles.detailItem}>
-                        <Clock size={14} color="#888" />
-                        <span>Requested: {new Date(req.requestedAt).toLocaleDateString('en-IN', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
-                      </div>
+                      {req.specialization && (
+                        <div className={styles.detailRow}>
+                          <Compass size={14} className={styles.detailIcon} />
+                          <span>{req.specialization}</span>
+                        </div>
+                      )}
                     </div>
 
                     {req.bio && (
                       <div className={styles.bioBox}>
-                        <strong>Portfolio / Experience Statement:</strong> {req.bio}
+                        <strong>Background:</strong> {req.bio}
                       </div>
                     )}
 
-                    {/* Action Buttons for PENDING */}
+                    {req.status === 'APPROVED' && req.generatedCode && (
+                      <div className={styles.keyIssuedBox}>
+                        <div className={styles.keyLabel}>ISSUED SECURITY ACCESS KEY:</div>
+                        <div className={styles.keyRow}>
+                          <code className={styles.keyCode}>{req.generatedCode}</code>
+                          <button
+                            onClick={() => handleCopy(req.generatedCode, req.id)}
+                            className={styles.copyBtn}
+                            title="Copy Code"
+                          >
+                            {copiedId === req.id ? <Check size={14} color="#4ade80" /> : <Copy size={14} />}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
                     {req.status === 'PENDING' && (
                       <div className={styles.actionRow}>
                         <button
@@ -353,15 +501,15 @@ export default function DesignerApprovalsPage() {
                           disabled={approvingId === req.id}
                           className={styles.approveBtn}
                         >
-                          <KeyRound size={15} />
-                          <span>{approvingId === req.id ? 'Generating Key...' : 'Approve & Issue Unique Key'}</span>
+                          <CheckCircle2 size={15} />
+                          <span>{approvingId === req.id ? 'Authorizing...' : 'Authorize & Issue Key'}</span>
                         </button>
 
                         {rejectingId === req.id ? (
                           <div className={styles.rejectForm}>
                             <input
                               type="text"
-                              placeholder="Reason for rejection (optional)..."
+                              placeholder="Reason for declining access..."
                               value={rejectReason}
                               onChange={(e) => setRejectReason(e.target.value)}
                               className={styles.rejectInput}
@@ -372,7 +520,7 @@ export default function DesignerApprovalsPage() {
                         ) : (
                           <button onClick={() => setRejectingId(req.id)} className={styles.rejectBtn}>
                             <XCircle size={15} />
-                            <span>Reject</span>
+                            <span>Decline</span>
                           </button>
                         )}
                       </div>
@@ -383,18 +531,198 @@ export default function DesignerApprovalsPage() {
             ) : (
               <div className={styles.emptyState}>
                 <KeyRound size={36} color="var(--color-gold)" />
-                <h4 style={{ color: '#fff', fontSize: '1.1rem', margin: '8px 0 4px' }}>No Applications Found</h4>
-                <p style={{ color: '#888', fontSize: '0.85rem', maxWidth: '380px' }}>
-                  {filterTab === 'PENDING' 
-                    ? 'All pending designer access requests have been approved or reviewed!'
-                    : 'No access requests matching your current filter criteria.'}
+                <h4 style={{ color: '#fff', fontSize: '1.1rem', margin: '8px 0 4px' }}>No Access Requests Found</h4>
+                <p style={{ color: '#888', fontSize: '0.85rem' }}>No pending architectural signup requests matching filter criteria.</p>
+              </div>
+            )}
+          </>
+        )}
+
+        {/* SECTION 2: CLIENT PASSWORD CHANGE AUDIT LOG */}
+        {activeSection === 'CLIENT_PASSWORDS' && (
+          <>
+            {/* Info Banner */}
+            <div style={{
+              background: 'rgba(34, 197, 94, 0.07)',
+              border: '1px solid rgba(34, 197, 94, 0.25)',
+              borderRadius: '8px',
+              padding: '10px 14px',
+              marginBottom: '16px',
+              fontSize: '0.83rem',
+              color: '#b0e8c0',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}>
+              <ShieldCheck size={16} color="#22c55e" />
+              <span>
+                <strong>Client Self-Service Password Updates:</strong> Clients can now update their own password directly from their profile. Each change is automatically applied and logged here for your audit trail.
+              </span>
+            </div>
+
+            <div className={styles.controlBar}>
+              <div className={styles.filterTabs}>
+                {['ALL', 'APPLIED', 'APPROVED', 'PENDING', 'REJECTED'].map((tab) => (
+                  <button
+                    key={tab}
+                    className={`${styles.filterBtn} ${pwFilterTab === tab ? styles.filterBtnActive : ''}`}
+                    onClick={() => setPwFilterTab(tab)}
+                  >
+                    {tab === 'ALL' && `All Changes (${clientPwRequests.length})`}
+                    {tab === 'APPLIED' && `Auto-Applied (${clientPwRequests.filter(r => r.status === 'APPLIED').length})`}
+                    {tab === 'APPROVED' && `Manually Approved`}
+                    {tab === 'PENDING' && `Pending (${pendingClientPwCount})`}
+                    {tab === 'REJECTED' && `Declined`}
+                  </button>
+                ))}
+              </div>
+
+              <div className={styles.searchWrap}>
+                <Search size={16} className={styles.searchIcon} />
+                <input
+                  type="text"
+                  placeholder="Search by client name, email, client ID..."
+                  value={pwSearchTerm}
+                  onChange={(e) => setPwSearchTerm(e.target.value)}
+                  className={styles.searchInput}
+                />
+              </div>
+            </div>
+
+            {filteredClientPwRequests.length > 0 ? (
+              <div className={styles.requestsGrid}>
+                {filteredClientPwRequests.map((req) => {
+                  const isPending = req.status === 'PENDING';
+                  const isApproved = req.status === 'APPROVED';
+                  const isRevealed = Boolean(revealedPasswords[req.id]);
+
+                  return (
+                    <div key={req.id} className={styles.requestCard}>
+                      <div className={styles.cardHeader}>
+                        <div>
+                          <h4 className={styles.applicantName}>{req.client_name}</h4>
+                          <span className={styles.applicantDept}>
+                            Client ID: <strong>{req.client_code || req.client_id}</strong>
+                          </span>
+                        </div>
+                        <span className={`${styles.statusBadge} ${
+                          req.status === 'APPLIED' ? styles.statusApproved :
+                          req.status === 'APPROVED' ? styles.statusApproved :
+                          req.status === 'REJECTED' ? styles.statusRejected :
+                          styles.statusPending
+                        }`}>
+                          {req.status === 'APPLIED' ? '✓ Applied' : req.status === 'PENDING' ? 'Awaiting Authorization' : req.status}
+                        </span>
+                      </div>
+
+                      <div className={styles.detailsList}>
+                        <div className={styles.detailRow}>
+                          <Mail size={14} className={styles.detailIcon} />
+                          <span>{req.client_email}</span>
+                        </div>
+                        <div className={styles.detailRow}>
+                          <Clock size={14} className={styles.detailIcon} />
+                          <span>Submitted: {new Date(req.submitted_at).toLocaleString('en-IN')}</span>
+                        </div>
+                      </div>
+
+                      {/* Password Box */}
+                      <div style={{
+                        background: 'rgba(201, 168, 76, 0.08)',
+                        border: '1px solid rgba(201, 168, 76, 0.25)',
+                        borderRadius: '8px',
+                        padding: '12px 14px',
+                        margin: '12px 0',
+                        fontSize: '0.84rem'
+                      }}>
+                        {req.status === 'APPLIED' || req.status === 'APPROVED' ? (
+                          <div style={{ fontSize: '0.8rem', color: '#4ade80', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <CheckCircle2 size={14} />
+                            Password updated successfully by client on {new Date(req.submitted_at).toLocaleString('en-IN')}
+                          </div>
+                        ) : (
+                          <>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                              <span style={{ color: '#aaa', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 600 }}>
+                                Requested New Password:
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => togglePasswordVisibility(req.id)}
+                                style={{ background: 'transparent', border: 'none', color: '#c9a84c', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.72rem' }}
+                              >
+                                {isRevealed ? <EyeOff size={13} /> : <Eye size={13} />}
+                                {isRevealed ? 'Hide' : 'Reveal'}
+                              </button>
+                            </div>
+                            <div style={{ fontSize: '1rem', fontWeight: 700, color: '#22c55e', letterSpacing: isRevealed ? '0.5px' : '3px' }}>
+                              {isRevealed ? (req.requested_password || '(hidden)') : '••••••••••••'}
+                            </div>
+                          </>
+                        )}
+                      </div>
+
+                      {req.reason && (
+                        <div className={styles.bioBox}>
+                          <strong>Client Reason:</strong> {req.reason}
+                        </div>
+                      )}
+
+                      {req.approved_at && (
+                        <div style={{ fontSize: '0.75rem', color: '#4ade80', marginTop: '8px' }}>
+                          ✓ Authorized by {req.approved_by || 'Designer'} on {new Date(req.approved_at).toLocaleDateString('en-IN')}
+                        </div>
+                      )}
+
+                      {/* Action Row for PENDING */}
+                      {isPending && (
+                        <div className={styles.actionRow} style={{ marginTop: '14px' }}>
+                          <button
+                            onClick={() => handleApproveClientPassword(req.id)}
+                            disabled={approvingPwId === req.id}
+                            className={styles.approveBtn}
+                          >
+                            <CheckCircle2 size={15} />
+                            <span>{approvingPwId === req.id ? 'Updating...' : 'Authorize & Apply Password'}</span>
+                          </button>
+
+                          {rejectingPwId === req.id ? (
+                            <div className={styles.rejectForm}>
+                              <input
+                                type="text"
+                                placeholder="Reason for declining..."
+                                value={pwRejectReason}
+                                onChange={(e) => setPwRejectReason(e.target.value)}
+                                className={styles.rejectInput}
+                              />
+                              <button onClick={() => handleRejectClientPassword(req.id)} className={styles.confirmRejectBtn}>Confirm</button>
+                              <button onClick={() => setRejectingPwId(null)} className={styles.cancelRejectBtn}>Cancel</button>
+                            </div>
+                          ) : (
+                            <button onClick={() => setRejectingPwId(req.id)} className={styles.rejectBtn}>
+                              <XCircle size={15} />
+                              <span>Decline</span>
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className={styles.emptyState}>
+                <ShieldCheck size={36} color="var(--color-gold)" />
+                <h4 style={{ color: '#fff', fontSize: '1.1rem', margin: '8px 0 4px' }}>No Password Changes Yet</h4>
+                <p style={{ color: '#888', fontSize: '0.85rem' }}>
+                  Client password updates appear here as an audit log. Clients can change their own passwords directly from their profile portal.
                 </p>
               </div>
             )}
           </>
         )}
 
-        {/* SECTION 2: EMAIL CHANGE REQUESTS */}
+        {/* SECTION 3: EMAIL CHANGE REQUESTS */}
         {activeSection === 'EMAIL' && (
           <>
             <div className={styles.controlBar}>
@@ -407,7 +735,7 @@ export default function DesignerApprovalsPage() {
                   >
                     {tab === 'ALL' && `All Requests (${emailRequests.length})`}
                     {tab === 'PENDING' && `Pending (${pendingEmailCount})`}
-                    {tab === 'APPROVED' && `Approved (${emailRequests.filter(r => r.status === 'APPROVED').length})`}
+                    {tab === 'APPROVED' && `Approved`}
                     {tab === 'REJECTED' && 'Rejected'}
                   </button>
                 ))}
@@ -415,9 +743,9 @@ export default function DesignerApprovalsPage() {
 
               <div className={styles.searchWrap}>
                 <Search size={16} className={styles.searchIcon} />
-                <input 
+                <input
                   type="text"
-                  placeholder="Search by name, current email, or new email..."
+                  placeholder="Search by staff name, old email, new email..."
                   value={emailSearchTerm}
                   onChange={(e) => setEmailSearchTerm(e.target.value)}
                   className={styles.searchInput}
@@ -426,90 +754,42 @@ export default function DesignerApprovalsPage() {
             </div>
 
             {filteredEmailRequests.length > 0 ? (
-              <div className={styles.requestsList}>
+              <div className={styles.requestsGrid}>
                 {filteredEmailRequests.map((req) => (
-                  <div key={req.id} className={`${styles.requestCard} ${req.status === 'PENDING' ? styles.cardPending : ''}`}>
+                  <div key={req.id} className={styles.requestCard}>
                     <div className={styles.cardHeader}>
-                      <div className={styles.applicantInfo}>
-                        <div className={styles.avatar}>
-                          {req.fullName?.charAt(0) || 'D'}
-                        </div>
-                        <div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <h3 className={styles.applicantName}>{req.fullName}</h3>
-                            <span className={`${styles.statusBadge} ${
-                              req.status === 'APPROVED' ? styles.badgeApproved :
-                              req.status === 'PENDING' ? styles.badgePending :
-                              styles.badgeRejected
-                            }`}>
-                              {req.status}
-                            </span>
-                            {req.department && (
-                              <span className={styles.emailDepartmentTag}>
-                                {req.department}
-                              </span>
-                            )}
-                          </div>
-                          <div className={styles.applicantSpecialty}>
-                            Token: {req.company_code || 'Verified Staff'} • Role: {req.role || 'Designer'}
-                          </div>
-                        </div>
+                      <div>
+                        <h4 className={styles.applicantName}>{req.fullName}</h4>
+                        <span className={styles.applicantDept}>
+                          {req.department?.toUpperCase()} • {req.role?.toUpperCase()}
+                        </span>
                       </div>
-
-                      {req.status === 'APPROVED' && (
-                        <div style={{ fontSize: '0.8rem', color: 'var(--color-success)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          <CheckCircle2 size={16} />
-                          <span>Approved by {req.approvedBy || 'Owner'}</span>
-                        </div>
-                      )}
+                      <span className={`${styles.statusBadge} ${
+                        req.status === 'APPROVED' ? styles.statusApproved :
+                        req.status === 'REJECTED' ? styles.statusRejected :
+                        styles.statusPending
+                      }`}>
+                        {req.status}
+                      </span>
                     </div>
 
-                    {/* Email Flow Visualizer */}
-                    <div className={styles.emailFlowWrap}>
-                      <div className={styles.emailFlowOld}>
-                        <Mail size={14} />
-                        <span>Current: <strong>{req.currentEmail}</strong></span>
+                    <div className={styles.detailsList}>
+                      <div className={styles.detailRow}>
+                        <Mail size={14} className={styles.detailIcon} />
+                        <span>Current: <del style={{ color: '#888' }}>{req.currentEmail}</del></span>
                       </div>
-                      <ArrowRight size={16} color="var(--color-gold)" />
-                      <div className={styles.emailFlowNew}>
-                        <Mail size={14} />
-                        <span>Requested New: <strong>{req.requestedEmail}</strong></span>
+                      <div className={styles.detailRow}>
+                        <ArrowRight size={14} style={{ color: 'var(--color-gold)' }} />
+                        <span>Requested New: <strong style={{ color: '#4ade80' }}>{req.requestedEmail}</strong></span>
                       </div>
-                    </div>
-
-                    {/* Request Details */}
-                    <div className={styles.detailsGrid}>
-                      <div className={styles.detailItem}>
-                        <Clock size={14} color="#888" />
-                        <span>Submitted: {new Date(req.requestedAt).toLocaleDateString('en-IN', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
-                      </div>
-                      {req.approvedAt && (
-                        <div className={styles.detailItem}>
-                          <CheckCircle2 size={14} color="var(--color-success)" />
-                          <span>Approved: {new Date(req.approvedAt).toLocaleDateString('en-IN', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
-                        </div>
-                      )}
-                      {req.rejectedAt && (
-                        <div className={styles.detailItem}>
-                          <XCircle size={14} color="#f87171" />
-                          <span>Rejected: {new Date(req.rejectedAt).toLocaleDateString('en-IN', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
-                        </div>
-                      )}
                     </div>
 
                     {req.reason && (
                       <div className={styles.bioBox}>
-                        <strong>Reason for Email Change:</strong> {req.reason}
+                        <strong>Reason:</strong> {req.reason}
                       </div>
                     )}
 
-                    {req.rejectionReason && (
-                      <div style={{ background: 'rgba(239, 68, 68, 0.1)', padding: '10px 14px', borderRadius: '6px', borderLeft: '3px solid #f87171', color: '#fca5a5', fontSize: '0.82rem' }}>
-                        <strong>Rejection Reason:</strong> {req.rejectionReason}
-                      </div>
-                    )}
-
-                    {/* Action Buttons for PENDING */}
                     {req.status === 'PENDING' && (
                       <div className={styles.actionRow}>
                         <button
@@ -518,14 +798,14 @@ export default function DesignerApprovalsPage() {
                           className={styles.approveBtn}
                         >
                           <CheckCircle2 size={15} />
-                          <span>{approvingEmailId === req.id ? 'Updating Account...' : 'Approve & Update Email ID'}</span>
+                          <span>{approvingEmailId === req.id ? 'Updating...' : 'Approve & Update Email ID'}</span>
                         </button>
 
                         {rejectingEmailId === req.id ? (
                           <div className={styles.rejectForm}>
                             <input
                               type="text"
-                              placeholder="Reason for declining email change..."
+                              placeholder="Reason for declining..."
                               value={emailRejectReason}
                               onChange={(e) => setEmailRejectReason(e.target.value)}
                               className={styles.rejectInput}
@@ -548,11 +828,7 @@ export default function DesignerApprovalsPage() {
               <div className={styles.emptyState}>
                 <Mail size={36} color="var(--color-gold)" />
                 <h4 style={{ color: '#fff', fontSize: '1.1rem', margin: '8px 0 4px' }}>No Email Change Requests</h4>
-                <p style={{ color: '#888', fontSize: '0.85rem', maxWidth: '380px' }}>
-                  {emailFilterTab === 'PENDING' 
-                    ? 'All email change requests have been reviewed!' 
-                    : 'No email change requests matching your current filter criteria.'}
-                </p>
+                <p style={{ color: '#888', fontSize: '0.85rem' }}>No staff email update requests found.</p>
               </div>
             )}
           </>

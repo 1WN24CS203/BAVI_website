@@ -118,6 +118,19 @@ CREATE TABLE IF NOT EXISTS public.email_change_requests (
     rejection_reason   TEXT
 );
 
+-- Client Password Change Log (self-service password updates by clients)
+CREATE TABLE IF NOT EXISTS public.client_password_log (
+    id               TEXT PRIMARY KEY,
+    client_id        TEXT,
+    client_code      VARCHAR(100),
+    client_name      VARCHAR(255) NOT NULL,
+    client_email     VARCHAR(255) NOT NULL,
+    reason           TEXT,
+    status           VARCHAR(50) DEFAULT 'APPLIED',
+    submitted_at     TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    designer_notified BOOLEAN DEFAULT TRUE
+);
+
 
 -- ----------------------------------------------------------------
 -- STEP 4: Performance Indexes (Safe IF NOT EXISTS)

@@ -76,27 +76,27 @@ export default function LoginPage() {
       <div className={styles.formSide}>
         <div className={styles.formCard}>
           <h2 className={styles.formTitle}>Client Sign In</h2>
-          <p className={styles.formSubtitle}>Enter your account credentials to access your dashboard</p>
+          <p className={styles.formSubtitle}>Enter your designer-issued credentials to access your private dashboard</p>
 
           <form onSubmit={handleSubmit} className={styles.form} id="login-form">
             <div className={styles.formGroup}>
-              <label htmlFor="login-email" className={styles.formLabel}>Email Address</label>
+              <label htmlFor="login-email" className={styles.formLabel}>Email Address or Client ID</label>
               <div className={styles.inputWrapper}>
                 <Mail size={18} className={styles.inputIcon} />
                 <input
-                  type="email"
+                  type="text"
                   id="login-email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className={styles.formInput}
-                  placeholder="your@email.com"
+                  placeholder="your@email.com or BAVI-CLI-XXXX"
                   required
                 />
               </div>
             </div>
 
             <div className={styles.formGroup}>
-              <label htmlFor="login-password" className={styles.formLabel}>Password</label>
+              <label htmlFor="login-password" className={styles.formLabel}>Password (Issued by Designer)</label>
               <div className={styles.inputWrapper}>
                 <Lock size={18} className={styles.inputIcon} />
                 <input
@@ -105,7 +105,7 @@ export default function LoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className={styles.formInput}
-                  placeholder="Enter your password"
+                  placeholder="Enter your issued password"
                   required
                 />
                 <button
@@ -136,7 +136,7 @@ export default function LoginPage() {
                 <span className={styles.spinner} />
               ) : (
                 <>
-                  Sign In
+                  Sign In With Issued Credentials
                   <ArrowRight size={18} />
                 </>
               )}
@@ -147,9 +147,22 @@ export default function LoginPage() {
             <span>or</span>
           </div>
 
+          <div style={{
+            background: 'rgba(201, 168, 76, 0.08)',
+            border: '1px solid rgba(201, 168, 76, 0.25)',
+            borderRadius: '8px',
+            padding: '12px 14px',
+            marginBottom: '16px',
+            fontSize: '0.8rem',
+            color: '#d0d0d0',
+            lineHeight: '1.5'
+          }}>
+            <strong style={{ color: '#c9a84c' }}>First Time Here?</strong> Accounts are provisioned exclusively after a successful callback discussion and project booking approval.
+          </div>
+
           <p className={styles.signupLink}>
-            Don&apos;t have an account yet?{' '}
-            <Link href="/register" className={styles.link}>Register New Account</Link>
+            New client?{' '}
+            <Link href="/register" className={styles.link}>Book Consultation &amp; Request Access</Link>
           </p>
 
           <Link href="/" className={styles.backLink}>← Back to Home Studio</Link>
