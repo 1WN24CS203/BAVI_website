@@ -50,6 +50,7 @@ const NAV_CONFIG = {
       { href: '/dashboard/employees', label: 'Employee Directory', icon: Users },
       { href: '/dashboard/permissions', label: 'Access Permissions', icon: Lock },
       { href: '/dashboard/projects', label: 'All Projects', icon: FolderKanban },
+      { href: '/dashboard/documents', label: 'Document Vault', icon: Database },
       { href: '/dashboard/callbacks', label: 'Callback Requests', icon: PhoneCall },
       { href: '/dashboard/consultations', label: 'Consultations', icon: CalendarDays },
       { href: '/dashboard/payments', label: 'Escrow & Billing', icon: CreditCard },
@@ -62,9 +63,9 @@ const NAV_CONFIG = {
     icon: Building,
     items: [
       { href: '/dashboard', label: 'Command Center', icon: LayoutDashboard },
-      { href: '/dashboard/projects', label: 'My Projects & Milestones', icon: FolderKanban },
+      { href: '/dashboard/projects', label: 'Project Stage Manager', icon: FolderKanban },
+      { href: '/dashboard/documents', label: 'Document Vault', icon: Database },
       { href: '/dashboard/requirements', label: 'Client Requirements & SRS', icon: FileText },
-      { href: '/dashboard/documents', label: 'Document Upload Center', icon: Upload },
       { href: '/dashboard/customers', label: 'My Client Directory', icon: Users },
       { href: '/dashboard/consultations', label: 'Consultation Calendar', icon: CalendarDays },
       { href: '/dashboard/payments', label: 'Escrow & Billing', icon: CreditCard },
@@ -78,6 +79,7 @@ const NAV_CONFIG = {
     items: [
       { href: '/dashboard', label: 'Command Center', icon: LayoutDashboard },
       { href: '/dashboard/projects', label: 'Active Site Projects', icon: FolderKanban },
+      { href: '/dashboard/documents', label: 'Document Vault', icon: Database },
       { href: '/dashboard/materials', label: 'Material & Procurement', icon: PackageCheck },
       { href: '/dashboard/inspections', label: 'Quality Inspections', icon: ClipboardCheck },
       { href: '/dashboard/contractors', label: 'Contractor Registry', icon: HardHat },

@@ -24,6 +24,7 @@ const DEPARTMENT_ALLOWED_PREFIXES = {
   construction: [
     '/dashboard',
     '/dashboard/projects',
+    '/dashboard/documents',
     '/dashboard/materials',
     '/dashboard/inspections',
     '/dashboard/contractors',
