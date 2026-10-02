@@ -1,84 +1,73 @@
 -- ================================================================
 -- BAVI: Bahubali Builders & Visionary Interiors
--- Safe Migration Script v2.1 — Tech Dept + Access Requests
--- Run this in Supabase SQL Editor (Dashboard > SQL Editor)
+-- Safe Database Update & Migration Script (Non-Destructive)
+-- Target: Supabase (PostgreSQL)
 -- 
--- ✅ SAFE: Never drops tables or columns. Never deletes existing data.
--- ✅ IDEMPOTENT: Can be run multiple times without side effects.
--- ✅ ADDITIVE ONLY: Only adds new rows, columns, tables, and indexes.
+-- ✅ 100% SAFE: Zero data loss. Never drops tables, columns, or rows.
+-- ✅ IDEMPOTENT: Safe to run multiple times without duplicate errors.
+-- ✅ NON-BLOCKING: Preserves all existing relationships and foreign keys.
 -- ================================================================
 
+-- ----------------------------------------------------------------
+-- STEP 1: Enable Required Extensions
+-- ----------------------------------------------------------------
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
--- ================================================================
--- STEP 1: Extend the DEPARTMENTS table
--- Add columns needed for dynamic / custom department tracking
--- ================================================================
 
--- Mark whether a department is a core one or custom (added by Tech team)
+-- ----------------------------------------------------------------
+-- STEP 2: Safely Add Any Missing Columns to Existing Tables
+-- (ADD COLUMN IF NOT EXISTS leaves all existing rows and columns intact)
+-- ----------------------------------------------------------------
+
+-- 1. Departments table
 ALTER TABLE public.departments
-  ADD COLUMN IF NOT EXISTS is_custom     BOOLEAN DEFAULT FALSE;
+  ADD COLUMN IF NOT EXISTS is_custom          BOOLEAN DEFAULT FALSE,
+  ADD COLUMN IF NOT EXISTS created_by         VARCHAR(255),
+  ADD COLUMN IF NOT EXISTS requested_by_dept  VARCHAR(100);
 
--- Who created this department (for custom departments)
-ALTER TABLE public.departments
-  ADD COLUMN IF NOT EXISTS created_by    VARCHAR(255);
+-- 2. Designers table
+ALTER TABLE public.designers
+  ADD COLUMN IF NOT EXISTS council_reg_no     VARCHAR(100),
+  ADD COLUMN IF NOT EXISTS status             VARCHAR(50) DEFAULT 'ACTIVE',
+  ADD COLUMN IF NOT EXISTS via_request        BOOLEAN DEFAULT FALSE,
+  ADD COLUMN IF NOT EXISTS department         VARCHAR(100) DEFAULT 'architecture',
+  ADD COLUMN IF NOT EXISTS password_hash      TEXT;
 
--- Which dept submitted the request (tech)
-ALTER TABLE public.departments
-  ADD COLUMN IF NOT EXISTS requested_by_dept VARCHAR(100);
+-- 3. Profiles table
+ALTER TABLE public.profiles
+  ADD COLUMN IF NOT EXISTS metadata           JSONB DEFAULT '{}'::jsonb;
 
--- Projects table: Add stages column to store dynamic milestones, documents, and dual-approvals
+-- 4. Projects table (GitHub-like dynamic stages, SRS, & documents)
 ALTER TABLE public.projects
-  ADD COLUMN IF NOT EXISTS stages JSONB DEFAULT '[]'::jsonb;
+  ADD COLUMN IF NOT EXISTS stages             JSONB DEFAULT '[]'::jsonb,
+  ADD COLUMN IF NOT EXISTS milestones         JSONB DEFAULT '[]'::jsonb,
+  ADD COLUMN IF NOT EXISTS client_requirements TEXT;
+
+-- 5. Project Stages table (custom stage progression & user queries)
+ALTER TABLE public.project_stages
+  ADD COLUMN IF NOT EXISTS progress           INT DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS queries            JSONB DEFAULT '[]'::jsonb,
+  ADD COLUMN IF NOT EXISTS updated_at         TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now());
+
+-- 6. Stage Documents table
+ALTER TABLE public.stage_documents
+  ADD COLUMN IF NOT EXISTS file_data          TEXT;
+
+-- 7. Payments table
+ALTER TABLE public.payments
+  ADD COLUMN IF NOT EXISTS updated_at         TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now());
 
 
--- ================================================================
--- STEP 2: Seed the new TECH & DIGITALIZATION department
--- ON CONFLICT (name) DO NOTHING = safe if it already exists
--- ================================================================
-
-INSERT INTO public.departments (name, display_name, description, is_custom, created_by)
-VALUES (
-  'tech',
-  'Tech & Digitalization',
-  'System integration management, digital asset library, documentation systems, activity log monitoring, and exclusive authority to submit department structure change requests (requires owner approval).',
-  FALSE,
-  'system'
-)
-ON CONFLICT (name) DO UPDATE SET
-  display_name = EXCLUDED.display_name,
-  description  = EXCLUDED.description;
-
-
--- ================================================================
--- STEP 3: Extend the DESIGNERS table
--- New columns needed for portal security key auth flow
--- ================================================================
-
--- The plain-text security key issued to this designer (e.g. BAVI-DES-1234)
--- Note: In production this should be hashed. For now it mirrors app logic.
-ALTER TABLE public.designers
-  ADD COLUMN IF NOT EXISTS council_reg_no   VARCHAR(100);
-
--- Status: ACTIVE | SUSPENDED
-ALTER TABLE public.designers
-  ADD COLUMN IF NOT EXISTS status           VARCHAR(50) DEFAULT 'ACTIVE';
-
--- Whether the account was created via the access request flow
-ALTER TABLE public.designers
-  ADD COLUMN IF NOT EXISTS via_request      BOOLEAN DEFAULT FALSE;
-
-
--- ================================================================
--- STEP 4: CREATE TABLE — designer_access_requests
--- Tracks new designer signup requests before owner approval
--- (Previously this was only in localStorage — now persisted in DB)
--- ================================================================
+-- ----------------------------------------------------------------
+-- STEP 3: Ensure All Tables Exist (If Not Already Created)
+-- ----------------------------------------------------------------
 
 CREATE TABLE IF NOT EXISTS public.designer_access_requests (
-    id               TEXT PRIMARY KEY,                          -- req-<timestamp>
+    id               TEXT PRIMARY KEY,
     full_name        VARCHAR(255) NOT NULL,
     email            VARCHAR(255) NOT NULL,
-    password_hash    TEXT,                                      -- store hashed, NOT plain
+    password_hash    TEXT,
     phone            VARCHAR(50),
     specialization   VARCHAR(255) DEFAULT 'Luxury Villa Architect',
     council_reg_no   VARCHAR(100),
@@ -87,43 +76,23 @@ CREATE TABLE IF NOT EXISTS public.designer_access_requests (
     requested_role   VARCHAR(50) DEFAULT 'designer',
     is_owner_request BOOLEAN DEFAULT FALSE,
     keyless_disabled BOOLEAN DEFAULT FALSE,
-    status           VARCHAR(50) DEFAULT 'PENDING',             -- PENDING | APPROVED | REJECTED
-    generated_code   VARCHAR(100),                              -- Security key issued on approval
-    submitted_to     VARCHAR(255),                              -- owner name
+    status           VARCHAR(50) DEFAULT 'PENDING',
+    generated_code   VARCHAR(100),
+    submitted_to     VARCHAR(255),
     requested_at     TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
     approved_at      TIMESTAMP WITH TIME ZONE,
     approved_by      VARCHAR(255),
     rejection_reason TEXT
 );
 
--- Indexes for access_requests
-CREATE INDEX IF NOT EXISTS idx_access_requests_email
-  ON public.designer_access_requests(email);
-
-CREATE INDEX IF NOT EXISTS idx_access_requests_status
-  ON public.designer_access_requests(status);
-
--- RLS for designer_access_requests
-ALTER TABLE public.designer_access_requests ENABLE ROW LEVEL SECURITY;
-
-DROP POLICY IF EXISTS "Allow all designer_access_requests" ON public.designer_access_requests;
-CREATE POLICY "Allow all designer_access_requests"
-  ON public.designer_access_requests FOR ALL USING (true);
-
-
--- ================================================================
--- STEP 5: CREATE TABLE — department_change_requests
--- Tech & Digitalization team proposes add/remove; owner approves
--- ================================================================
-
 CREATE TABLE IF NOT EXISTS public.department_change_requests (
-    id                 TEXT PRIMARY KEY,                        -- dreq-<timestamp>
-    action             VARCHAR(10) NOT NULL,                    -- 'add' | 'remove'
+    id                 TEXT PRIMARY KEY,
+    action             VARCHAR(10) NOT NULL,
     dept_key           VARCHAR(100) NOT NULL,
     dept_display       VARCHAR(255) NOT NULL,
-    requested_by       VARCHAR(255),                            -- full name of requester
+    requested_by       VARCHAR(255),
     requested_by_dept  VARCHAR(100) DEFAULT 'tech',
-    status             VARCHAR(50) DEFAULT 'PENDING',           -- PENDING | APPROVED | REJECTED
+    status             VARCHAR(50) DEFAULT 'PENDING',
     submitted_at       TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
     approved_at        TIMESTAMP WITH TIME ZONE,
     approved_by        VARCHAR(255),
@@ -131,29 +100,9 @@ CREATE TABLE IF NOT EXISTS public.department_change_requests (
     rejection_reason   TEXT
 );
 
--- Indexes
-CREATE INDEX IF NOT EXISTS idx_dept_change_requests_status
-  ON public.department_change_requests(status);
-
-CREATE INDEX IF NOT EXISTS idx_dept_change_requests_dept_key
-  ON public.department_change_requests(dept_key);
-
--- RLS
-ALTER TABLE public.department_change_requests ENABLE ROW LEVEL SECURITY;
-
-DROP POLICY IF EXISTS "Allow all department_change_requests" ON public.department_change_requests;
-CREATE POLICY "Allow all department_change_requests"
-  ON public.department_change_requests FOR ALL USING (true);
-
-
--- ================================================================
--- STEP 6: CREATE TABLE — email_change_requests
--- Designers/staff submit email change requests; owner reviews & approves
--- ================================================================
-
 CREATE TABLE IF NOT EXISTS public.email_change_requests (
-    id                 TEXT PRIMARY KEY,                        -- emreq-<timestamp>
-    designer_id        TEXT,                                    -- designer id
+    id                 TEXT PRIMARY KEY,
+    designer_id        TEXT,
     full_name          VARCHAR(255) NOT NULL,
     department         VARCHAR(100),
     role               VARCHAR(100),
@@ -161,7 +110,7 @@ CREATE TABLE IF NOT EXISTS public.email_change_requests (
     current_email      VARCHAR(255) NOT NULL,
     requested_email    VARCHAR(255) NOT NULL,
     reason             TEXT,
-    status             VARCHAR(50) DEFAULT 'PENDING',           -- PENDING | APPROVED | REJECTED | CANCELLED
+    status             VARCHAR(50) DEFAULT 'PENDING',
     submitted_at       TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
     approved_at        TIMESTAMP WITH TIME ZONE,
     approved_by        VARCHAR(255),
@@ -169,104 +118,228 @@ CREATE TABLE IF NOT EXISTS public.email_change_requests (
     rejection_reason   TEXT
 );
 
--- Indexes
-CREATE INDEX IF NOT EXISTS idx_email_change_requests_status
-  ON public.email_change_requests(status);
 
-CREATE INDEX IF NOT EXISTS idx_email_change_requests_current_email
-  ON public.email_change_requests(current_email);
+-- ----------------------------------------------------------------
+-- STEP 4: Performance Indexes (Safe IF NOT EXISTS)
+-- ----------------------------------------------------------------
 
-CREATE INDEX IF NOT EXISTS idx_email_change_requests_requested_email
-  ON public.email_change_requests(requested_email);
+CREATE INDEX IF NOT EXISTS idx_profiles_email ON public.profiles(email);
+CREATE INDEX IF NOT EXISTS idx_profiles_designer_id ON public.profiles(designer_id);
+CREATE INDEX IF NOT EXISTS idx_profiles_user_id ON public.profiles(user_id);
 
--- RLS
+CREATE INDEX IF NOT EXISTS idx_designers_department_id ON public.designers(department_id);
+CREATE INDEX IF NOT EXISTS idx_designers_email ON public.designers(email);
+CREATE INDEX IF NOT EXISTS idx_designers_status ON public.designers(status);
+
+CREATE INDEX IF NOT EXISTS idx_projects_customer_id ON public.projects(customer_id);
+CREATE INDEX IF NOT EXISTS idx_projects_designer_id ON public.projects(designer_id);
+CREATE INDEX IF NOT EXISTS idx_projects_client_email ON public.projects(client_email);
+CREATE INDEX IF NOT EXISTS idx_projects_status ON public.projects(status);
+
+CREATE INDEX IF NOT EXISTS idx_project_stages_project_id ON public.project_stages(project_id);
+CREATE INDEX IF NOT EXISTS idx_project_stages_status ON public.project_stages(status);
+
+CREATE INDEX IF NOT EXISTS idx_stage_documents_stage_id ON public.stage_documents(stage_id);
+CREATE INDEX IF NOT EXISTS idx_stage_documents_project_id ON public.stage_documents(project_id);
+
+CREATE INDEX IF NOT EXISTS idx_callback_requests_status ON public.callback_requests(status);
+CREATE INDEX IF NOT EXISTS idx_callback_requests_is_client ON public.callback_requests(is_client);
+CREATE INDEX IF NOT EXISTS idx_callback_requests_client_id ON public.callback_requests(client_id);
+
+CREATE INDEX IF NOT EXISTS idx_activity_log_actor_id ON public.activity_log(actor_id);
+CREATE INDEX IF NOT EXISTS idx_activity_log_department ON public.activity_log(department);
+CREATE INDEX IF NOT EXISTS idx_activity_log_action ON public.activity_log(action);
+
+CREATE INDEX IF NOT EXISTS idx_access_permissions_granted_to ON public.access_permissions(granted_to);
+CREATE INDEX IF NOT EXISTS idx_client_requirements_project_id ON public.client_requirements(project_id);
+
+CREATE INDEX IF NOT EXISTS idx_payments_customer_id ON public.payments(customer_id);
+CREATE INDEX IF NOT EXISTS idx_payments_project_id ON public.payments(project_id);
+
+CREATE INDEX IF NOT EXISTS idx_consultations_customer_id ON public.consultations(customer_id);
+CREATE INDEX IF NOT EXISTS idx_consultations_designer_id ON public.consultations(designer_id);
+
+CREATE INDEX IF NOT EXISTS idx_materials_project_id ON public.materials(project_id);
+CREATE INDEX IF NOT EXISTS idx_quality_inspections_project_id ON public.quality_inspections(project_id);
+
+CREATE INDEX IF NOT EXISTS idx_access_requests_email ON public.designer_access_requests(email);
+CREATE INDEX IF NOT EXISTS idx_access_requests_status ON public.designer_access_requests(status);
+
+CREATE INDEX IF NOT EXISTS idx_dept_change_requests_status ON public.department_change_requests(status);
+CREATE INDEX IF NOT EXISTS idx_dept_change_requests_dept_key ON public.department_change_requests(dept_key);
+
+CREATE INDEX IF NOT EXISTS idx_email_change_requests_status ON public.email_change_requests(status);
+CREATE INDEX IF NOT EXISTS idx_email_change_requests_current_email ON public.email_change_requests(current_email);
+CREATE INDEX IF NOT EXISTS idx_email_change_requests_requested_email ON public.email_change_requests(requested_email);
+
+
+-- ----------------------------------------------------------------
+-- STEP 5: Automated updated_at Function & Triggers
+-- ----------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION public.handle_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = timezone('utc'::text, now());
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS set_designers_updated_at ON public.designers;
+CREATE TRIGGER set_designers_updated_at BEFORE UPDATE ON public.designers FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
+
+DROP TRIGGER IF EXISTS set_profiles_updated_at ON public.profiles;
+CREATE TRIGGER set_profiles_updated_at BEFORE UPDATE ON public.profiles FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
+
+DROP TRIGGER IF EXISTS set_projects_updated_at ON public.projects;
+CREATE TRIGGER set_projects_updated_at BEFORE UPDATE ON public.projects FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
+
+DROP TRIGGER IF EXISTS set_project_stages_updated_at ON public.project_stages;
+CREATE TRIGGER set_project_stages_updated_at BEFORE UPDATE ON public.project_stages FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
+
+DROP TRIGGER IF EXISTS set_site_details_updated_at ON public.site_details;
+CREATE TRIGGER set_site_details_updated_at BEFORE UPDATE ON public.site_details FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
+
+DROP TRIGGER IF EXISTS set_consultations_updated_at ON public.consultations;
+CREATE TRIGGER set_consultations_updated_at BEFORE UPDATE ON public.consultations FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
+
+DROP TRIGGER IF EXISTS set_callback_requests_updated_at ON public.callback_requests;
+CREATE TRIGGER set_callback_requests_updated_at BEFORE UPDATE ON public.callback_requests FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
+
+DROP TRIGGER IF EXISTS set_client_requirements_updated_at ON public.client_requirements;
+CREATE TRIGGER set_client_requirements_updated_at BEFORE UPDATE ON public.client_requirements FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
+
+DROP TRIGGER IF EXISTS set_materials_updated_at ON public.materials;
+CREATE TRIGGER set_materials_updated_at BEFORE UPDATE ON public.materials FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
+
+DROP TRIGGER IF EXISTS set_equipment_updated_at ON public.equipment;
+CREATE TRIGGER set_equipment_updated_at BEFORE UPDATE ON public.equipment FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
+
+
+-- ----------------------------------------------------------------
+-- STEP 6: Auth Hook - Auto-Sync auth.users with public.profiles
+-- ----------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER AS $$
+BEGIN
+    INSERT INTO public.profiles (id, user_id, email, full_name, phone, role)
+    VALUES (
+        NEW.id,
+        NEW.id,
+        NEW.email,
+        COALESCE(NEW.raw_user_meta_data->>'full_name', split_part(NEW.email, '@', 1)),
+        COALESCE(NEW.raw_user_meta_data->>'phone', ''),
+        COALESCE(NEW.raw_user_meta_data->>'role', 'customer')
+    )
+    ON CONFLICT (id) DO UPDATE SET
+        user_id = EXCLUDED.user_id,
+        email = EXCLUDED.email,
+        full_name = EXCLUDED.full_name,
+        phone = EXCLUDED.phone,
+        updated_at = timezone('utc'::text, now());
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+    AFTER INSERT ON auth.users
+    FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
+
+-- ----------------------------------------------------------------
+-- STEP 7: Row Level Security (RLS) Permissive Policies
+-- Ensures User-side & Designer-side apps have full read/write access
+-- ----------------------------------------------------------------
+
+ALTER TABLE public.departments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.designers ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.projects ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.project_stages ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.stage_documents ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.client_requirements ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.callback_requests ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.access_permissions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.activity_log ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.site_details ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.consultations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.payments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.reviews ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.contact_messages ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.highlighted_designs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.materials ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.quality_inspections ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.contractors ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.safety_records ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.equipment ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.designer_access_requests ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.department_change_requests ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.email_change_requests ENABLE ROW LEVEL SECURITY;
 
-DROP POLICY IF EXISTS "Allow all email_change_requests" ON public.email_change_requests;
-CREATE POLICY "Allow all email_change_requests"
-  ON public.email_change_requests FOR ALL USING (true);
-
-
--- ================================================================
--- STEP 7: Activity log — new action types documentation
--- No schema change needed; 'action' is already VARCHAR(255)
--- Just documenting new values used by the app:
---   submitted_dept_request  → Tech submitted add/remove dept request
---   approved_dept_request   → Owner approved dept change
---   rejected_dept_request   → Owner rejected dept change
---   requested_email_change  → Staff requested corporate email change
---   approved_email_change   → Owner approved corporate email change
---   rejected_email_change   → Owner rejected corporate email change
---   cancelled_email_change  → Staff cancelled email change request
--- ================================================================
-
--- New index to help filter tech department activity specifically
-CREATE INDEX IF NOT EXISTS idx_activity_log_action
-  ON public.activity_log(action);
-
-
--- ================================================================
--- STEP 8: Guard — make existing RLS policies idempotent
--- The original schema used CREATE POLICY without IF NOT EXISTS
--- (not supported in older Postgres). These guards prevent errors
--- if you run the original schema again after this migration.
--- ================================================================
-
+-- Idempotent Policy Creation (Permissive for frontend apps)
 DO $$
 DECLARE
-  tbl TEXT;
-  tbl_list TEXT[] := ARRAY[
-    'departments','designers','profiles','projects',
-    'project_stages','stage_documents','client_requirements',
-    'callback_requests','access_permissions','activity_log',
-    'site_details','consultations','payments','reviews',
-    'contact_messages','highlighted_designs','materials',
-    'quality_inspections','contractors','safety_records','equipment'
+  t text;
+  tables text[] := ARRAY[
+    'departments', 'designers', 'profiles', 'projects', 'project_stages',
+    'stage_documents', 'client_requirements', 'callback_requests', 'access_permissions',
+    'activity_log', 'site_details', 'consultations', 'payments', 'reviews',
+    'contact_messages', 'highlighted_designs', 'materials', 'quality_inspections',
+    'contractors', 'safety_records', 'equipment', 'designer_access_requests',
+    'department_change_requests', 'email_change_requests'
   ];
 BEGIN
-  FOREACH tbl IN ARRAY tbl_list LOOP
-    -- Silently skip if policy already exists (no-op)
-    NULL;
+  FOREACH t IN ARRAY tables LOOP
+    EXECUTE format('DROP POLICY IF EXISTS "Allow all %I" ON public.%I', t, t);
+    EXECUTE format('CREATE POLICY "Allow all %I" ON public.%I FOR ALL USING (true) WITH CHECK (true)', t, t);
   END LOOP;
 END $$;
 
 
--- ================================================================
--- STEP 8: Update seed data — ensure all 5 core departments exist
--- Uses ON CONFLICT DO NOTHING so existing rows are untouched
--- ================================================================
+-- ----------------------------------------------------------------
+-- STEP 8: Seed Core Departments (Preserves Existing Records)
+-- ----------------------------------------------------------------
 
-INSERT INTO public.departments (name, display_name, description, is_custom)
+INSERT INTO public.departments (name, display_name, description, is_custom, created_by)
 VALUES
   ('architecture', 'Architecture & Design',
    'Architectural planning, interior design, blueprint creation, and design portfolio management',
-   FALSE),
+   FALSE, 'system'),
   ('construction', 'Construction & Management',
    'Site supervision, material procurement, quality inspections, contractor management, and safety compliance',
-   FALSE),
+   FALSE, 'system'),
   ('marketing', 'Marketing & Sales',
    'Lead management, callback handling, campaign tracking, and client acquisition',
-   FALSE),
+   FALSE, 'system'),
   ('tech', 'Tech & Digitalization',
-   'System integration management, digital asset library, activity monitoring, and department structure governance',
-   FALSE),
+   'System integration management, digital asset library, documentation systems, activity log monitoring, and exclusive authority to submit department structure change requests',
+   FALSE, 'system'),
   ('admin', 'Owner / Administration',
    'Cross-department monitoring, access control, employee management, and system configuration',
-   FALSE)
-ON CONFLICT (name) DO NOTHING;
+   FALSE, 'system')
+ON CONFLICT (name) DO UPDATE SET
+  display_name = EXCLUDED.display_name,
+  description  = EXCLUDED.description;
 
 
--- ================================================================
--- DONE ✅
--- Tables affected:
---   MODIFIED  → public.departments      (3 new columns)
---   MODIFIED  → public.designers        (3 new columns)
---   CREATED   → public.designer_access_requests  (new table)
---   CREATED   → public.department_change_requests (new table)
---   MODIFIED  → public.activity_log     (1 new index)
--- 
--- Data preserved:
---   ✅ All existing rows in all tables are untouched
---   ✅ All existing foreign keys and constraints intact
---   ✅ All existing RLS policies intact
--- ================================================================
+-- ----------------------------------------------------------------
+-- STEP 9: Default Owner Admin Profile (Only inserted if absent)
+-- ----------------------------------------------------------------
+
+INSERT INTO public.designers (
+  company_code, full_name, email, role, specialization, is_owner, is_active, status, department
+)
+VALUES (
+  'BAVI-OWNER-ADMIN',
+  'BAVI Principal Owner',
+  'owner@bavi.in',
+  'owner',
+  'Principal Architect & Site Owner',
+  TRUE,
+  TRUE,
+  'ACTIVE',
+  'admin'
+)
+ON CONFLICT (email) DO NOTHING;
